@@ -20,12 +20,12 @@ jobs:
 
       - name: Prepare release APK
         run: |
-          cp android/app/build/outputs/apk/production/debug/app-production-debug.apk School-Attendance-v0.1.0-alpha.apk
+          cp android/app/build/outputs/apk/production/debug/app-production-debug.apk School-Attendance-v0.1.1-alpha.apk
           cp android/app/build/outputs/apk/demo/debug/app-demo-debug.apk School-Attendance-Demo-v0.1.0.apk
       - uses: actions/upload-artifact@v4
         with:
           name: school-attendance-original-apk
-          path: School-Attendance-v0.1.0-alpha.apk
+          path: School-Attendance-v0.1.1-alpha.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
@@ -36,15 +36,15 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-alpha
-          name: School Attendance v0.1.0 Alpha
+          tag_name: v0.1.1-alpha
+          name: School Attendance v0.1.1 Alpha
           prerelease: true
           generate_release_notes: true
           body: |
             Initial Android development build of the School Attendance Management System.
 
             This APK uses the shared Cloudflare Worker + D1 backend.
-          files: School-Attendance-v0.1.0-alpha.apk
+          files: School-Attendance-v0.1.1-alpha.apk
       - name: Publish no-sign-in Demo Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
