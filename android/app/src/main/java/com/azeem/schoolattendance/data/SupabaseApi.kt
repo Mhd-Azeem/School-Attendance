@@ -35,7 +35,7 @@ class SupabaseApi(private val store: SessionStore) {
         return auth.user
     }
 
-    suspend fun classes(): List<SchoolClass> {
+    suspend fun me(): Profile {\n        return client.get("${BuildConfig.API_URL}/api/auth/me") { common() }.body<MeResponse>().user\n    }\n\n    suspend fun classes(): List<SchoolClass> {
         return client.get("${BuildConfig.API_URL}/api/classes") {
             common()
         }.body<ClassesResponse>().classes
