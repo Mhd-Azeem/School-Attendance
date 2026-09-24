@@ -11,15 +11,13 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
-import io.ktor.client.request.contentType
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 class SupabaseApi(private val store: SessionStore) {
     private val client = HttpClient(Android) {
-        install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
-        }
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
     }
 
     private fun io.ktor.client.request.HttpRequestBuilder.common() {
@@ -35,7 +33,13 @@ class SupabaseApi(private val store: SessionStore) {
         return auth.user
     }
 
-    suspend fun me(): Profile {\n        return client.get("${BuildConfig.API_URL}/api/auth/me") { common() }.body<MeResponse>().user\n    }\n\n    suspend fun classes(): List<SchoolClass> {
+    suspend fun me(): Profile {
+        return client.get("${BuildConfig.API_URL}/api/auth/me") {
+            common()
+        }.body<MeResponse>().user
+    }
+
+    suspend fun classes(): List<SchoolClass> {
         return client.get("${BuildConfig.API_URL}/api/classes") {
             common()
         }.body<ClassesResponse>().classes
@@ -47,7 +51,5 @@ class SupabaseApi(private val store: SessionStore) {
         }.body<StudentsResponse>().students
     }
 
-    fun logout() {
-        store.clear()
-    }
+    fun logout() { store.clear() }
 }
