@@ -17,9 +17,7 @@ jobs:
       - name: Build original and demo APKs
         run: gradle testProductionDebugUnitTest testDemoDebugUnitTest assembleProductionDebug assembleDemoDebug
         working-directory: android
-        env:
-          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+
       - name: Prepare release APK
         run: |
           cp android/app/build/outputs/apk/production/debug/app-production-debug.apk School-Attendance-v0.1.0-alpha.apk
@@ -45,8 +43,7 @@ jobs:
           body: |
             Initial Android development build of the School Attendance Management System.
 
-            This APK uses the shared Supabase backend. Configure the repository variables
-            `SUPABASE_URL` and `SUPABASE_ANON_KEY`, then rerun this workflow before real use.
+            This APK uses the shared Cloudflare Worker + D1 backend.
           files: School-Attendance-v0.1.0-alpha.apk
       - name: Publish no-sign-in Demo Release
         if: github.ref == 'refs/heads/main'
@@ -66,5 +63,5 @@ jobs:
             - Demonstrates Present, Absent, Late, Mark All Present, totals,
               confirmation and local submission success
 
-            This demo does not connect to Supabase and does not store real attendance.
+            This demo does not connect to the production backend and does not store real attendance.
           files: School-Attendance-Demo-v0.1.0.apk
