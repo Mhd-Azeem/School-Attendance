@@ -14,16 +14,27 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - run: gradle testDebugUnitTest assembleDebug
+      - name: Build original and demo APKs
+        run: gradle testProductionDebugUnitTest testDemoDebugUnitTest assembleProductionDebug assembleDemoDebug
         working-directory: android
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
       - name: Prepare release APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk School-Attendance-v0.1.0-alpha.apk
+        run: |
+          cp android/app/build/outputs/apk/production/debug/app-production-debug.apk School-Attendance-v0.1.0-alpha.apk
+          cp android/app/build/outputs/apk/demo/debug/app-demo-debug.apk School-Attendance-Demo-v0.1.0.apk
       - uses: actions/upload-artifact@v4
-        with: { name: school-attendance-debug-apk, path: School-Attendance-v0.1.0-alpha.apk, if-no-files-found: error }
-      - name: Publish GitHub Release
+        with:
+          name: school-attendance-original-apk
+          path: School-Attendance-v0.1.0-alpha.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: school-attendance-demo-apk
+          path: School-Attendance-Demo-v0.1.0.apk
+          if-no-files-found: error
+      - name: Publish original GitHub Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
@@ -37,3 +48,23 @@ jobs:
             This APK uses the shared Supabase backend. Configure the repository variables
             `SUPABASE_URL` and `SUPABASE_ANON_KEY`, then rerun this workflow before real use.
           files: School-Attendance-v0.1.0-alpha.apk
+      - name: Publish no-sign-in Demo Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0-demo
+          name: School Attendance Demo v0.1.0
+          prerelease: false
+          generate_release_notes: false
+          body: |
+            No-sign-in interface demonstration of the School Attendance Management System.
+
+            - Opens directly without an account
+            - Works fully offline with fictional students
+            - Includes the Section Head dashboard
+            - Includes the Teacher attendance workflow
+            - Demonstrates Present, Absent, Late, Mark All Present, totals,
+              confirmation and local submission success
+
+            This demo does not connect to Supabase and does not store real attendance.
+          files: School-Attendance-Demo-v0.1.0.apk

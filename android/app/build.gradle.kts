@@ -9,6 +9,19 @@ android {
   buildConfigField("String","SUPABASE_ANON_KEY","\"${local.getProperty("SUPABASE_ANON_KEY",System.getenv("SUPABASE_ANON_KEY")?:"")}\"")
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
+ flavorDimensions += "mode"
+ productFlavors {
+  create("production") {
+   dimension="mode"
+   buildConfigField("boolean","DEMO_MODE","false")
+  }
+  create("demo") {
+   dimension="mode"
+   applicationIdSuffix=".demo"
+   versionNameSuffix="-demo"
+   buildConfigField("boolean","DEMO_MODE","true")
+  }
+ }
  buildFeatures { compose=true; buildConfig=true }
  buildTypes { release { isMinifyEnabled=true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),"proguard-rules.pro") } }
  compileOptions { sourceCompatibility=JavaVersion.VERSION_17; targetCompatibility=JavaVersion.VERSION_17 }
@@ -23,4 +36,3 @@ dependencies {
  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"); implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
  debugImplementation("androidx.compose.ui:ui-tooling"); testImplementation("junit:junit:4.13.2")
 }
-
