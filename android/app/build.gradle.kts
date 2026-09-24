@@ -5,8 +5,7 @@ android {
  namespace="com.azeem.schoolattendance"; compileSdk=36
  defaultConfig {
   applicationId="com.azeem.schoolattendance"; minSdk=26; targetSdk=36; versionCode=1; versionName="0.1.0"
-  buildConfigField("String","SUPABASE_URL","\"${local.getProperty("SUPABASE_URL",System.getenv("SUPABASE_URL")?:"")}\"")
-  buildConfigField("String","SUPABASE_ANON_KEY","\"${local.getProperty("SUPABASE_ANON_KEY",System.getenv("SUPABASE_ANON_KEY")?:"")}\"")
+  buildConfigField("String","API_URL","\"https://school-attendance-api.azeemzahira111.workers.dev\"")
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
  flavorDimensions += "mode"
