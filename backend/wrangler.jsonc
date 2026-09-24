@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "school-attendance-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-24",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "school-attendance-db",
+      "database_id": "6b287ba4-7dab-48c5-bd56-3776ba347730"
+    }
+  ]
+}
