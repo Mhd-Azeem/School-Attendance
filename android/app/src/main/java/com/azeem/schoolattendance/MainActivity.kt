@@ -5,6 +5,10 @@ import android.os.Bundle
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import androidx.webkit.WebViewAssetLoader
+import androidx.webkit.WebViewClientCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -56,9 +60,15 @@ fun OriginalApp() {
                 settings.databaseEnabled=true
                 settings.allowFileAccess=true
                 settings.allowContentAccess=true
-                webViewClient=WebViewClient()
+                val assetLoader=WebViewAssetLoader.Builder()
+                    .addPathHandler("/assets/",WebViewAssetLoader.AssetsPathHandler(ctx))
+                    .build()
+                webViewClient=object:WebViewClientCompat(){
+                    override fun shouldInterceptRequest(view:WebView,request:WebResourceRequest):WebResourceResponse?=
+                        assetLoader.shouldInterceptRequest(request.url)
+                }
                 webChromeClient=WebChromeClient()
-                loadUrl("file:///android_asset/web/index.html")
+                loadUrl("https://appassets.androidplatform.net/assets/web/index.html")
                 webView=this
             }
         }
