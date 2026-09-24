@@ -14,6 +14,21 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: 'npm', cache-dependency-path: web/package-lock.json }
+      - name: Build complete web app for Original APK
+        working-directory: web
+        env:
+          VITE_API_URL: https://school-attendance-api.azeemzahira111.workers.dev
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Bundle web app into Original APK
+        run: |
+          rm -rf android/app/src/main/assets/web
+          mkdir -p android/app/src/main/assets/web
+          cp -R web/dist/. android/app/src/main/assets/web/
       - name: Build Original APK
         run: gradle testProductionDebugUnitTest assembleProductionDebug
         working-directory: android
