@@ -10,10 +10,9 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 class SupabaseApi(private val store:SessionStore){
  private val client=HttpClient(Android){install(ContentNegotiation){json(Json{ignoreUnknownKeys=true})}}
- private fun HttpRequestBuilder.common(){header("apikey",BuildConfig.SUPABASE_ANON_KEY);store.accessToken?.let{header(HttpHeaders.Authorization,"Bearer $it")}}
- suspend fun login(email:String,password:String):Profile{require(BuildConfig.SUPABASE_URL.isNotBlank()){"Supabase is not configured"};val auth:AuthResponse=client.post("${BuildConfig.SUPABASE_URL}/auth/v1/token?grant_type=password"){header("apikey",BuildConfig.SUPABASE_ANON_KEY);contentType(ContentType.Application.Json);setBody(AuthRequest(email,password))}.body();store.accessToken=auth.accessToken;store.refreshToken=auth.refreshToken;return profile(auth.user.id)}
- suspend fun profile(id:String):Profile=client.get("${BuildConfig.SUPABASE_URL}/rest/v1/profiles"){common();parameter("id","eq.$id");parameter("select","id,full_name,role,is_active");header("Accept","application/vnd.pgrst.object+json")}.body()
- suspend fun classes(): List<SchoolClass> = client.get("${BuildConfig.SUPABASE_URL}/rest/v1/classes"){common();parameter("select","id,display_name,grade_id");parameter("is_active","eq.true");parameter("order","display_name")}.body()
- suspend fun students(classId:String): List<Student> = client.get("${BuildConfig.SUPABASE_URL}/rest/v1/students"){common();parameter("select","id,admission_number,full_name,class_id,is_active");parameter("class_id","eq.$classId");parameter("is_active","eq.true");parameter("order","admission_number")}.body()
+ private fun HttpRequestBuilder.common(){store.accessToken?.let{header(HttpHeaders.Authorization,"Bearer $it")}}
+ suspend fun login(username:String,password:String):Profile{val auth:LoginResponse=client.post("${BuildConfig.API_URL}/api/auth/login"){contentType(ContentType.Application.Json);setBody(LoginRequest(username,password))}.body();store.accessToken=auth.token;return auth.user}
+ suspend fun classes():List<SchoolClass>=client.get("${BuildConfig.API_URL}/api/classes"){common()}.body<ClassesResponse>().classes
+ suspend fun students(classId:String):List<Student>=client.get("${BuildConfig.API_URL}/api/classes/${classId}/students"){common()}.body<StudentsResponse>().students
  fun logout(){store.clear()}
 }
