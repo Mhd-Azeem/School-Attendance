@@ -16,6 +16,12 @@ jobs:
         with: { gradle-version: '8.13' }
       - uses: actions/setup-node@v4
         with: { node-version: '24', cache: 'npm', cache-dependency-path: web/package-lock.json }
+      - name: Prepare Zahira College branding
+        run: |
+          mkdir -p web/public
+          base64 -d branding/zahira-logo.jpg.b64 > web/public/zahira-logo.jpg
+          mkdir -p android/app/src/main/res/drawable
+          base64 -d branding/zahira-logo.jpg.b64 > android/app/src/main/res/drawable/zahira_logo.jpg
       - name: Build complete web app for Original APK
         working-directory: web
         env:
