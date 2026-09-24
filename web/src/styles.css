@@ -7,3 +7,5 @@
 .teacher-form,.settings-form{display:grid;gap:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:18px}.check-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.check-grid label,.toggle{display:flex;align-items:center;gap:7px}.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}.filters>*{min-height:42px}.login-help{display:block;margin-top:18px;color:#718390}@media(max-width:700px){.check-grid{grid-template-columns:repeat(2,1fr)}.filters{display:grid}.filters>*{width:100%}}
 
 .status-control button span{margin-left:5px}.status-control button{white-space:nowrap}
+
+.brand img{width:48px;height:48px;object-fit:cover;border-radius:50%;background:#fff}.crest-logo{width:96px;height:96px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 16px;box-shadow:0 4px 18px #0002}
