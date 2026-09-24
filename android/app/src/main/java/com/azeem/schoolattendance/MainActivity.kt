@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import com.azeem.schoolattendance.data.*
+import com.azeem.schoolattendance.update.*
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -31,6 +33,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AttendanceApp(api: SupabaseApi, store: SessionStore) {
+    val context=LocalContext.current
+    var update by remember { mutableStateOf<AppUpdate?>(null) }
+    LaunchedEffect(Unit) { runCatching { UpdateChecker.check() }.onSuccess { update=it } }
+    update?.let { u ->
+        AlertDialog(onDismissRequest={update=null},title={Text("Update available")},text={Text("School Attendance ${u.version} is available. Download the latest original APK?")},confirmButton={TextButton(onClick={UpdateChecker.openDownload(context,u);update=null}){Text("Update")}},dismissButton={TextButton(onClick={update=null}){Text("Later")}})
+    }
     var profile by remember { mutableStateOf<Profile?>(null) }
     var restoring by remember { mutableStateOf(store.accessToken != null) }
     LaunchedEffect(Unit) {
