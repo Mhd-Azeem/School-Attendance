@@ -27,10 +27,12 @@ private val demoStudents=listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun DemoTopBar(title:String,onBack:(()->Unit)?=null){TopAppBar(navigationIcon={if(onBack!=null)TextButton(onClick=onBack){Text("‹ Back")}},title={Column{Text(title,fontWeight=FontWeight.Bold);Text("OFFLINE DEMO · NO SIGN-IN",style=MaterialTheme.typography.labelSmall,color=Color(0xFFB76A00))}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Color.White))}
 
+@Composable private fun DemoFooter(){Surface(tonalElevation=1.dp){Box(Modifier.fillMaxWidth().padding(vertical=8.dp),contentAlignment=Alignment.Center){DeveloperCredit()}}}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun DemoDashboard(onOpenAttendance:()->Unit){
  val classes=(10..11).flatMap{g->('A'..'E').map{"$g-$it"}}
- Scaffold(topBar={DemoTopBar("School Attendance Demo")}){pad->LazyColumn(Modifier.fillMaxSize().padding(pad).background(Color(0xFFF4F7F9)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+ Scaffold(topBar={DemoTopBar("School Attendance Demo")},bottomBar={DemoFooter()}){pad->LazyColumn(Modifier.fillMaxSize().padding(pad).background(Color(0xFFF4F7F9)).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
   item{Column{Text("Section Head Dashboard",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text("Thursday, 24 September 2026",color=Color.Gray)}}
   item{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){DemoStat("Present","326",Color(0xFF16845B),Modifier.weight(1f));DemoStat("Absent","18",Color(0xFFC44848),Modifier.weight(1f));DemoStat("Late","7",Color(0xFFC37912),Modifier.weight(1f))}}
   item{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){DemoStat("Attendance","94.9%",Color(0xFF256F9E),Modifier.weight(1f));DemoStat("Submitted","8/10",Color(0xFF173B57),Modifier.weight(1f))}}
@@ -48,7 +50,7 @@ private val demoStudents=listOf(
  var statuses by remember{mutableStateOf(demoStudents.associate{it.admission to DemoStatus.PRESENT})}
  val present=statuses.values.count{it==DemoStatus.PRESENT};val absent=statuses.values.count{it==DemoStatus.ABSENT};val late=statuses.values.count{it==DemoStatus.LATE}
  if(confirm)AlertDialog(onDismissRequest={confirm=false},title={Text("Submit attendance for 10-A?")},text={Text("Present: $present\nAbsent: $absent\nLate: $late\n\n24 September 2026")},dismissButton={TextButton(onClick={confirm=false}){Text("Cancel")}},confirmButton={Button(onClick={confirm=false;submitted=true}){Text("Confirm Submission")}})
- Scaffold(topBar={DemoTopBar("Class 10-A",onBack)}){pad->Column(Modifier.fillMaxSize().padding(pad).background(Color(0xFFF4F7F9))){
+ Scaffold(topBar={DemoTopBar("Class 10-A",onBack)},bottomBar={DemoFooter()}){pad->Column(Modifier.fillMaxSize().padding(pad).background(Color(0xFFF4F7F9))){
   if(submitted)Box(Modifier.fillMaxSize().padding(24.dp),contentAlignment=Alignment.Center){Card(colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.padding(32.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(12.dp)){Text("✓",style=MaterialTheme.typography.displayMedium,color=Color(0xFF16845B));Text("Attendance Submitted",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text("Demo submission completed locally.\nNo information was sent to a server.",color=Color.Gray);Button(onClick={submitted=false}){Text("Try Again")}}}}
   else LazyColumn(Modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
    item{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(7.dp)){DemoCount("Present",present,Color(0xFF16845B),Modifier.weight(1f));DemoCount("Absent",absent,Color(0xFFC44848),Modifier.weight(1f));DemoCount("Late",late,Color(0xFFC37912),Modifier.weight(1f));DemoCount("Total",demoStudents.size,Color(0xFF173B57),Modifier.weight(1f))}}
@@ -60,4 +62,3 @@ private val demoStudents=listOf(
 }
 
 @Composable private fun DemoCount(label:String,value:Int,color:Color,modifier:Modifier){Surface(modifier,shape=RoundedCornerShape(8.dp),color=Color.White){Column(Modifier.padding(9.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(value.toString(),fontWeight=FontWeight.Bold,color=color);Text(label,style=MaterialTheme.typography.labelSmall)}}}
-
