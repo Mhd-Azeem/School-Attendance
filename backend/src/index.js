@@ -6,7 +6,7 @@ const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join(
 async function sha256(s){return hex(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)))}
 async function hashPassword(password,salt=id()){const data=new TextEncoder().encode(password);const key=await crypto.subtle.importKey("raw",data,"PBKDF2",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:210000,hash:"SHA-256"},key,256);return "pbkdf2$210000$"+salt+"$"+hex(bits)}
 async function verifyPassword(password,stored){const [kind,it,salt,want]=stored.split("$");if(kind!=="pbkdf2")return false;const data=new TextEncoder().encode(password);const key=await crypto.subtle.importKey("raw",data,"PBKDF2",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:Number(it),hash:"SHA-256"},key,256);return hex(bits)===want}
-async function userFromRequest(req,env){const h=req.headers.get("authorization")||"";if(!h.startsWith("Bearer "))return null;const token=h.slice(7);const th=await sha256(token);return env.DB.prepare(`SELECT u.id,u.full_name,u.email,u.role,u.is_active FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>datetime('now') AND u.is_active=1`).bind(th).first()}
+async function userFromRequest(req,env){const h=req.headers.get("authorization")||"";if(!h.startsWith("Bearer "))return null;const token=h.slice(7);const th=await sha256(token);return env.DB.prepare(`SELECT u.id,u.full_name,u.username,u.role,u.is_active FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>datetime('now') AND u.is_active=1`).bind(th).first()}
 async function canClass(env,u,classId){if(u.role==="SECTION_HEAD")return true;return !!await env.DB.prepare("SELECT 1 ok FROM teacher_class_assignments WHERE teacher_id=? AND class_id=? AND is_active=1").bind(u.id,classId).first()}
 async function json(req){try{return await req.json()}catch{return null}}
 
@@ -22,17 +22,17 @@ export default {async fetch(req,env){
     if(p==="/api/setup/section-head"&&req.method==="POST"){
       const exists=await env.DB.prepare("SELECT 1 FROM users WHERE role='SECTION_HEAD' LIMIT 1").first();
       if(exists)return out({error:"initial_setup_complete"},409);
-      const b=await json(req); if(!b?.full_name||!b?.email||!b?.password||b.password.length<10)return out({error:"full_name_email_and_password_min_10_required"},400);
+      const b=await json(req); if(!b?.full_name||!b?.username||!b?.password||b.password.length<10)return out({error:"full_name_username_and_password_min_10_required"},400);
       const uid=id(), ph=await hashPassword(b.password);
-      await env.DB.prepare("INSERT INTO users(id,full_name,email,password_hash,role) VALUES(?,?,?,?, 'SECTION_HEAD')").bind(uid,b.full_name.trim(),b.email.trim().toLowerCase(),ph).run();
+      await env.DB.prepare("INSERT INTO users(id,full_name,email,username,password_hash,role) VALUES(?,?,?,?,?, 'SECTION_HEAD')").bind(uid,b.full_name.trim(),b.username.trim().toLowerCase()+'@local.invalid',b.username.trim().toLowerCase(),ph).run();
       return out({ok:true,user_id:uid},201);
     }
     if(p==="/api/auth/login"&&req.method==="POST"){
-      const b=await json(req); const u=await env.DB.prepare("SELECT * FROM users WHERE email=? COLLATE NOCASE AND is_active=1").bind(b?.email||"").first();
+      const b=await json(req); const u=await env.DB.prepare("SELECT * FROM users WHERE username=? COLLATE NOCASE AND is_active=1").bind(b?.username||"").first();
       if(!u||!await verifyPassword(b?.password||"",u.password_hash))return out({error:"invalid_credentials"},401);
       const token=hex(crypto.getRandomValues(new Uint8Array(32))), th=await sha256(token), sid=id();
       await env.DB.prepare("INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES(?,?,?,datetime('now','+30 days'))").bind(sid,u.id,th).run();
-      return out({token,user:{id:u.id,full_name:u.full_name,email:u.email,role:u.role}});
+      return out({token,user:{id:u.id,full_name:u.full_name,username:u.username,role:u.role}});
     }
     const u=await userFromRequest(req,env); if(!u)return out({error:"unauthorized"},401);
     if(p==="/api/auth/me"&&req.method==="GET")return out({user:u});
