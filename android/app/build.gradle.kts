@@ -8,19 +8,6 @@ android {
   buildConfigField("String","API_URL","\"https://school-attendance-api.azeemzahira111.workers.dev\"")
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
- flavorDimensions += "mode"
- productFlavors {
-  create("production") {
-   dimension="mode"
-   buildConfigField("boolean","DEMO_MODE","false")
-  }
-  create("demo") {
-   dimension="mode"
-   applicationIdSuffix=".demo"
-   versionNameSuffix="-demo"
-   buildConfigField("boolean","DEMO_MODE","true")
-  }
- }
  buildFeatures { compose=true; buildConfig=true }
  buildTypes { release { isMinifyEnabled=true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),"proguard-rules.pro") } }
  compileOptions { sourceCompatibility=JavaVersion.VERSION_17; targetCompatibility=JavaVersion.VERSION_17 }
