@@ -1,0 +1,14 @@
+name: Database checks
+on:
+  push:
+    paths: ['database/**', '.github/workflows/database.yml']
+  pull_request:
+    paths: ['database/**']
+jobs:
+  syntax-and-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required protections
+        run: bash scripts/check-schema.sh
+

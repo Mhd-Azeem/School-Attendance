@@ -1,31 +1,74 @@
-# School Attendance
+# School Attendance Management System
 
-Attendance system for Grade 10 and Grade 11 (A-E), with Teacher and Section Head portals.
+A shared attendance platform for Grade 10 and Grade 11. Teachers use a focused attendance portal; the Section Head sees every class, submissions, students, teachers, reports and audit history. The React PWA and Android app use the same Supabase authentication and PostgreSQL database.
 
-## Current starter
-- Responsive installable PWA for Android/iPhone/desktop
-- Teacher attendance screen: Present / Absent / Late, Mark All Present, Submit
-- Section Head dashboard for all 10 classes
-- Offline app shell
-- PostgreSQL/Supabase-ready schema
-- Android project + CI scaffold
+## Current baseline
 
-The web UI currently uses local demo data so it can run immediately. Before real student use, connect authentication/data operations to Supabase and add complete RLS policies. **Do not use real student records until server-side authorization is enabled and tested.**
+- Supabase PostgreSQL schema with row-level security and backend-enforced teacher/class access
+- Transactional attendance submission with one session per class/date
+- Immutable attendance change history and administrative audit log
+- React + TypeScript responsive PWA with teacher and Section Head portals
+- Offline-safe local attendance drafts; success is shown only after server confirmation
+- Kotlin + Jetpack Compose Android client foundation using the same Supabase project
+- CSV student import validation, report CSV export, school calendar and configurable low-attendance threshold
+- GitHub Actions for web tests/build, database lint checks and Android APK build artifacts
 
-## Run web
-Serve the repository root with any static web server. GitHub Pages workflow deploys it automatically.
+## Architecture
 
-## Database
-Create a Supabase project, run `database/schema.sql`, then implement and test RLS policies for Section Head vs assigned teachers. Never expose a service-role key in the browser or APK.
+```text
+web/PWA (React) ─┐
+                 ├─ Supabase Auth + PostgREST/RPC + PostgreSQL
+Android (Kotlin) ┘                         │
+                              RLS, constraints, audit triggers
+```
 
-## Android
-The Android module is a lightweight WebView shell. Set `APP_URL` in `android/app/build.gradle.kts` to the deployed HTTPS PWA URL before release.
+Public clients receive only the Supabase **anon** key. Authorization is enforced by database RLS and security-definer RPC functions. The service-role key must never be placed in either client.
 
-## Roadmap
-1. Supabase auth + strict RLS
-2. Real student/teacher management and CSV import
-3. Attendance audit/corrections
-4. Reports/PDF/CSV
-5. School calendar and low-attendance alerts
-6. Robust offline sync/conflict handling
-7. Production security testing
+## Repository
+
+```text
+/web       React/TypeScript PWA
+/android   Kotlin/Jetpack Compose Android app
+/database  SQL migrations and database tests
+/docs      setup, rollout and security notes
+/scripts   local verification helpers
+```
+
+## Local setup
+
+1. Create a Supabase project and set its region close to Sri Lanka.
+2. Run `database/migrations/0001_initial.sql` in the Supabase SQL editor.
+3. Create the first Section Head account in Supabase Authentication.
+4. In SQL, insert its profile using the authenticated user's UUID (instructions are in `docs/SETUP.md`).
+5. Copy `.env.example` to `web/.env.local` and fill in the public URL and anon key.
+6. Run the web application:
+
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+## Build
+
+```bash
+cd web && npm ci && npm test && npm run build
+cd android && ./gradlew testDebugUnitTest assembleDebug
+```
+
+The web build is written to `web/dist`. Android debug APK output is under `android/app/build/outputs/apk/debug/`. CI uploads the APK as a workflow artifact.
+
+## Deployment
+
+- Web: deploy `web/dist` to Cloudflare Pages, Netlify, Vercel, or another HTTPS static host. Configure SPA fallback to `index.html`.
+- Android: add repository secrets/variables described in `docs/SETUP.md`, run the Android workflow, pilot the artifact, and only then create a signed release.
+- Database: apply numbered migrations in order and enable Supabase point-in-time recovery or scheduled backups before production use.
+
+## Rollout
+
+Use fictional data first, verify Teacher and Section Head permissions, pilot one class, correct any workflow issues, then import all ten classes. See `docs/ROLLOUT.md`.
+
+## Security
+
+Do not commit student exports, real passwords, `.env` files, service-role keys, signing stores or `local.properties`. Review `docs/SECURITY.md` before real student data is imported.
+
