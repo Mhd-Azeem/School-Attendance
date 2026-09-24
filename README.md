@@ -1,74 +1,84 @@
 # School Attendance Management System
 
-A shared attendance platform for Grade 10 and Grade 11. Teachers use a focused attendance portal; the Section Head sees every class, submissions, students, teachers, reports and audit history. The React PWA and Android app use the same Supabase authentication and PostgreSQL database.
+A shared attendance platform for Grade 10 and Grade 11. Teachers use a focused attendance portal; the Section Head sees all ten classes, submissions, students, teachers, reports and audit history.
 
-## Current baseline
+## Backend architecture
 
-- Supabase PostgreSQL schema with row-level security and backend-enforced teacher/class access
-- Transactional attendance submission with one session per class/date
-- Immutable attendance change history and administrative audit log
-- React + TypeScript responsive PWA with teacher and Section Head portals
-- Offline-safe local attendance drafts; success is shown only after server confirmation
-- Kotlin + Jetpack Compose Android client foundation using the same Supabase project
-- CSV student import validation, report CSV export, school calendar and configurable low-attendance threshold
-- GitHub Actions for web tests/build, database lint checks and Android APK build artifacts
-
-## Architecture
+The project now uses **Cloudflare Workers + Cloudflare D1** instead of Supabase.
 
 ```text
-web/PWA (React) ─┐
-                 ├─ Supabase Auth + PostgREST/RPC + PostgreSQL
-Android (Kotlin) ┘                         │
-                              RLS, constraints, audit triggers
+Web/PWA ─┐
+         ├── Cloudflare Worker API ── D1 (school-attendance-db)
+Android ─┘
 ```
 
-Public clients receive only the Supabase **anon** key. Authorization is enforced by database RLS and security-definer RPC functions. The service-role key must never be placed in either client.
+The Worker is the security boundary. Browser and Android clients must never access D1 directly. Teacher/class authorization is checked by the Worker API.
 
 ## Repository
 
 ```text
 /web       React/TypeScript PWA
-/android   Kotlin/Jetpack Compose Android app
-/database  SQL migrations and database tests
+/android   Android app
+/backend   Cloudflare Worker, Wrangler config and D1 migrations
+/database  legacy Supabase/PostgreSQL files kept temporarily for reference
 /docs      setup, rollout and security notes
-/scripts   local verification helpers
 ```
 
-## Local setup
+## Cloudflare backend
 
-1. Create a Supabase project and set its region close to Sri Lanka.
-2. Run `database/migrations/0001_initial.sql` in the Supabase SQL editor.
-3. Create the first Section Head account in Supabase Authentication.
-4. In SQL, insert its profile using the authenticated user's UUID (instructions are in `docs/SETUP.md`).
-5. Copy `.env.example` to `web/.env.local` and fill in the public URL and anon key.
-6. Run the web application:
+The Worker is named `school-attendance-api` and expects this binding:
+
+```text
+DB -> school-attendance-db
+```
+
+The D1 configuration is in `backend/wrangler.jsonc`.
+
+### Apply the D1 migration
 
 ```bash
-cd web
-npm ci
-npm run dev
+cd backend
+npm install
+npx wrangler login
+npx wrangler d1 migrations apply school-attendance-db --remote
 ```
 
-## Build
+The migration creates the users, sessions, grades, ten classes (10-A to 10-E and 11-A to 11-E), students, teacher assignments, attendance, school calendar, settings and audit tables.
+
+### Deploy the Worker
 
 ```bash
-cd web && npm ci && npm test && npm run build
-cd android && ./gradlew testDebugUnitTest assembleDebug
+cd backend
+npm run deploy
 ```
 
-The web build is written to `web/dist`. Android debug APK output is under `android/app/build/outputs/apk/debug/`. CI uploads the APK as a workflow artifact.
+Test:
 
-## Deployment
+```text
+GET https://<your-worker>.workers.dev/api/health
+```
 
-- Web: deploy `web/dist` to Cloudflare Pages, Netlify, Vercel, or another HTTPS static host. Configure SPA fallback to `index.html`.
-- Android: add repository secrets/variables described in `docs/SETUP.md`, run the Android workflow, pilot the artifact, and only then create a signed release.
-- Database: apply numbered migrations in order and enable Supabase point-in-time recovery or scheduled backups before production use.
+It should return an OK response identifying D1.
 
-## Rollout
+## Initial Section Head
 
-Use fictional data first, verify Teacher and Section Head permissions, pilot one class, correct any workflow issues, then import all ten classes. See `docs/ROLLOUT.md`.
+After the D1 migration is applied, check:
+
+```text
+GET /api/setup/status
+```
+
+If initial setup is required, create the first Section Head through the bootstrap endpoint documented in `backend/README.md`. The endpoint refuses further bootstrap creation after a Section Head exists.
 
 ## Security
 
-Do not commit student exports, real passwords, `.env` files, service-role keys, signing stores or `local.properties`. Review `docs/SECURITY.md` before real student data is imported.
+- Never commit real passwords or session tokens.
+- Passwords are stored as derived hashes, not plaintext.
+- D1 is reachable only through the Worker binding.
+- Teacher access must be checked against `teacher_class_assignments`.
+- Do not import real student data until authentication and authorization tests pass.
+- The old Supabase files under `database/` are not the production backend.
 
+## Next integration stage
+
+The existing web/PWA still needs its Supabase/local demo data layer replaced with calls to the Cloudflare Worker API. Once the Worker and D1 migration are deployed successfully, connect the web and Android clients to the Worker URL.
