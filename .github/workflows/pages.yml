@@ -24,8 +24,7 @@ jobs:
       - run: npm ci && npm test && npm run build -- --mode github-pages
         working-directory: web
         env:
-          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          VITE_API_URL: https://school-attendance-api.azeemzahira111.workers.dev
           VITE_SCHOOL_TIMEZONE: Asia/Colombo
       - uses: actions/configure-pages@v5
         with: { enablement: true }
