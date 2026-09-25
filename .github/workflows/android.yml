@@ -1,7 +1,7 @@
 name: Original Android APK
 on:
   push:
-    paths: ['release-trigger/**']
+    paths: ['android/**', 'web/**', 'branding/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -39,21 +39,21 @@ jobs:
         run: gradle assembleDebug
         working-directory: android
       - name: Prepare Original APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk School-Attendance-Original-v0.2.0.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk School-Attendance-Original-v0.2.1.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: School-Attendance-Original-v0.2.0
-          path: School-Attendance-Original-v0.2.0.apk
+          name: School-Attendance-Original-v0.2.1
+          path: School-Attendance-Original-v0.2.1.apk
           if-no-files-found: error
       - name: Publish Original GitHub Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.2.0-original
-          name: School Attendance Original v0.2.0
+          tag_name: v0.2.1-original
+          name: School Attendance Original v0.2.1
           prerelease: false
           generate_release_notes: true
           body: |
-            Major green UI redesign matching the approved mobile mockup.
-            Includes Teacher and Section Head dashboards, student attendance, teacher-period attendance, profile, management, timetable setup and shared Cloudflare Worker + D1 connectivity.
-          files: School-Attendance-Original-v0.2.0.apk
+            Green UI build with Android status-bar safe-area fix.
+            Prevents the app header from overlapping the phone notification/status bar.
+          files: School-Attendance-Original-v0.2.1.apk
