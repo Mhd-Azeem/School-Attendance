@@ -239,3 +239,18 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 .period-result-card h4{margin:0;padding:11px 13px;background:#f2f9f5;color:#24513f;font-size:11px}
 .period-result-list>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 13px;border-top:1px solid #edf2ef}.period-result-list strong{font-size:10px}
 .period-result-status{font-size:9px;font-weight:800;border-radius:999px;padding:5px 8px;background:#eef2f0;color:#687b72}.period-result-status.arrived{background:#dcf7e8;color:#067447}.period-result-status.not_arrived{background:#ffebeb;color:#b12f37}.period-result-status.delayed{background:#fff1cf;color:#a86400}.period-result-status.relief{background:#e7f0ff;color:#246fd6}.period-result-status.not_arrived_relief{background:#f5e3e5;color:#8f2530}
+
+/* Mobile-safe teacher period selector: no horizontal table overflow */
+.period-status-cards{display:grid;gap:10px}
+.period-status-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 4px 14px #19583c08}
+.period-status-card>strong{display:block;font-size:12px;color:#28473b;margin-bottom:9px}
+.period-choice-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.period-choice{min-width:0;border:1px solid #dce7e1;background:#fff;border-radius:10px;padding:8px 3px;display:grid;justify-items:center;align-content:center;gap:5px;color:#667970}
+.period-choice-dot{width:17px;height:17px;border:2px solid #a8b8b0;border-radius:50%;background:#fff}
+.period-choice small{font-size:7px;font-weight:800;line-height:1.15;text-align:center;overflow-wrap:anywhere}
+.period-choice.selected{background:#f3faf6;border-color:#b9ddca}.period-choice.selected .period-choice-dot{border-width:5px;border-color:#079455}
+.period-choice.not_arrived.selected{background:#fff5f5;border-color:#f1c5c8}.period-choice.not_arrived.selected .period-choice-dot{border-color:#e23f49}
+.period-choice.delayed.selected{background:#fff9eb;border-color:#f1d8a5}.period-choice.delayed.selected .period-choice-dot{border-color:#f59e0b}
+.period-choice.relief.selected{background:#f2f7ff;border-color:#c8d9f2}.period-choice.relief.selected .period-choice-dot{border-color:#246fd6}
+.period-choice.not_arrived_relief.selected{background:#fff3f4;border-color:#e7c2c6}.period-choice.not_arrived_relief.selected .period-choice-dot{border-color:#a52c35}
+@media(max-width:430px){.period-status-card{padding:10px 8px}.period-choice-grid{gap:4px}.period-choice{padding:7px 2px}.period-choice small{font-size:6.5px}}

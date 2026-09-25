@@ -39,10 +39,12 @@ export function PeriodAttendance(){
  return <>
   <div className="screen-title-row"><div><h1>Teachers Attendance & Status</h1><p>{prettyDate(date)}</p></div>{admin?<select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select>:className&&<span className="class-chip">{className}</span>}</div>
   {msg&&<div className={msg.includes('✓')?'notice':'error'}>{msg}</div>}
-  <div className="teacher-attendance-table simple-period-register"><table>
-   <thead><tr><th>Period</th>{choices.map(([v,l])=><th key={v}>{l}</th>)}</tr></thead>
-   <tbody>{periods.map(p=><tr key={p.id}><th>{ordinal(p.period_no)}</th>{choices.map(([v])=><td key={v}><label className={'status-check '+v.toLowerCase()}><input type="radio" name={'period-'+p.id} checked={statuses[p.id]===v} onChange={()=>setStatuses(s=>({...s,[p.id]:v}))}/><span/></label></td>)}</tr>)}</tbody>
-  </table></div>
+  <div className="period-status-cards">
+   {periods.map(p=><article className="period-status-card" key={p.id}>
+    <strong>{ordinal(p.period_no)}</strong>
+    <div className="period-choice-grid">{choices.map(([v,l])=><button type="button" key={v} className={'period-choice '+v.toLowerCase()+(statuses[p.id]===v?' selected':'')} onClick={()=>setStatuses(s=>({...s,[p.id]:v}))}><span className="period-choice-dot"/><small>{l}</small></button>)}</div>
+   </article>)}
+  </div>
   {!msg&&periods.length===0&&<div className="empty-card">No periods have been configured for this class yet.</div>}
   {periods.length>0&&<div className="period-legend"><span className="green">● Arrived</span><span className="red">● Not Arrived</span><span className="amber">● Delayed</span><span className="blue">● Relief</span><span className="darkred">● No Teacher Presented</span></div>}
   {periods.length>0&&<button className="submit" onClick={save}>Submit Period Attendance</button>}
