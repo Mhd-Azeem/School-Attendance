@@ -9,7 +9,8 @@ const choices=[['ARRIVED','ARRIVED'],['NOT_ARRIVED','NOT ARRIVED'],['DELAYED','D
 const ordinal=(n:number)=>['','1st Period','2nd Period','3rd Period','4th Period','5th Period','6th Period','7th Period','8th Period','9th Period'][n]||`Period ${n}`
 
 export function PeriodAttendance(){
- const {profile}=useAuth(),date=schoolDate(),admin=profile?.role==='SECTION_HEAD'
+ const {profile}=useAuth(),admin=profile?.role==='SECTION_HEAD'
+ const [date,setDate]=useState(schoolDate())
  const [periods,setPeriods]=useState<P[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[classId,setClassId]=useState(''),[className,setClassName]=useState(''),[statuses,setStatuses]=useState<Record<string,string>>({}),[msg,setMsg]=useState('')
 
  useEffect(()=>{if(admin)api<{classes:SchoolClass[]}>('/api/classes').then(x=>{setClasses(x.classes);setClassId(x.classes[0]?.id||'')}).catch(()=>setMsg('Could not load classes.'))},[admin])
@@ -32,12 +33,13 @@ export function PeriodAttendance(){
   if(periods.some(p=>!statuses[p.id])){setMsg('Mark every period before saving.');return}
   try{
    await api('/api/period-attendance',{method:'POST',body:JSON.stringify({date,class_id:admin?classId:undefined,records:periods.map(p=>({period_id:p.id,status:statuses[p.id]}))})})
-   setMsg('Teacher attendance saved ✓')
+   setMsg('Register submitted to Section Head ✓ You can edit and resubmit it anytime.')
   }catch{setMsg('Could not save teacher attendance.')}
  }
 
  return <>
   <div className="screen-title-row"><div><h1>Teachers Attendance & Status</h1><p>{prettyDate(date)}</p></div>{admin?<select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select>:className&&<span className="class-chip">{className}</span>}</div>
+  <div className="period-date-picker"><label>Register Date<input type="date" value={date} onChange={e=>setDate(e.target.value)} max={schoolDate()}/></label><small>Default is today. Select an earlier date to view, edit or resubmit that register.</small></div>
   {msg&&<div className={msg.includes('✓')?'notice':'error'}>{msg}</div>}
   <div className="period-status-cards">
    {periods.map(p=><article className="period-status-card" key={p.id}>
@@ -47,6 +49,6 @@ export function PeriodAttendance(){
   </div>
   {!msg&&periods.length===0&&<div className="empty-card">No periods have been configured for this class yet.</div>}
   {periods.length>0&&<div className="period-legend"><span className="green">● Arrived</span><span className="red">● Not Arrived</span><span className="amber">● Delayed</span><span className="blue">● Relief</span><span className="darkred">● No Teacher Presented</span></div>}
-  {periods.length>0&&<button className="submit" onClick={save}>Submit Period Attendance</button>}
+  {periods.length>0&&<button className="submit" onClick={save}>{periods.some(p=>p.status)?'Update / Resubmit Register':'Submit Register to Section Head'}</button>}
  </>
 }

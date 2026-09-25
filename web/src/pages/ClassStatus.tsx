@@ -12,19 +12,19 @@ const statusLabel=(s?:string|null)=>s==='ARRIVED'?'Arrived':s==='NOT_ARRIVED'?'N
 
 export function ClassStatus(){
  const today=schoolDate()
- const [rows,setRows]=useState<Row[]>([]),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null)
+ const [date,setDate]=useState(today),[rows,setRows]=useState<Row[]>([]),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null)
  useEffect(()=>{(async()=>{try{
-  const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${today}`)
+  const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${date}`)
   const out:Row[]=await Promise.all(d.classes.map(async c=>{
    let periods:Period[]=[]
-   try{periods=(await api<{periods:Period[]}>(`/api/period-attendance/today?date=${today}&class_id=${encodeURIComponent(c.id)}`)).periods}catch{}
+   try{periods=(await api<{periods:Period[]}>(`/api/period-attendance/today?date=${date}&class_id=${encodeURIComponent(c.id)}`)).periods}catch{}
    const marked=Number(c.marked??(Number(c.present||0)+Number(c.absent||0)+Number(c.late||0)))
    return{...c,studentSubmitted:!!c.session_id&&marked>=Number(c.total||0),marked,periodDone:periods.filter(x=>x.status).length,periodTotal:periods.length,periods}
   }))
   setRows(out)
- }catch{setError('Could not load class submission status.')}})()},[today])
+ }catch{setError('Could not load class submission status.')}})()},[date])
 
- return <><div className="screen-title-row"><div><h1>Class Submission Status</h1><p>{prettyDate(today)}</p></div><Link className="secondary" to="/students">Manage Students</Link></div>
+ return <><div className="screen-title-row"><div><h1>Class Submission Status</h1><p>{prettyDate(date)}</p></div><Link className="secondary" to="/students">Manage Students</Link></div><div className="section-head-date-filter"><label>Submission Date<input type="date" value={date} onChange={e=>setDate(e.target.value)} max={today}/></label></div>
  {error&&<div className="error">{error}</div>}
  <section className="class-table"><div className="class-table-head"><span>Class</span><span>Student</span><span>Teacher Period</span><span>Status</span></div>
  {rows.map(r=>{const periodComplete=r.periodTotal===9&&r.periodDone===9,full=r.studentSubmitted&&periodComplete,partial=r.studentSubmitted||r.periodDone>0,canExpand=!!r.session_id||r.periodDone>0
