@@ -1,2 +1,12 @@
-<resources><style name="Theme.SchoolAttendance" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#173B57</item><item name="android:navigationBarColor">#FFFFFF</item><item name="android:statusBarColor">#173B57</item></style></resources>
-
+<resources>
+    <style name="Theme.SchoolAttendance" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#078E59</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">#006743</item>
+        <item name="android:navigationBarColor">#006743</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
