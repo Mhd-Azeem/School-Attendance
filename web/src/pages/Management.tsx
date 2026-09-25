@@ -50,15 +50,12 @@ export function Students(){
   <section className="class-student-groups">
    {grouped.map(({cls,students:list,total})=><section className="class-student-card" key={cls.id}>
     <header className="expandable-class-header" role="button" tabIndex={0} onClick={()=>setExpandedClass(x=>x===cls.id?null:cls.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setExpandedClass(x=>x===cls.id?null:cls.id)}}}><div><strong>{cls.display_name}</strong><small>{total} student{total===1?'':'s'}</small></div><div className="class-header-actions"><span>Admission order</span><ChevronDown className={expandedClass===cls.id?'rotated':''}/></div></header>
-    {expandedClass===cls.id&&<><div className="class-student-head"><span>#</span><span>Admission No.</span><span>Student Name</span><span>Status</span><span>Class</span><span>Action</span></div>
+    {expandedClass===cls.id&&<><div className="class-student-head simple-student-head"><span>#</span><span>Admission No.</span><span>Student Name</span></div>
     <div className="class-student-body">
      {list.map((s,i)=><article key={s.id}>
       <span className="student-index">{i+1}</span>
       <strong className="student-admission">{s.admission_number}</strong>
-      <div className="student-main-name"><strong>{s.full_name}</strong><small>{s.display_name}</small></div>
-      <span className={s.is_active?'status-pill active':'status-pill waiting'}>{s.is_active?'Active':'Inactive'}</span>
-      <select value={s.class_id} aria-label={`Class for ${s.full_name}`} onChange={async e=>{await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({class_id:e.target.value,reason:'Section Head transfer'})});load()}}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select>
-      <button className="link" onClick={async()=>{if(confirm(`${s.is_active?'Deactivate':'Reactivate'} ${s.full_name}?`)){await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({is_active:!s.is_active})});load()}}}>{s.is_active?'Deactivate':'Reactivate'}</button>
+      <div className="student-main-name"><strong>{s.full_name}</strong></div>
      </article>)}
      {!list.length&&<div className="class-empty-students">{search?'No matching students in this class.':'No students added to this class yet.'}</div>}
     </div></>}
