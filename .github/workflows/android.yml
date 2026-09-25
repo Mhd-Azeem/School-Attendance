@@ -43,8 +43,10 @@ jobs:
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.ANDROID_KEY_PASSWORD }}
+          KEYSTORE_PASSWORD_PRIMARY: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEYSTORE_PASSWORD_ALT: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD_PRIMARY: ${{ secrets.KEY_PASSWORD }}
+          KEY_PASSWORD_ALT: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
           test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
@@ -85,40 +87,57 @@ jobs:
             exit 1
           fi
 
-          STORE_PASS="$ANDROID_KEYSTORE_PASSWORD"
-          STORE_PASS="${STORE_PASS#ANDROID_KEYSTORE_PASSWORD=}"
-          STORE_PASS="${STORE_PASS#KEYSTORE_PASSWORD=}"
-          STORE_PASS="${STORE_PASS%\"}"
-          STORE_PASS="${STORE_PASS#\"}"
+          clean_value() {
+            local value="$1"
+            value="${value#ANDROID_KEYSTORE_PASSWORD=}"
+            value="${value#KEYSTORE_PASSWORD=}"
+            value="${value#ANDROID_KEY_PASSWORD=}"
+            value="${value#KEY_PASSWORD=}"
+            value="${value%\"}"
+            value="${value#\"}"
+            printf '%s' "$value"
+          }
 
-          STORE_HASH=$(printf '%s' "$STORE_PASS" | sha256sum | awk '{print $1}')
           EXPECTED_STORE_HASH="acc340abc1bb91efc1fe0fab3d3b3dd0ccaf2bbb2b62ca0abdd4bdc8961cd791"
-          if [ "$STORE_HASH" != "$EXPECTED_STORE_HASH" ]; then
-            echo "KEYSTORE_PASSWORD is wrong for the permanent keystore."
+          STORE_PASS=""
+          for candidate in "$KEYSTORE_PASSWORD_PRIMARY" "$KEYSTORE_PASSWORD_ALT"; do
+            candidate=$(clean_value "$candidate")
+            [ -n "$candidate" ] || continue
+            candidate_hash=$(printf '%s' "$candidate" | sha256sum | awk '{print $1}')
+            if [ "$candidate_hash" = "$EXPECTED_STORE_HASH" ]; then
+              STORE_PASS="$candidate"
+              break
+            fi
+          done
+          if [ -z "$STORE_PASS" ]; then
+            echo "Neither KEYSTORE_PASSWORD nor ANDROID_KEYSTORE_PASSWORD matches the permanent keystore."
             exit 1
           fi
 
           if ! keytool -list -keystore android/release-keystore.jks -storepass "$STORE_PASS" >/dev/null 2>&1; then
-            echo "Keystore password fingerprint matched, but keytool still rejected the keystore."
+            echo "Matched keystore password fingerprint, but keytool rejected the keystore."
             exit 1
           fi
 
-          KEY_PASS="$ANDROID_KEY_PASSWORD"
-          KEY_PASS="${KEY_PASS#ANDROID_KEY_PASSWORD=}"
-          KEY_PASS="${KEY_PASS#KEY_PASSWORD=}"
-          KEY_PASS="${KEY_PASS%\"}"
-          KEY_PASS="${KEY_PASS#\"}"
-
-          KEY_HASH=$(printf '%s' "$KEY_PASS" | sha256sum | awk '{print $1}')
           EXPECTED_KEY_HASH="4c201580789610a2fa5c1e41114a0abc586faec95b4dc0fcc0a1ab2c80ad6f6c"
-          if [ "$KEY_HASH" != "$EXPECTED_KEY_HASH" ]; then
-            echo "KEY_PASSWORD is wrong for the permanent signing key."
+          KEY_PASS=""
+          for candidate in "$KEY_PASSWORD_PRIMARY" "$KEY_PASSWORD_ALT"; do
+            candidate=$(clean_value "$candidate")
+            [ -n "$candidate" ] || continue
+            candidate_hash=$(printf '%s' "$candidate" | sha256sum | awk '{print $1}')
+            if [ "$candidate_hash" = "$EXPECTED_KEY_HASH" ]; then
+              KEY_PASS="$candidate"
+              break
+            fi
+          done
+          if [ -z "$KEY_PASS" ]; then
+            echo "Neither KEY_PASSWORD nor ANDROID_KEY_PASSWORD matches the permanent signing key."
             exit 1
           fi
 
           echo "ANDROID_KEYSTORE_PASSWORD_CLEAN=$STORE_PASS" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_PASSWORD_CLEAN=$KEY_PASS" >> "$GITHUB_ENV"
-          echo "Permanent keystore verified successfully."
+          echo "Permanent keystore and signing passwords verified successfully."
 
       - name: Build permanently signed Original APK
         working-directory: android
