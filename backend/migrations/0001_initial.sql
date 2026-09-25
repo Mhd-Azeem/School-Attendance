@@ -134,9 +134,9 @@ CREATE TABLE IF NOT EXISTS system_settings (
 );
 
 INSERT OR IGNORE INTO academic_years(id,name,starts_on,ends_on,is_current) VALUES ('ay-2026','2026','2026-01-01','2026-12-31',1);
-INSERT OR IGNORE INTO grades(id,name,sort_order) VALUES ('grade-10','10',10),('grade-11','11',11);
+INSERT OR IGNORE INTO grades(id,name,sort_order) VALUES ('grade-6','6',6),('grade-7','7',7);
 INSERT OR IGNORE INTO classes(id,grade_id,name,display_name) VALUES
-('class-10-a','grade-10','A','10-A'),('class-10-b','grade-10','B','10-B'),('class-10-c','grade-10','C','10-C'),('class-10-d','grade-10','D','10-D'),('class-10-e','grade-10','E','10-E'),
-('class-11-a','grade-11','A','11-A'),('class-11-b','grade-11','B','11-B'),('class-11-c','grade-11','C','11-C'),('class-11-d','grade-11','D','11-D'),('class-11-e','grade-11','E','11-E');
+('class-10-a','grade-6','A','6-A'),('class-10-b','grade-6','B','6-B'),('class-10-c','grade-6','C','6-C'),('class-10-d','grade-6','D','6-D'),('class-10-e','grade-6','E','6-E'),
+('class-11-a','grade-7','A','7-A'),('class-11-b','grade-7','B','7-B'),('class-11-c','grade-7','C','7-C'),('class-11-d','grade-7','D','7-D'),('class-11-e','grade-7','E','7-E');
 INSERT OR IGNORE INTO system_settings(key,value) VALUES
 ('attendance_threshold','80'),('school_timezone','Asia/Colombo'),('teacher_correction_allowed','false');
