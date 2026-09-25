@@ -1,9 +1,9 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
 
-val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: ""
-val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ""
-val keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
-val keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
+val releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: ""
+val releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ""
+val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
+val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
 
 android {
  namespace="com.azeem.schoolattendance"; compileSdk=36
@@ -11,11 +11,11 @@ android {
 
  signingConfigs {
   create("release") {
-   if (keystorePath.isNotBlank()) {
-    storeFile = file(keystorePath)
-    storePassword = keystorePassword
-    this.keyAlias = keyAlias
-    this.keyPassword = keyPassword
+   if (releaseKeystorePath.isNotBlank()) {
+    storeFile = file(releaseKeystorePath)
+    storePassword = releaseStorePassword
+    keyAlias = releaseKeyAlias
+    keyPassword = releaseKeyPassword
    }
   }
  }
