@@ -1,10 +1,11 @@
 import {useEffect,useMemo,useState,type ReactNode} from 'react'
 import {Link} from 'react-router-dom'
-import {AlertCircle,BookOpenCheck,CheckCircle2,Clock3,ClipboardCheck,UserRound,Users} from 'lucide-react'
+import {AlertCircle,BookOpenCheck,CheckCircle2,ChevronDown,Clock3,ClipboardCheck,UserRound,Users} from 'lucide-react'
 import {useAuth} from '../AuthContext'
 import {api} from '../lib/api'
 import {schoolDate,prettyDate} from '../lib/date'
 import type {SchoolClass} from '../types'
+import {ClassAttendanceDetails} from '../components/ClassAttendanceDetails'
 
 type Summary=SchoolClass&{session_id:string|null;submitted_at:string|null;total:number;present:number;absent:number;late:number}
 type TeacherRow={id:string;full_name:string}
@@ -38,7 +39,7 @@ function TeacherDashboard(){
 
 function AdminDashboard(){
  const today=schoolDate(),{profile}=useAuth()
- const [rows,setRows]=useState<Summary[]>([]),[teachers,setTeachers]=useState<TeacherRow[]>([]),[error,setError]=useState('')
+ const [rows,setRows]=useState<Summary[]>([]),[teachers,setTeachers]=useState<TeacherRow[]>([]),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null),[pendingOpen,setPendingOpen]=useState(false)
  async function load(){try{const [d,t]=await Promise.all([api<{classes:Summary[]}>(`/api/dashboard/today?date=${today}`),api<{teachers:TeacherRow[]}>('/api/teachers')]);setRows(d.classes);setTeachers(t.teachers);setError('')}catch{setError('Could not load today’s dashboard.')}}
  useEffect(()=>{load()},[today])
  const submitted=rows.filter(x=>x.session_id),pending=rows.filter(x=>!x.session_id)
@@ -54,7 +55,7 @@ function AdminDashboard(){
    <Stat label="Teachers" value={teachers.length} icon={<UserRound/>} tone="violet"/>
   </div>
   <section className="overview-card"><h3>Today's Overview</h3><div className="overview-line"><span>Student Attendance</span><strong>{totals.present}/{totals.total} ({pct}%)</strong></div><div className="progress"><span style={{width:pct+'%'}}/></div><div className="overview-statuses"><span className="green">● {totals.present}<small>Present</small></span><span className="red">● {totals.absent}<small>Absent</small></span></div><Link className="primary wide" to="/classes">View Class Status</Link></section>
-  {pending.length>0&&<section className="pending"><AlertCircle/><div><strong>Pending Classes</strong><p>{pending.map(c=>c.display_name).join(' · ')}</p></div></section>}
-  <section className="class-status-card"><div className="section-heading"><h3>Class Submission Status</h3><Link to="/classes">View all</Link></div>{rows.slice(0,10).map(c=><div className="class-status-row" key={c.id}><strong>{c.display_name}</strong><span className={c.session_id?'status-pill submitted':'status-pill waiting'}>{c.session_id?'✓ Submitted':'Not Submitted'}</span><small>{c.session_id?`${c.present}/${c.total} present`:'—'}</small></div>)}</section>
+  {pending.length>0&&<section className="pending pending-expandable"><button className="pending-toggle" onClick={()=>setPendingOpen(v=>!v)}><AlertCircle/><div><strong>Pending Classes <span className="pending-count">{pending.length}</span></strong><p>{pendingOpen?'Tap again to collapse':'Tap to view pending classes'}</p></div><ChevronDown className={pendingOpen?'rotated':''}/></button>{pendingOpen&&<div className="pending-list">{pending.map(c=><div key={c.id}><strong>{c.display_name}</strong><span>Student attendance not submitted</span></div>)}</div>}</section>}
+  <section className="class-status-card"><div className="section-heading"><h3>Class Submission Status</h3><Link to="/classes">View all</Link></div>{rows.slice(0,10).map(c=><div className="class-status-item" key={c.id}><button className="class-status-row class-status-button" disabled={!c.session_id} onClick={()=>c.session_id&&setExpanded(expanded===c.id?null:c.id)}><strong>{c.display_name}</strong><span className={c.session_id?'status-pill submitted':'status-pill waiting'}>{c.session_id?'✓ Submitted':'Not Submitted'}</span><small>{c.session_id?`${c.present} present · ${c.absent} absent`:'—'}</small>{c.session_id&&<ChevronDown className={expanded===c.id?'rotated':''}/>}</button>{expanded===c.id&&c.session_id&&<ClassAttendanceDetails sessionId={c.session_id}/>}</div>)}</section>
  </>}
 function Stat({label,value,icon,tone='blue'}:{label:string,value:string|number,icon:ReactNode,tone?:string}){return <article className={'admin-stat '+tone}><span>{icon}</span><small>{label}</small><strong>{value}</strong></article>}
