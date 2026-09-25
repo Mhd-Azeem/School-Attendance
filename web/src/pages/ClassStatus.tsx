@@ -18,21 +18,21 @@ export function ClassStatus(){
    let periods:Period[]=[]
    try{periods=(await api<{periods:Period[]}>(`/api/period-attendance/today?date=${date}&class_id=${encodeURIComponent(c.id)}&_=${Date.now()}`)).periods}catch{}
    const marked=Number(c.marked??(Number(c.present||0)+Number(c.absent||0)+Number(c.late||0)))
-   return{...c,studentSubmitted:!!c.session_id&&marked>=Number(c.total||0),marked,periodDone:periods.filter(x=>x.status).length,periodTotal:periods.length,periods}
+   return{...c,id:String(c.id),studentSubmitted:!!c.session_id&&marked>=Number(c.total||0),marked,periodDone:periods.filter(x=>x.status).length,periodTotal:periods.length,periods}
   }))
   setRows(out)
  }catch{setError('Could not load class submission status.')}finally{setLoading(false)}})()},[date,refreshKey])
 
- return <><div className="screen-title-row"><div><h1>Class Submission Status</h1><p>{prettyDate(date)}</p></div><div className="class-status-actions"><button className="secondary refresh-status" onClick={()=>setRefreshKey(x=>x+1)} disabled={loading}><RefreshCw className={loading?'spin':''}/> {loading?'Refreshing…':'Refresh'}</button><Link className="secondary" to="/students">Manage Students</Link></div></div><div className="section-head-date-filter"><label>Submission Date<input type="date" value={date} onChange={e=>setDate(e.target.value)} max={today}/></label></div>
+ return <><div className="screen-title-row"><div><h1>Class Submission Status</h1><p>{prettyDate(date)}</p></div><div className="class-status-actions"><button className="secondary refresh-status" onClick={()=>setRefreshKey(x=>x+1)} disabled={loading}><RefreshCw className={loading?'spin':''}/> {loading?'Refreshing…':'Refresh'}</button><Link className="secondary" to="/students">Manage Students</Link></div></div><div className="section-head-date-filter"><label>Submission Date<input type="date" value={date} onChange={e=>{setDate(e.target.value);setExpanded(null)}} max={today}/></label></div>
  {error&&<div className="error">{error}</div>}
  <section className="class-table"><div className="class-table-head"><span>Class</span><span>Student</span><span>Teacher Period</span><span>Status</span></div>
  {rows.map(r=>{const periodComplete=r.periodTotal===9&&r.periodDone===9,full=r.studentSubmitted&&periodComplete,partial=r.studentSubmitted||r.periodDone>0,canExpand=true
   return <div className="class-table-item" key={r.id}>
-   <button className="class-table-row-button" disabled={!canExpand} onClick={()=>canExpand&&setExpanded(expanded===r.id?null:r.id)}>
+   <button className="class-table-row-button" disabled={!canExpand} onClick={()=>{if(!canExpand)return;const id=String(r.id);setExpanded(prev=>prev===id?null:id)}}>
     <strong>{r.display_name}</strong><span>{r.session_id?`${r.marked}/${r.total}`:'✕'}</span><span>{r.periodTotal?`${r.periodDone}/9`:'0/9'}</span>
-    <em className={full?'status-pill submitted':partial?'status-pill progress':'status-pill waiting'}>{full?'Submitted':partial?'In Progress':'Not Submitted'}</em>{canExpand&&<ChevronDown className={expanded===r.id?'rotated':''}/>}
+    <em className={full?'status-pill submitted':partial?'status-pill progress':'status-pill waiting'}>{full?'Submitted':partial?'In Progress':'Not Submitted'}</em>{canExpand&&<ChevronDown className={expanded===String(r.id)?'rotated':''}/>}
    </button>
-   {expanded===r.id&&<div className="section-head-expanded-results">
+   {expanded===String(r.id)&&<div className="section-head-expanded-results">
     {r.session_id&&<div className="class-attendance-detail"><div className="class-detail-counts"><span className="total-count"><strong>{r.total}</strong><small>Total Students</small></span><span className="present-count"><strong>{Number(r.present||0)}</strong><small>Present</small></span><span className="absent-count"><strong>{Number(r.absent||0)}</strong><small>Absent</small></span><span className="unmarked-count"><strong>{Math.max(0,Number(r.total||0)-Number(r.marked||0))}</strong><small>Not Marked</small></span></div><div className="section-head-register-note">Student register submitted. Counts shown directly from the submitted register.</div></div>}
     <section className="period-result-card"><h4>Teacher Attendance & Status</h4>{r.periods.length?<div className="period-result-list">{r.periods.map(p=><div key={p.id}><strong>{p.period_no}{p.period_no===1?'st':p.period_no===2?'nd':p.period_no===3?'rd':'th'} Period</strong><span className={'period-result-status '+(p.status||'').toLowerCase()}>{statusLabel(p.status)}</span></div>)}</div>:<p className="period-empty">No teacher-period register has been submitted for this date.</p>}</section>
    </div>}
