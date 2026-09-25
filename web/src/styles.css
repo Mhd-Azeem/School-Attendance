@@ -91,3 +91,30 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 }
 
 .class-table{background:#fff;border:1px solid var(--line);border-radius:15px;overflow:hidden}.class-table-head,.class-table article{display:grid;grid-template-columns:70px 70px 110px 1fr;gap:8px;align-items:center;padding:11px 13px}.class-table-head{background:#f6faf8;font-size:10px;font-weight:800}.class-table article{border-top:1px solid #edf3ef;font-size:12px}.class-table article>span{text-align:center}.class-table article em{justify-self:end;font-style:normal}@media(max-width:700px){.class-table-head,.class-table article{grid-template-columns:50px 55px 90px 1fr;padding:10px 8px;font-size:10px}.class-table article em{font-size:9px;padding:4px 6px}}
+
+
+/* Expandable Section Head attendance drill-down */
+.pending-expandable{display:block;padding:0;overflow:hidden}
+.pending-toggle{width:100%;border:0;background:transparent;color:inherit;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:14px 15px;text-align:left}
+.pending-toggle>svg:first-child{width:22px}.pending-toggle>svg:last-child{width:18px;transition:transform .2s ease}.rotated{transform:rotate(180deg)}
+.pending-toggle p{margin:3px 0 0;font-size:11px}.pending-count{display:inline-grid;place-items:center;min-width:21px;height:21px;padding:0 6px;margin-left:5px;border-radius:999px;background:#f0c978;color:#75500b;font-size:10px}
+.pending-list{border-top:1px solid #efd9a9;padding:6px 14px 12px}.pending-list>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #f2e4c5;font-size:11px}.pending-list>div:last-child{border:0}.pending-list span{color:#8a6b31}
+
+.class-status-item{border-top:1px solid #edf2ef}.class-status-item:first-of-type{border-top:0}
+.class-status-row.class-status-button{width:100%;border:0;background:transparent;cursor:pointer;grid-template-columns:62px 1fr 130px 18px;text-align:left}
+.class-status-row.class-status-button:disabled{cursor:default}.class-status-button>svg{width:16px;color:#6e8178;transition:transform .2s ease}
+.class-attendance-detail{background:#f8fcfa;border-top:1px solid #e1ece6;padding:14px}
+.class-detail-loading,.class-detail-error{padding:14px;background:#f8fcfa;border-top:1px solid #e1ece6;font-size:11px;color:#71827b}.class-detail-error{color:#a73038}
+.class-detail-counts{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:12px}.class-detail-counts>span{border-radius:12px;padding:10px;text-align:center;display:grid;gap:2px}.class-detail-counts strong{font-size:20px}.class-detail-counts small{font-size:9px}.present-count{background:#dcf8e9;color:#07854e}.absent-count{background:#ffeded;color:#bf3039}.late-count{background:#fff1cf;color:#a86400}
+.class-detail-lists{display:grid;grid-template-columns:1fr 1fr;gap:10px}.class-detail-lists section{background:#fff;border:1px solid #e1ebe6;border-radius:12px;overflow:hidden}.class-detail-lists h4{margin:0;padding:10px 11px;background:#f5faf7;font-size:11px;display:flex;justify-content:space-between}.class-detail-lists h4 b{background:#dff6e9;color:#08784f;border-radius:999px;padding:2px 7px;font-size:9px}
+.class-detail-lists section:nth-child(2) h4 b{background:#ffebeb;color:#b22f38}.student-name-row{display:grid;grid-template-columns:24px 1fr;align-items:center;gap:7px;padding:8px 10px;border-top:1px solid #edf3ef}.student-name-row>span{width:22px;height:22px;border-radius:50%;background:#e7f7ef;color:#07854e;display:grid;place-items:center;font-size:9px;font-weight:700}.student-name-row.absent-name>span{background:#ffeded;color:#bf3039}.student-name-row div{display:grid;gap:2px}.student-name-row strong{font-size:10px}.student-name-row small{font-size:8px;color:#7b8d84}.empty-mini{padding:12px;margin:0;color:#7b8d84;font-size:10px}
+
+.class-table-item{border-top:1px solid #edf3ef}.class-table-item:first-of-type{border-top:0}.class-table-row-button{width:100%;border:0;background:#fff;display:grid;grid-template-columns:70px 70px 110px 1fr 18px;gap:8px;align-items:center;padding:11px 13px;font-size:12px;text-align:left}.class-table-row-button:disabled{cursor:default}.class-table-row-button>span{text-align:center}.class-table-row-button em{justify-self:end;font-style:normal}.class-table-row-button>svg{width:16px;color:#6f8178;transition:transform .2s ease}
+
+@media(max-width:700px){
+ .class-status-row.class-status-button{grid-template-columns:50px 1fr 105px 16px;padding:11px 0}
+ .class-status-row.class-status-button small{text-align:right}
+ .class-detail-lists{grid-template-columns:1fr}
+ .class-table-row-button{grid-template-columns:50px 55px 86px 1fr 15px;padding:10px 8px;font-size:10px}
+ .class-table-row-button em{font-size:9px;padding:4px 6px}
+}
