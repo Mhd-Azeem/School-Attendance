@@ -6,6 +6,11 @@ import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.webkit.JavascriptInterface
+import android.widget.Toast
+import android.util.Base64
+import java.io.File
 import android.view.ViewGroup
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -57,6 +62,11 @@ class MainActivity : ComponentActivity() {
             settings.databaseEnabled = true
             settings.allowFileAccess = false
             settings.allowContentAccess = true
+            addJavascriptInterface(object {
+                @JavascriptInterface fun saveCsv(fileName: String, base64: String) {
+                    try { val safe=fileName.replace(Regex("[^A-Za-z0-9._-]"), "_"); val dir=getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir; val file=File(dir,safe); file.writeBytes(Base64.decode(base64,Base64.DEFAULT)); runOnUiThread{Toast.makeText(this@MainActivity,"CSV saved: ${file.absolutePath}",Toast.LENGTH_LONG).show()} } catch (_:Exception) { runOnUiThread{Toast.makeText(this@MainActivity,"Could not save CSV",Toast.LENGTH_SHORT).show()} }
+                }
+            }, "AndroidDownloads")
             setBackgroundColor(Color.parseColor("#F4FAF7"))
             webChromeClient = object : WebChromeClient() {
                 override fun onShowFileChooser(
