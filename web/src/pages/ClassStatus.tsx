@@ -4,7 +4,6 @@ import {ChevronDown,RefreshCw} from 'lucide-react'
 import {api} from '../lib/api'
 import {prettyDate,schoolDate} from '../lib/date'
 import type {SchoolClass} from '../types'
-import {ClassAttendanceDetails} from '../components/ClassAttendanceDetails'
 
 type Period={id:string;period_no:number;status?:string|null}
 type Row=SchoolClass&{session_id:string|null;studentSubmitted:boolean;periodDone:number;periodTotal:number;marked:number;total:number;present:number;absent:number;periods:Period[]}
@@ -34,8 +33,8 @@ export function ClassStatus(){
     <em className={full?'status-pill submitted':partial?'status-pill progress':'status-pill waiting'}>{full?'Submitted':partial?'In Progress':'Not Submitted'}</em>{canExpand&&<ChevronDown className={expanded===r.id?'rotated':''}/>}
    </button>
    {expanded===r.id&&<div className="section-head-expanded-results">
-    {r.session_id&&<ClassAttendanceDetails key={`${r.session_id}-${refreshKey}`} sessionId={r.session_id} classId={r.id}/>}
-    <section className="period-result-card"><h4>Teacher Attendance & Status</h4><div className="period-result-list">{r.periods.map(p=><div key={p.id}><strong>{p.period_no}{p.period_no===1?'st':p.period_no===2?'nd':p.period_no===3?'rd':'th'} Period</strong><span className={'period-result-status '+(p.status||'').toLowerCase()}>{statusLabel(p.status)}</span></div>)}</div></section>
+    {r.session_id&&<div className="class-attendance-detail"><div className="class-detail-counts"><span className="total-count"><strong>{r.total}</strong><small>Total Students</small></span><span className="present-count"><strong>{Number(r.present||0)}</strong><small>Present</small></span><span className="absent-count"><strong>{Number(r.absent||0)}</strong><small>Absent</small></span><span className="unmarked-count"><strong>{Math.max(0,Number(r.total||0)-Number(r.marked||0))}</strong><small>Not Marked</small></span></div><div className="section-head-register-note">Student register submitted. Counts shown directly from the submitted register.</div></div>}
+    <section className="period-result-card"><h4>Teacher Attendance & Status</h4>{r.periods.length?<div className="period-result-list">{r.periods.map(p=><div key={p.id}><strong>{p.period_no}{p.period_no===1?'st':p.period_no===2?'nd':p.period_no===3?'rd':'th'} Period</strong><span className={'period-result-status '+(p.status||'').toLowerCase()}>{statusLabel(p.status)}</span></div>)}</div>:<p className="period-empty">No teacher-period register has been submitted for this date.</p>}</section>
    </div>}
   </div>})}</section></>
 }
