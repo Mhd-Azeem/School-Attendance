@@ -55,14 +55,25 @@ export default {async fetch(req,env){
       const blocked=await env.DB.prepare("SELECT 1 FROM school_days WHERE day=? AND day_type IN ('WEEKEND','HOLIDAY','SPECIAL_HOLIDAY')").bind(b.date).first();if(blocked)return out({error:"not_a_school_day"},409);
       const students=(await env.DB.prepare("SELECT id FROM students WHERE class_id=? AND is_active=1").bind(b.class_id).all()).results;const allowed=new Set(students.map(x=>x.id));
       if(!students.length||b.records.length!==students.length||new Set(b.records.map(x=>x.student_id)).size!==students.length||b.records.some(x=>!allowed.has(x.student_id)||!["PRESENT","ABSENT"].includes(x.status)))return out({error:"incomplete_or_invalid_register"},400);
+      const existing=await env.DB.prepare("SELECT id FROM attendance_sessions WHERE class_id=? AND attendance_date=?").bind(b.class_id,b.date).first();
+      if(existing){
+        const marked=(await env.DB.prepare("SELECT student_id FROM attendance_records WHERE session_id=?").bind(existing.id).all()).results;
+        const markedIds=new Set(marked.map(x=>x.student_id)),incoming=new Map(b.records.map(x=>[x.student_id,x.status]));
+        const missing=students.filter(x=>!markedIds.has(x.id));
+        if(!missing.length)return out({error:"attendance_already_submitted"},409);
+        const stmts=[];
+        for(const s of missing)stmts.push(env.DB.prepare("INSERT INTO attendance_records(id,session_id,student_id,status,marked_by) VALUES(?,?,?,?,?)").bind(id(),existing.id,s.id,incoming.get(s.id),u.id));
+        stmts.push(env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"ATTENDANCE_COMPLETED","attendance_session",existing.id,JSON.stringify({class_id:b.class_id,date:b.date,added:missing.length,total:students.length})));
+        await env.DB.batch(stmts);return out({ok:true,session_id:existing.id,added:missing.length,completed:true},200);
+      }
       const sid=id();const stmts=[env.DB.prepare("INSERT INTO attendance_sessions(id,class_id,attendance_date,submitted_by) VALUES(?,?,?,?)").bind(sid,b.class_id,b.date,u.id)];
       for(const r of b.records)stmts.push(env.DB.prepare("INSERT INTO attendance_records(id,session_id,student_id,status,marked_by) VALUES(?,?,?,?,?)").bind(id(),sid,r.student_id,r.status,u.id));
       stmts.push(env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"ATTENDANCE_SUBMITTED","attendance_session",sid,JSON.stringify({class_id:b.class_id,date:b.date,count:b.records.length})));
-      try{await env.DB.batch(stmts)}catch(e){if(String(e).includes("UNIQUE"))return out({error:"attendance_already_submitted"},409);throw e}return out({ok:true,session_id:sid},201);
+      await env.DB.batch(stmts);return out({ok:true,session_id:sid},201);
     }
     if(p==="/api/dashboard/today"&&req.method==="GET"){
       if(u.role!=="SECTION_HEAD")return out({error:"forbidden"},403);const date=url.searchParams.get("date")||new Date().toISOString().slice(0,10);
-      const r=await env.DB.prepare(`SELECT c.id class_id,c.display_name,s.id session_id,s.submitted_at,COUNT(ar.id) total,SUM(CASE WHEN ar.status='PRESENT' THEN 1 ELSE 0 END) present,SUM(CASE WHEN ar.status='ABSENT' THEN 1 ELSE 0 END) absent,SUM(CASE WHEN ar.status='LATE' THEN 1 ELSE 0 END) late FROM classes c LEFT JOIN attendance_sessions s ON s.class_id=c.id AND s.attendance_date=? LEFT JOIN attendance_records ar ON ar.session_id=s.id WHERE c.is_active=1 GROUP BY c.id,c.display_name,s.id,s.submitted_at ORDER BY c.display_name`).bind(date).all();return out({date,classes:r.results});
+      const r=await env.DB.prepare(`SELECT c.id class_id,c.display_name,s.id session_id,s.submitted_at,(SELECT COUNT(*) FROM students st WHERE st.class_id=c.id AND st.is_active=1) total,COUNT(ar.id) marked,COALESCE(SUM(CASE WHEN ar.status='PRESENT' THEN 1 ELSE 0 END),0) present,COALESCE(SUM(CASE WHEN ar.status='ABSENT' THEN 1 ELSE 0 END),0) absent,COALESCE(SUM(CASE WHEN ar.status='LATE' THEN 1 ELSE 0 END),0) late FROM classes c LEFT JOIN attendance_sessions s ON s.class_id=c.id AND s.attendance_date=? LEFT JOIN attendance_records ar ON ar.session_id=s.id WHERE c.is_active=1 GROUP BY c.id,c.display_name,s.id,s.submitted_at ORDER BY c.display_name`).bind(date).all();return out({date,classes:r.results});
     }
 
     if(u.role==="SECTION_HEAD"&&p==="/api/students"&&req.method==="GET"){const r=await env.DB.prepare("SELECT s.*,c.display_name FROM students s JOIN classes c ON c.id=s.class_id ORDER BY s.full_name").all();return out({students:r.results})}
