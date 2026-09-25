@@ -36,6 +36,7 @@ export default {async fetch(req,env){
     }
     const u=await userFromRequest(req,env); if(!u)return out({error:"unauthorized"},401);
     if(p==="/api/auth/me"&&req.method==="GET")return out({user:u});
+    if(p==="/api/profile"&&req.method==="PUT"){const b=await json(req);const name=String(b?.full_name||"").trim();if(name.length<2||name.length>100)return out({error:"name_must_be_2_to_100_characters"},400);await env.DB.prepare("UPDATE users SET full_name=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name,u.id).run();await env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"PROFILE_UPDATED","user",u.id,JSON.stringify({full_name:name})).run();return out({user:{...u,full_name:name}})}
     if(p==="/api/auth/logout"&&req.method==="POST"){const h=req.headers.get("authorization").slice(7);await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await sha256(h)).run();return out({ok:true})}
     if(p==="/api/classes"&&req.method==="GET"){
       const q=u.role==="SECTION_HEAD"?"SELECT * FROM classes WHERE is_active=1 ORDER BY display_name":"SELECT c.* FROM classes c JOIN teacher_class_assignments a ON a.class_id=c.id WHERE a.teacher_id=? AND a.is_active=1 AND c.is_active=1 ORDER BY c.display_name";
