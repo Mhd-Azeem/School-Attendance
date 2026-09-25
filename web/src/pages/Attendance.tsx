@@ -11,7 +11,7 @@ export function Attendance(){
  const [params]=useSearchParams(),today=schoolDate()
  const [classes,setClasses]=useState<SchoolClass[]>([]),[classId,setClassId]=useState(params.get('class')||''),[students,setStudents]=useState<Student[]>([])
  const [statuses,setStatuses]=useState<Partial<Record<string,AttendanceStatus>>>({}),[savedIds,setSavedIds]=useState<Set<string>>(new Set()),[missingIds,setMissingIds]=useState<Set<string>>(new Set())
- const [query,setQuery]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[already,setAlready]=useState(false)
+ const [query,setQuery]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[already,setAlready]=useState(false),[warning,setWarning]=useState('')
 
  useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(({classes})=>{setClasses(classes);setClassId(x=>x||classes[0]?.id||'')}).catch(()=>setMessage('Could not load classes.'))},[])
 
@@ -41,8 +41,6 @@ export function Attendance(){
      setSavedIds(existing)
      if(existing.size>=s.length){
       setAlready(true);setMessage('Attendance has already been fully submitted.')
-     }else{
-      setMessage(`Attendance is incomplete. ${s.length-existing.size} student${s.length-existing.size===1?' is':'s are'} still not marked.`)
      }
     }
    }catch{}
@@ -62,7 +60,7 @@ export function Attendance(){
   if(savedIds.has(id))return
   setStatuses(x=>({...x,[id]:status}))
   setMissingIds(x=>{const n=new Set(x);n.delete(id);return n})
-  if(message.startsWith('Please mark'))setMessage('')
+  setWarning('')
  }
 
  async function submit(){
@@ -72,7 +70,7 @@ export function Attendance(){
    setMissingIds(new Set(missing.map(s=>s.id)))
    const names=missing.slice(0,3).map(s=>s.full_name).join(', ')
    const extra=missing.length>3?` and ${missing.length-3} more`:''
-   setMessage(`Please mark attendance for ${missing.length} student${missing.length===1?'':'s'}: ${names}${extra}.`)
+   setWarning(`You missed ${missing.length} student${missing.length===1?'':'s'}: ${names}${extra}. Please select Present or Absent for every student before submitting.`)
    setTimeout(()=>document.getElementById(`student-${missing[0].id}`)?.scrollIntoView({behavior:'smooth',block:'center'}),50)
    return
   }
@@ -98,9 +96,10 @@ export function Attendance(){
   {already?<section className="success-panel"><CheckCircle2/><h2>Attendance Submitted</h2><p>This class already has a confirmed register for today.</p></section>:<>
    <label className="search modern-search"><Search/><input placeholder="Search student name…" value={query} onChange={e=>setQuery(e.target.value)}/></label>
    <button className="mark-all" onClick={()=>{setStatuses(prev=>Object.fromEntries(students.map(s=>[s.id,savedIds.has(s.id)?prev[s.id]:'PRESENT'])));setMissingIds(new Set())}}>✓ Mark all unmarked students present</button>
-   {message&&<div className={message.includes('✓')?'notice':message.startsWith('Please mark')?'attendance-warning':'error'}>{message.startsWith('Please mark')&&<AlertTriangle/>}{message}</div>}
+   {message&&<div className={message.includes('✓')?'notice':'error'}>{message}</div>}
    <section className="student-table"><div className="student-head"><span>#</span><span>Name</span><span>Status</span></div>{filtered.map((s,i)=><article id={`student-${s.id}`} className={missingIds.has(s.id)?'attendance-missing':''} key={s.id}><span>{i+1}</span><div><strong>{s.full_name}</strong><small>{s.admission_number}</small>{missingIds.has(s.id)&&<em className="missing-label">Select Present or Absent</em>}</div><div className="status-control">{(['PRESENT','ABSENT'] as const).map(status=><button key={status} disabled={savedIds.has(s.id)} className={`${statuses[s.id]===status?status.toLowerCase():''}${savedIds.has(s.id)?' saved-status':''}`} onClick={()=>mark(s.id,status)} aria-pressed={statuses[s.id]===status}>{status==='PRESENT'?'● Present':'● Absent'}</button>)}</div></article>)}</section>
    <button className="submit" disabled={busy||!students.length} onClick={submit}>{busy?'Submitting…':'Save Attendance'}</button>
+   {warning&&<div className="attendance-popup-backdrop" role="dialog" aria-modal="true" aria-labelledby="attendance-warning-title"><div className="attendance-popup"><span className="attendance-popup-icon"><AlertTriangle/></span><h3 id="attendance-warning-title">Attendance Incomplete</h3><p>{warning}</p><button className="primary wide" onClick={()=>setWarning('')}>OK, Check Students</button></div></div>}
   </>}
  </>
 }
