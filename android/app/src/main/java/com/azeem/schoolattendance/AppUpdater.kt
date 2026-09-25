@@ -95,7 +95,7 @@ class AppUpdater(private val activity: MainActivity) {
                 }
             }
 
-            if (buildNumber <= 0L || apkUrl.isNullOrBlank()) {
+            if (versionCode <= 0L || apkUrl.isNullOrBlank()) {
                 error("Latest release does not contain a valid build number or $APK_ASSET_NAME")
             }
 
