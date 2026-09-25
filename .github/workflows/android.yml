@@ -43,20 +43,12 @@ jobs:
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD_PRIMARY: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEYSTORE_PASSWORD_ALT: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_PASSWORD_PRIMARY: ${{ secrets.KEY_PASSWORD }}
-          KEY_PASSWORD_ALT: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
-          if [ -z "$KEYSTORE_PASSWORD_PRIMARY" ] && [ -z "$KEYSTORE_PASSWORD_ALT" ]; then
-            echo "Missing keystore password secret: set KEYSTORE_PASSWORD or ANDROID_KEYSTORE_PASSWORD"
-            exit 1
-          fi
-          if [ -z "$KEY_PASSWORD_PRIMARY" ] && [ -z "$KEY_PASSWORD_ALT" ]; then
-            echo "Missing key password secret: set KEY_PASSWORD or ANDROID_KEY_PASSWORD"
-            exit 1
-          fi
+          test -n "$KEYSTORE_PASSWORD" || (echo "Missing KEYSTORE_PASSWORD" && exit 1)
+          test -n "$KEY_PASSWORD" || (echo "Missing KEY_PASSWORD" && exit 1)
 
       - name: Restore and validate permanent release keystore
         shell: bash
@@ -93,56 +85,17 @@ jobs:
             exit 1
           fi
 
-          clean_value() {
-            local value="$1"
-            value="${value#ANDROID_KEYSTORE_PASSWORD=}"
-            value="${value#KEYSTORE_PASSWORD=}"
-            value="${value#ANDROID_KEY_PASSWORD=}"
-            value="${value#KEY_PASSWORD=}"
-            value="${value%\"}"
-            value="${value#\"}"
-            printf '%s' "$value"
-          }
+          CLEAN_B64=$(printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n\t ' | tr -d '"')
+          printf '%s' "$CLEAN_B64" | base64 --decode > android/release-keystore.jks
 
-          EXPECTED_STORE_HASH="acc340abc1bb91efc1fe0fab3d3b3dd0ccaf2bbb2b62ca0abdd4bdc8961cd791"
-          STORE_PASS=""
-          for candidate in "$KEYSTORE_PASSWORD_PRIMARY" "$KEYSTORE_PASSWORD_ALT"; do
-            candidate=$(clean_value "$candidate")
-            [ -n "$candidate" ] || continue
-            candidate_hash=$(printf '%s' "$candidate" | sha256sum | awk '{print $1}')
-            if [ "$candidate_hash" = "$EXPECTED_STORE_HASH" ]; then
-              STORE_PASS="$candidate"
-              break
-            fi
-          done
-          if [ -z "$STORE_PASS" ]; then
-            echo "Neither KEYSTORE_PASSWORD nor ANDROID_KEYSTORE_PASSWORD matches the permanent keystore."
-            exit 1
-          fi
+          ACTUAL_SHA=$(sha256sum android/release-keystore.jks | awk '{print $1}')
+          EXPECTED_SHA="fb229946f25169255bcc252a3e5993f7cb659bdc146f0abed247b0d1b4732cc2"
+          [ "$ACTUAL_SHA" = "$EXPECTED_SHA" ] || (echo "ANDROID_KEYSTORE_BASE64 does not match permanent keystore" && exit 1)
 
-          if ! keytool -list -keystore android/release-keystore.jks -storepass "$STORE_PASS" >/dev/null 2>&1; then
-            echo "Matched keystore password fingerprint, but keytool rejected the keystore."
-            exit 1
-          fi
+          keytool -list -keystore android/release-keystore.jks -storepass "$KEYSTORE_PASSWORD" -alias school-attendance-release >/dev/null
 
-          EXPECTED_KEY_HASH="4c201580789610a2fa5c1e41114a0abc586faec95b4dc0fcc0a1ab2c80ad6f6c"
-          KEY_PASS=""
-          for candidate in "$KEY_PASSWORD_PRIMARY" "$KEY_PASSWORD_ALT"; do
-            candidate=$(clean_value "$candidate")
-            [ -n "$candidate" ] || continue
-            candidate_hash=$(printf '%s' "$candidate" | sha256sum | awk '{print $1}')
-            if [ "$candidate_hash" = "$EXPECTED_KEY_HASH" ]; then
-              KEY_PASS="$candidate"
-              break
-            fi
-          done
-          if [ -z "$KEY_PASS" ]; then
-            echo "Neither KEY_PASSWORD nor ANDROID_KEY_PASSWORD matches the permanent signing key."
-            exit 1
-          fi
-
-          echo "ANDROID_KEYSTORE_PASSWORD_CLEAN=$STORE_PASS" >> "$GITHUB_ENV"
-          echo "ANDROID_KEY_PASSWORD_CLEAN=$KEY_PASS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD_CLEAN=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD_CLEAN=$KEY_PASSWORD" >> "$GITHUB_ENV"
           echo "Permanent keystore and signing passwords verified successfully."
 
       - name: Build permanently signed Original APK
