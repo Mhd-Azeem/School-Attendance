@@ -1,7 +1,7 @@
 name: Original Android APK
 on:
   push:
-    paths: ['release-trigger/**']
+    paths: ['android/**', 'web/**', 'branding/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -44,14 +44,9 @@ jobs:
         run: |
           VERSION=$(grep -oP 'versionName="\K[^"]+' android/app/build.gradle.kts)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "apk=School-Attendance-Original-v$VERSION-build-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+          echo "apk=School-Attendance-INSTALL-v$VERSION-build-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
       - name: Prepare Original APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk "${{ steps.app_version.outputs.apk }}"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: School-Attendance-Original-v${{ steps.app_version.outputs.version }}-build-${{ github.run_number }}
-          path: ${{ steps.app_version.outputs.apk }}
-          if-no-files-found: error
       - name: Publish APK to GitHub Releases
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -61,6 +56,7 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            Automatically published APK build from the latest main branch.
+            INSTALL ONLY the file ending in .apk under Assets.
+            GitHub automatically adds Source code (zip) and Source code (tar.gz); those are not Android app files.
             Every successful APK build is published to the GitHub Releases tab.
           files: ${{ steps.app_version.outputs.apk }}
