@@ -38,22 +38,29 @@ jobs:
       - name: Build Original APK
         run: gradle assembleDebug
         working-directory: android
+      - name: Read app version
+        id: app_version
+        shell: bash
+        run: |
+          VERSION=$(grep -oP 'versionName="\K[^"]+' android/app/build.gradle.kts)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "apk=School-Attendance-Original-v$VERSION-build-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
       - name: Prepare Original APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk School-Attendance-Original-v0.2.1.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk "${{ steps.app_version.outputs.apk }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: School-Attendance-Original-v0.2.1
-          path: School-Attendance-Original-v0.2.1.apk
+          name: School-Attendance-Original-v${{ steps.app_version.outputs.version }}-build-${{ github.run_number }}
+          path: ${{ steps.app_version.outputs.apk }}
           if-no-files-found: error
-      - name: Publish Original GitHub Release
+      - name: Publish APK to GitHub Releases
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.2.1-original
-          name: School Attendance Original v0.2.1
+          tag_name: apk-v${{ steps.app_version.outputs.version }}-build-${{ github.run_number }}
+          name: School Attendance v${{ steps.app_version.outputs.version }} · Build ${{ github.run_number }}
           prerelease: false
           generate_release_notes: true
           body: |
-            Green UI build with Android status-bar safe-area fix.
-            Prevents the app header from overlapping the phone notification/status bar.
-          files: School-Attendance-Original-v0.2.1.apk
+            Automatically published APK build from the latest main branch.
+            Every successful APK build is published to the GitHub Releases tab.
+          files: ${{ steps.app_version.outputs.apk }}
