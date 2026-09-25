@@ -1,0 +1,9 @@
+import {useEffect,useState} from 'react'
+import {Link} from 'react-router-dom'
+import {api} from '../lib/api'
+import {prettyDate,schoolDate} from '../lib/date'
+import type {SchoolClass} from '../types'
+type Row=SchoolClass&{session_id:string|null;studentSubmitted:boolean;periodDone:number;periodTotal:number}
+export function ClassStatus(){const today=schoolDate();const [rows,setRows]=useState<Row[]>([]),[error,setError]=useState('')
+ useEffect(()=>{(async()=>{try{const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${today}`);const out:Row[]=await Promise.all(d.classes.map(async c=>{let periodDone=0,periodTotal=0;try{const p=await api<{periods:any[]}>(`/api/period-attendance/today?date=${today}&class_id=${encodeURIComponent(c.id)}`);periodTotal=p.periods.length;periodDone=p.periods.filter(x=>x.status).length}catch{}return{...c,studentSubmitted:!!c.session_id,periodDone,periodTotal}}));setRows(out)}catch{setError('Could not load class submission status.')}})()},[today])
+ return <><div className="screen-title-row"><div><h1>Class Submission Status</h1><p>{prettyDate(today)}</p></div><Link className="secondary" to="/students">Manage Students</Link></div>{error&&<div className="error">{error}</div>}<section className="class-table"><div className="class-table-head"><span>Class</span><span>Student</span><span>Teacher Period</span><span>Status</span></div>{rows.map(r=>{const periodComplete=r.periodTotal>0&&r.periodDone===r.periodTotal;const full=r.studentSubmitted&&periodComplete;const partial=r.studentSubmitted||r.periodDone>0;return <article key={r.id}><strong>{r.display_name}</strong><span>{r.studentSubmitted?'✓':'✕'}</span><span>{r.periodTotal?`${r.periodDone}/${r.periodTotal}`:'—'}</span><em className={full?'status-pill submitted':partial?'status-pill progress':'status-pill waiting'}>{full?'Submitted':partial?'In Progress':'Not Submitted'}</em></article>})}</section></>}
