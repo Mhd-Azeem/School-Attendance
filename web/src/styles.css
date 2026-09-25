@@ -38,3 +38,5 @@
 @media(max-width:700px){.profile-card{padding:22px 18px}.sidebar nav{overflow-x:auto;justify-content:flex-start}.sidebar a{min-width:68px}.sidebar nav a:nth-child(n+6){display:grid}}
 
 .profile-logout{width:100%;margin-top:12px;padding:12px 18px;border:1px solid #efb3b3;border-radius:8px;background:#fff;color:var(--red);font-weight:700}
+
+.period-list{display:grid;gap:12px}.period-list article{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:14px}.period-list article>div:first-child{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.period-list small{color:#718390}.period-list span{color:#6c7e89}.period-status{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.period-status button{border:1px solid var(--line);background:#f8fafb;border-radius:8px;padding:10px 6px}.period-status button.selected{background:var(--navy);color:#fff;border-color:var(--navy)}@media(max-width:700px){.period-status{grid-template-columns:repeat(2,1fr)}.period-status button:last-child{grid-column:1/-1}}
