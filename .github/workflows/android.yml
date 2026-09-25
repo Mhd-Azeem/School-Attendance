@@ -91,9 +91,15 @@ jobs:
           STORE_PASS="${STORE_PASS%\"}"
           STORE_PASS="${STORE_PASS#\"}"
 
+          STORE_HASH=$(printf '%s' "$STORE_PASS" | sha256sum | awk '{print $1}')
+          EXPECTED_STORE_HASH="acc340abc1bb91efc1fe0fab3d3b3dd0ccaf2bbb2b62ca0abdd4bdc8961cd791"
+          if [ "$STORE_HASH" != "$EXPECTED_STORE_HASH" ]; then
+            echo "KEYSTORE_PASSWORD is wrong for the permanent keystore."
+            exit 1
+          fi
+
           if ! keytool -list -keystore android/release-keystore.jks -storepass "$STORE_PASS" >/dev/null 2>&1; then
-            echo "ANDROID_KEYSTORE_PASSWORD is incorrect."
-            echo "Paste only the password value (or the full ANDROID_KEYSTORE_PASSWORD=<value> line)."
+            echo "Keystore password fingerprint matched, but keytool still rejected the keystore."
             exit 1
           fi
 
@@ -102,6 +108,13 @@ jobs:
           KEY_PASS="${KEY_PASS#KEY_PASSWORD=}"
           KEY_PASS="${KEY_PASS%\"}"
           KEY_PASS="${KEY_PASS#\"}"
+
+          KEY_HASH=$(printf '%s' "$KEY_PASS" | sha256sum | awk '{print $1}')
+          EXPECTED_KEY_HASH="4c201580789610a2fa5c1e41114a0abc586faec95b4dc0fcc0a1ab2c80ad6f6c"
+          if [ "$KEY_HASH" != "$EXPECTED_KEY_HASH" ]; then
+            echo "KEY_PASSWORD is wrong for the permanent signing key."
+            exit 1
+          fi
 
           echo "ANDROID_KEYSTORE_PASSWORD_CLEAN=$STORE_PASS" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_PASSWORD_CLEAN=$KEY_PASS" >> "$GITHUB_ENV"
