@@ -1,0 +1,10 @@
+import {useEffect,useState} from 'react'
+import {api} from '../lib/api'
+import {schoolDate,prettyDate} from '../lib/date'
+type P={id:string;period_no:number;subject:string;teacher_name:string|null;status?:string|null}
+const choices=[['ARRIVED','Arrived'],['NOT_ARRIVED','Not Arrived'],['DELAYED','Delayed'],['RELIEF','Relief'],['NOT_ARRIVED_RELIEF','Not Arrived in Relief']] as const
+export function PeriodAttendance(){const date=schoolDate();const [periods,setPeriods]=useState<P[]>([]),[className,setClassName]=useState(''),[statuses,setStatuses]=useState<Record<string,string>>({}),[msg,setMsg]=useState('')
+ async function load(){try{const x:any=await api('/api/period-attendance/today?date='+date);setPeriods(x.periods);setClassName(x.class_name);setStatuses(Object.fromEntries(x.periods.filter((p:P)=>p.status).map((p:P)=>[p.id,p.status])))}catch(e:any){setMsg(e.message==='class_teacher_not_assigned'?'You are not assigned as a class teacher.':'Could not load period attendance.')}}
+ useEffect(()=>{load()},[])
+ async function save(){if(periods.some(p=>!statuses[p.id])){setMsg('Choose a status for every period.');return}try{await api('/api/period-attendance',{method:'POST',body:JSON.stringify({date,records:periods.map(p=>({period_id:p.id,status:statuses[p.id]}))})});setMsg('Period teacher attendance saved ✓')}catch{setMsg('Could not save period teacher attendance.')}}
+ return <><div className="page-title"><div><h1>Teacher Period Attendance</h1><p>{className?className+' · ':''}{prettyDate(date)}</p></div></div>{msg&&<div className={msg.includes('✓')?'notice':'error'}>{msg}</div>}<section className="period-list">{periods.map(p=><article key={p.id}><div><small>Period {p.period_no}</small><strong>{p.subject}</strong><span>{p.teacher_name||'Teacher not assigned'}</span></div><div className="period-status">{choices.map(([v,l])=><button key={v} className={statuses[p.id]===v?'selected':''} onClick={()=>setStatuses(s=>({...s,[p.id]:v}))}>{l}</button>)}</div></article>)}</section>{periods.length>0&&<button className="submit" onClick={save}>Save Teacher Period Attendance</button>}</>}
