@@ -24,6 +24,7 @@ import androidx.webkit.WebViewClientCompat
 
 class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
+    private lateinit var appUpdater: AppUpdater
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
     private val fileChooserLauncher = registerForActivityResult(
@@ -106,8 +107,11 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = false
         }
 
+        appUpdater = AppUpdater(this)
+
         if (savedInstanceState == null) {
             webView.loadUrl("https://appassets.androidplatform.net/web/index.html")
+            appUpdater.checkForUpdates()
         } else {
             webView.restoreState(savedInstanceState)
         }
@@ -119,6 +123,11 @@ class MainActivity : ComponentActivity() {
         })
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::appUpdater.isInitialized) appUpdater.onResume()
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         webView.saveState(outState)
         super.onSaveInstanceState(outState)
@@ -127,6 +136,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         filePathCallback?.onReceiveValue(null)
         filePathCallback = null
+        if (::appUpdater.isInitialized) appUpdater.destroy()
         webView.destroy()
         super.onDestroy()
     }
