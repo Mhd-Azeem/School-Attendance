@@ -1,7 +1,7 @@
 name: Original Android APK
 on:
   push:
-    paths: ['release-trigger/**']
+    paths: ['android/**', 'web/**', 'branding/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -54,6 +54,6 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            Original production Android app for the School Attendance Management System.
-            Connected to the shared Cloudflare Worker + D1 backend.
+            Major green UI redesign matching the approved mobile mockup.
+            Includes Teacher and Section Head dashboards, student attendance, teacher-period attendance, profile, management, timetable setup and shared Cloudflare Worker + D1 connectivity.
           files: School-Attendance-Original-v0.2.0.apk
