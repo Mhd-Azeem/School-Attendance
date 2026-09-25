@@ -1,9 +1,13 @@
 package com.azeem.schoolattendance
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -11,6 +15,7 @@ import android.webkit.WebView
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -19,13 +24,22 @@ import androidx.webkit.WebViewClientCompat
 
 class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+
+    private val fileChooserLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val values = if (result.resultCode == Activity.RESULT_OK) {
+            WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)
+        } else null
+        filePathCallback?.onReceiveValue(values)
+        filePathCallback = null
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Android 15/16 enforce edge-to-edge. Keep the native root under the system
-        // bars, then inset the actual WebView so app content can never overlap them.
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val loader = WebViewAssetLoader.Builder()
@@ -41,9 +55,27 @@ class MainActivity : ComponentActivity() {
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
             settings.allowFileAccess = false
-            settings.allowContentAccess = false
+            settings.allowContentAccess = true
             setBackgroundColor(Color.parseColor("#F4FAF7"))
-            webChromeClient = WebChromeClient()
+            webChromeClient = object : WebChromeClient() {
+                override fun onShowFileChooser(
+                    webView: WebView?,
+                    callback: ValueCallback<Array<Uri>>?,
+                    fileChooserParams: FileChooserParams?
+                ): Boolean {
+                    if (callback == null || fileChooserParams == null) return false
+                    filePathCallback?.onReceiveValue(null)
+                    filePathCallback = callback
+                    return try {
+                        val intent: Intent = fileChooserParams.createIntent()
+                        fileChooserLauncher.launch(intent)
+                        true
+                    } catch (_: Exception) {
+                        filePathCallback = null
+                        false
+                    }
+                }
+            }
             webViewClient = object : WebViewClientCompat() {
                 override fun shouldInterceptRequest(
                     view: WebView,
@@ -93,6 +125,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        filePathCallback?.onReceiveValue(null)
+        filePathCallback = null
         webView.destroy()
         super.onDestroy()
     }

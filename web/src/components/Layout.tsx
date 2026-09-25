@@ -1,15 +1,62 @@
+import {useEffect,useState} from 'react'
 import {NavLink,Outlet,useLocation} from 'react-router-dom'
-import {BarChart3,Bell,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,UserRound,Users} from 'lucide-react'
+import {BarChart3,Bell,CalendarClock,CalendarDays,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
 import {useAuth} from '../AuthContext'
+import {api} from '../lib/api'
+import {schoolDate} from '../lib/date'
 
 const teacherLinks=[['/','Home',Home],['/attendance','Student',ClipboardCheck],['/period-attendance','Teacher Period',Users],['/history','History',History],['/profile','Profile',UserRound]] as const
 const adminLinks=[['/','Home',Home],['/classes','Classes',GraduationCap],['/teachers','Teachers',Users],['/reports','Reports',BarChart3],['/profile','Profile',UserRound]] as const
-const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Classes','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/profile':'Profile','/timetable':'Timetable / Period Setup'}
+const adminMenuExtras=[['/students','Manage Students',Users],['/timetable','Timetable',CalendarClock],['/calendar','Calendar',CalendarDays],['/audit','Audit',ShieldCheck],['/settings','Settings',Settings]] as const
+const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Manage Students','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/profile':'Profile','/timetable':'Timetable / Period Setup'}
+type Notice={id:string;title:string;text:string;tone:'warn'|'ok'|'info'}
 
 export function Layout(){
  const {profile,signOut}=useAuth(),loc=useLocation()
+ const [menuOpen,setMenuOpen]=useState(false),[notificationsOpen,setNotificationsOpen]=useState(false),[notices,setNotices]=useState<Notice[]>([]),[noticeLoading,setNoticeLoading]=useState(false)
  const links=profile?.role==='SECTION_HEAD'?adminLinks:teacherLinks
+ const drawerLinks=profile?.role==='SECTION_HEAD'?[...adminLinks,...adminMenuExtras]:[...teacherLinks]
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
+
+ useEffect(()=>{setMenuOpen(false);setNotificationsOpen(false)},[loc.pathname])
+ useEffect(()=>{loadNotifications()},[profile?.role])
+
+ async function loadNotifications(){
+  if(!profile)return
+  setNoticeLoading(true)
+  try{
+   const today=schoolDate()
+   const next:Notice[]=[]
+   if(profile.role==='SECTION_HEAD'){
+    const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${today}`)
+    for(const c of d.classes){
+     const marked=Number(c.marked??(Number(c.present||0)+Number(c.absent||0)+Number(c.late||0))),total=Number(c.total||0)
+     if(!c.session_id)next.push({id:'student-'+c.class_id,title:`${c.display_name}: attendance pending`,text:'Student attendance has not been submitted today.',tone:'warn'})
+     else if(marked<total)next.push({id:'student-'+c.class_id,title:`${c.display_name}: attendance incomplete`,text:`${marked}/${total} students have been marked.`,tone:'warn'})
+    }
+    if(!next.length)next.push({id:'all-complete',title:'Student attendance complete',text:'All classes have completed today’s student attendance.',tone:'ok'})
+   }else{
+    const c=await api<{classes:any[]}>('/api/classes')
+    const first=c.classes[0]
+    if(first){
+     const h=await api<{sessions:any[]}>(`/api/history?class_id=${encodeURIComponent(first.id)}&from=${today}&to=${today}`)
+     if(!h.sessions.length)next.push({id:'student-pending',title:'Student attendance pending',text:`${first.display_name} has not submitted student attendance today.`,tone:'warn'})
+     else next.push({id:'student-done',title:'Student attendance submitted',text:`${first.display_name} attendance is recorded for today.`,tone:'ok'})
+     try{
+      const p=await api<{periods:any[]}>(`/api/period-attendance/today?date=${today}`)
+      const done=p.periods.filter(x=>x.status).length
+      if(!p.periods.length)next.push({id:'period-config',title:'Teacher periods not configured',text:'Ask the Section Head to configure the timetable.',tone:'info'})
+      else if(done<p.periods.length)next.push({id:'period-pending',title:'Teacher period attendance pending',text:`${done}/${p.periods.length} periods completed.`,tone:'warn'})
+      else next.push({id:'period-done',title:'Teacher period attendance complete',text:'All periods are marked for today.',tone:'ok'})
+     }catch{}
+    }
+   }
+   setNotices(next)
+  }catch{setNotices([{id:'load-error',title:'Notifications unavailable',text:'Pull down or tap the bell again to retry.',tone:'info'}])}
+  finally{setNoticeLoading(false)}
+ }
+ async function toggleNotifications(){const open=!notificationsOpen;setNotificationsOpen(open);setMenuOpen(false);if(open)await loadNotifications()}
+
  return <div className="shell">
    <aside className="sidebar">
     <div className="brand"><img src="zahira-logo.jpg" alt="Zahira College Matale"/><div><strong>School Attendance</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head Portal':'Teacher Portal'}</small></div></div>
@@ -17,8 +64,25 @@ export function Layout(){
     {profile?.role==='SECTION_HEAD'&&<div className="desktop-extra"><NavLink to="/calendar">Calendar</NavLink><NavLink to="/audit">Audit</NavLink><NavLink to="/settings">Settings</NavLink></div>}
     <button className="logout" onClick={signOut}><LogOut size={19}/>Logout</button>
    </aside>
+
+   {menuOpen&&<button className="drawer-backdrop" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}
+   <aside className={`mobile-drawer ${menuOpen?'open':''}`} aria-hidden={!menuOpen}>
+    <div className="drawer-head"><div><strong>{profile?.full_name}</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head':'Teacher'}</small></div><button onClick={()=>setMenuOpen(false)} aria-label="Close menu"><X/></button></div>
+    <nav>{drawerLinks.map(([to,label,Icon])=><NavLink key={to} to={to} end={to==='/'}><Icon/><span>{label}</span></NavLink>)}</nav>
+    <button className="drawer-logout" onClick={signOut}><LogOut/> Logout</button>
+   </aside>
+
    <div className="workspace">
-    <header className="appbar"><Menu className="mobile-only" size={22}/><strong>{title}</strong><Bell size={20}/></header>
+    <header className="appbar">
+     <button className="appbar-icon mobile-only" aria-label="Open menu" onClick={()=>{setMenuOpen(true);setNotificationsOpen(false)}}><Menu size={24}/></button>
+     <strong>{title}</strong>
+     <button className="appbar-icon bell-button" aria-label="Notifications" onClick={toggleNotifications}><Bell size={21}/>{notices.some(n=>n.tone==='warn')&&<span className="notification-badge">{notices.filter(n=>n.tone==='warn').length}</span>}</button>
+    </header>
+    {notificationsOpen&&<section className="notification-panel">
+      <div className="notification-head"><div><strong>Notifications</strong><small>Today</small></div><button onClick={()=>setNotificationsOpen(false)} aria-label="Close notifications"><X/></button></div>
+      {noticeLoading?<div className="notification-loading">Checking today’s status…</div>:<div className="notification-list">{notices.map(n=><div className={`notification-item ${n.tone}`} key={n.id}><span/ ><div><strong>{n.title}</strong><small>{n.text}</small></div></div>)}</div>}
+      <button className="notification-refresh" onClick={loadNotifications}>Refresh</button>
+    </section>}
     <main><Outlet/></main>
    </div>
  </div>
