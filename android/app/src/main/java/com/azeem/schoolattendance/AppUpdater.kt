@@ -72,10 +72,17 @@ class AppUpdater(private val activity: MainActivity) {
             val json = JSONObject(reader.readText())
             val body = json.optString("body", "")
             val tag = json.optString("tag_name", "")
-            val buildNumber = Regex("""(?im)^Build number:\s*(\d+)\s*$""")
+            // Compare Android versionCode, not the GitHub Actions run number.
+            // Release body contains: "Build number: <versionCode>".
+            val versionCode = Regex("""(?im)^\s*Build number:\s*(\d+)\s*$""")
                 .find(body)?.groupValues?.get(1)?.toLongOrNull()
-                ?: Regex("""build-(\d+)""", RegexOption.IGNORE_CASE)
-                    .find(tag)?.groupValues?.get(1)?.toLongOrNull()
+                ?: Regex("""apk-v(\d+)\.(\d+)\.(\d+)""", RegexOption.IGNORE_CASE)
+                    .find(tag)?.let { m ->
+                        val major=m.groupValues[1].toLong()
+                        val minor=m.groupValues[2].toLong()
+                        val patch=m.groupValues[3].toLong()
+                        major*10000L+minor*100L+patch
+                    }
                 ?: 0L
 
             val assets = json.getJSONArray("assets")
@@ -93,7 +100,7 @@ class AppUpdater(private val activity: MainActivity) {
             }
 
             return ReleaseInfo(
-                buildNumber = buildNumber,
+                buildNumber = versionCode,
                 versionLabel = json.optString("name", tag),
                 apkUrl = apkUrl
             )
