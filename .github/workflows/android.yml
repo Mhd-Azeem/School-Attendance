@@ -85,9 +85,9 @@ jobs:
         working-directory: android
         env:
           ANDROID_KEYSTORE_PATH: ../release-keystore.jks
-          ANDROID_KEYSTORE_PASSWORD: ${{ env.ANDROID_KEYSTORE_PASSWORD_CLEAN }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: school-attendance-release
-          ANDROID_KEY_PASSWORD: ${{ env.ANDROID_KEY_PASSWORD_CLEAN }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle assembleRelease
 
       - name: Read app version
