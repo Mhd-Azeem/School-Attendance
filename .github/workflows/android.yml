@@ -56,17 +56,45 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 --decode > android/release-keystore.jks
+          RAW_B64="$ANDROID_KEYSTORE_BASE64"
+
+          # Accept either the raw Base64 payload or a copied
+          # ANDROID_KEYSTORE_BASE64=<payload> line from the backup file.
+          if printf '%s' "$RAW_B64" | grep -q 'ANDROID_KEYSTORE_BASE64='; then
+            RAW_B64=$(printf '%s\n' "$RAW_B64" | sed -n 's/^ANDROID_KEYSTORE_BASE64=//p' | head -n 1)
+          fi
+
+          CLEAN_B64=$(printf '%s' "$RAW_B64" | tr -d '\r\n\t ' | tr -d '"')
+          if ! printf '%s' "$CLEAN_B64" | base64 --decode > android/release-keystore.jks; then
+            echo "ANDROID_KEYSTORE_BASE64 is not valid Base64."
+            echo "Paste only the contents of keystore_base64.txt, or the full ANDROID_KEYSTORE_BASE64=<payload> line."
+            exit 1
+          fi
+
+          ACTUAL_SIZE=$(wc -c < android/release-keystore.jks | tr -d ' ')
+          if [ "$ACTUAL_SIZE" != "3998" ]; then
+            echo "Decoded keystore has the wrong size: $ACTUAL_SIZE bytes (expected 3998)."
+            exit 1
+          fi
+
           ACTUAL_SHA=$(sha256sum android/release-keystore.jks | awk '{print $1}')
           EXPECTED_SHA="fb229946f25169255bcc252a3e5993f7cb659bdc146f0abed247b0d1b4732cc2"
           if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
-            echo "The ANDROID_KEYSTORE_BASE64 secret is not the permanent School Attendance keystore."
-            echo "Expected SHA-256: $EXPECTED_SHA"
-            echo "Actual SHA-256:   $ACTUAL_SHA"
+            echo "Decoded keystore does not match the permanent School Attendance keystore."
             exit 1
           fi
-          keytool -list -keystore android/release-keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null
-          echo "Permanent keystore verified."
+
+          STORE_PASS="$ANDROID_KEYSTORE_PASSWORD"
+          STORE_PASS="${STORE_PASS#ANDROID_KEYSTORE_PASSWORD=}"
+          STORE_PASS="${STORE_PASS%\"}"
+          STORE_PASS="${STORE_PASS#\"}"
+
+          if ! keytool -list -keystore android/release-keystore.jks -storepass "$STORE_PASS" >/dev/null 2>&1; then
+            echo "ANDROID_KEYSTORE_PASSWORD is incorrect."
+            echo "Paste only the password value (or the full ANDROID_KEYSTORE_PASSWORD=<value> line)."
+            exit 1
+          fi
+          echo "Permanent keystore verified successfully."
 
       - name: Build permanently signed Original APK
         working-directory: android
