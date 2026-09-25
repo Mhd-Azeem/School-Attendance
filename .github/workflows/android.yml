@@ -55,6 +55,7 @@ jobs:
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           RAW_B64="$ANDROID_KEYSTORE_BASE64"
 
@@ -94,15 +95,23 @@ jobs:
             echo "Paste only the password value (or the full ANDROID_KEYSTORE_PASSWORD=<value> line)."
             exit 1
           fi
+
+          KEY_PASS="$ANDROID_KEY_PASSWORD"
+          KEY_PASS="${KEY_PASS#ANDROID_KEY_PASSWORD=}"
+          KEY_PASS="${KEY_PASS%\"}"
+          KEY_PASS="${KEY_PASS#\"}"
+
+          echo "ANDROID_KEYSTORE_PASSWORD_CLEAN=$STORE_PASS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD_CLEAN=$KEY_PASS" >> "$GITHUB_ENV"
           echo "Permanent keystore verified successfully."
 
       - name: Build permanently signed Original APK
         working-directory: android
         env:
           ANDROID_KEYSTORE_PATH: release-keystore.jks
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ env.ANDROID_KEYSTORE_PASSWORD_CLEAN }}
           ANDROID_KEY_ALIAS: school-attendance-release
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ env.ANDROID_KEY_PASSWORD_CLEAN }}
         run: gradle assembleRelease
 
       - name: Read app version
