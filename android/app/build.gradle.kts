@@ -1,9 +1,36 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
+
+val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: ""
+val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ""
+val keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
+val keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
+
 android {
  namespace="com.azeem.schoolattendance"; compileSdk=36
  defaultConfig { applicationId="com.azeem.schoolattendance"; minSdk=26; targetSdk=36; versionCode=25; versionName="0.2.13" }
- buildTypes { release { isMinifyEnabled=true; isShrinkResources=true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),"proguard-rules.pro") } }
+
+ signingConfigs {
+  create("release") {
+   if (keystorePath.isNotBlank()) {
+    storeFile = file(keystorePath)
+    storePassword = keystorePassword
+    this.keyAlias = keyAlias
+    this.keyPassword = keyPassword
+   }
+  }
+ }
+
+ buildTypes {
+  release {
+   isMinifyEnabled=true
+   isShrinkResources=true
+   signingConfig=signingConfigs.getByName("release")
+   proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),"proguard-rules.pro")
+  }
+ }
+
  compileOptions { sourceCompatibility=JavaVersion.VERSION_17; targetCompatibility=JavaVersion.VERSION_17 }
  kotlinOptions { jvmTarget="17" }
 }
+
 dependencies { implementation("androidx.activity:activity-ktx:1.11.0"); implementation("androidx.webkit:webkit:1.14.0") }
