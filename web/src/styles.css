@@ -232,3 +232,10 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
  .simple-period-register th,.simple-period-register td{padding:11px 6px}
  .simple-period-register tbody th{width:108px;font-size:10px}
 }
+
+/* Section Head teacher-period result drill-down */
+.section-head-expanded-results{padding:0 12px 13px;background:#fbfdfc}
+.period-result-card{margin-top:10px;background:#fff;border:1px solid #dfeae4;border-radius:13px;overflow:hidden}
+.period-result-card h4{margin:0;padding:11px 13px;background:#f2f9f5;color:#24513f;font-size:11px}
+.period-result-list>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 13px;border-top:1px solid #edf2ef}.period-result-list strong{font-size:10px}
+.period-result-status{font-size:9px;font-weight:800;border-radius:999px;padding:5px 8px;background:#eef2f0;color:#687b72}.period-result-status.arrived{background:#dcf7e8;color:#067447}.period-result-status.not_arrived{background:#ffebeb;color:#b12f37}.period-result-status.delayed{background:#fff1cf;color:#a86400}.period-result-status.relief{background:#e7f0ff;color:#246fd6}.period-result-status.not_arrived_relief{background:#f5e3e5;color:#8f2530}
