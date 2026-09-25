@@ -16,12 +16,14 @@ jobs:
         with: { gradle-version: '8.13' }
       - uses: actions/setup-node@v4
         with: { node-version: '24', cache: 'npm', cache-dependency-path: web/package-lock.json }
+
       - name: Prepare Zahira College branding
         run: |
           mkdir -p web/public
           base64 -d branding/zahira-logo.jpg.b64 > web/public/zahira-logo.jpg
           mkdir -p android/app/src/main/res/drawable
           base64 -d branding/zahira-logo.jpg.b64 > android/app/src/main/res/drawable/zahira_logo.jpg
+
       - name: Build complete web app for Original APK
         working-directory: web
         env:
@@ -30,14 +32,43 @@ jobs:
           npm ci
           npm test
           npm run build
+
       - name: Bundle web app into Original APK
         run: |
           rm -rf android/app/src/main/assets/web
           mkdir -p android/app/src/main/assets/web
           cp -R web/dist/. android/app/src/main/assets/web/
-      - name: Build Original APK
-        run: gradle assembleDebug
+
+      - name: Validate signing secrets
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
+          test -n "$ANDROID_KEY_ALIAS" || (echo "Missing ANDROID_KEY_ALIAS" && exit 1)
+          test -n "$ANDROID_KEY_PASSWORD" || (echo "Missing ANDROID_KEY_PASSWORD" && exit 1)
+
+      - name: Restore permanent release keystore
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release-keystore.jks
+          keytool -list -keystore android/release-keystore.jks -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" -alias "${{ secrets.ANDROID_KEY_ALIAS }}" >/dev/null
+
+      - name: Build permanently signed Original APK
         working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: release-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: gradle assembleRelease
+
       - name: Read app version
         id: app_version
         shell: bash
@@ -45,18 +76,26 @@ jobs:
           VERSION=$(grep -oP 'versionName="\K[^"]+' android/app/build.gradle.kts)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "apk=School-Attendance-INSTALL.apk" >> "$GITHUB_OUTPUT"
+
       - name: Prepare Original APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk "${{ steps.app_version.outputs.apk }}"
+        run: cp android/app/build/outputs/apk/release/app-release.apk "${{ steps.app_version.outputs.apk }}"
+
+      - name: Verify APK signing certificate
+        run: |
+          keytool -printcert -jarfile "${{ steps.app_version.outputs.apk }}"
+          jarsigner -verify -verbose -certs "${{ steps.app_version.outputs.apk }}" >/dev/null
+
       - name: Publish APK to GitHub Releases
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-v${{ steps.app_version.outputs.version }}-build-${{ github.run_number }}
-          name: School Attendance v${{ steps.app_version.outputs.version }} · Build ${{ github.run_number }} — ONE APK
+          name: School Attendance v${{ steps.app_version.outputs.version }} · Build ${{ github.run_number }} — PERMANENTLY SIGNED
           prerelease: false
           generate_release_notes: true
           body: |
-            This release publishes exactly ONE Android APK asset: School-Attendance-INSTALL.apk.
-            GitHub automatically adds Source code (zip) and Source code (tar.gz); those are not Android app files.
-            Every successful APK build is published to the GitHub Releases tab.
+            Production APK signed with the permanent School Attendance release keystore.
+            Package: com.azeem.schoolattendance
+            Future releases must use the same GitHub signing secrets so Android can update in place.
+            This release publishes exactly one Android APK asset: School-Attendance-INSTALL.apk.
           files: ${{ steps.app_version.outputs.apk }}
