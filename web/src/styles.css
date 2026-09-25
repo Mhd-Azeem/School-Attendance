@@ -9,3 +9,23 @@
 .status-control button span{margin-left:5px}.status-control button{white-space:nowrap}
 
 .brand img{width:48px;height:48px;object-fit:cover;border-radius:50%;background:#fff}.crest-logo{width:96px;height:96px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 16px;box-shadow:0 4px 18px #0002}
+
+/* Keep authentication controls vertically and horizontally centered on every viewport,
+   including Android WebView with system bars/keyboard. */
+.login-page{
+  min-height:100dvh;
+  height:100dvh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px 20px;
+  overflow:auto;
+}
+.login-card{
+  margin:auto;
+  flex:0 0 auto;
+}
+@media(max-height:620px){
+  .login-page{align-items:flex-start}
+  .login-card{margin:auto}
+}
