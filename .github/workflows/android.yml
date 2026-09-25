@@ -74,7 +74,9 @@ jobs:
         shell: bash
         run: |
           VERSION=$(grep -oP 'versionName="\K[^"]+' android/app/build.gradle.kts)
+          VERSION_CODE=$(grep -oP 'versionCode=\K[0-9]+' android/app/build.gradle.kts)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "apk=School-Attendance-INSTALL.apk" >> "$GITHUB_OUTPUT"
 
       - name: Prepare Original APK
@@ -95,6 +97,7 @@ jobs:
           generate_release_notes: true
           body: |
             Production APK signed with the permanent School Attendance release keystore.
+            Build number: ${{ steps.app_version.outputs.version_code }}
             Package: com.azeem.schoolattendance
             Future releases must use the same GitHub signing secrets so Android can update in place.
             This release publishes exactly one Android APK asset: School-Attendance-INSTALL.apk.
