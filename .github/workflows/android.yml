@@ -87,6 +87,7 @@ jobs:
 
           STORE_PASS="$ANDROID_KEYSTORE_PASSWORD"
           STORE_PASS="${STORE_PASS#ANDROID_KEYSTORE_PASSWORD=}"
+          STORE_PASS="${STORE_PASS#KEYSTORE_PASSWORD=}"
           STORE_PASS="${STORE_PASS%\"}"
           STORE_PASS="${STORE_PASS#\"}"
 
@@ -98,6 +99,7 @@ jobs:
 
           KEY_PASS="$ANDROID_KEY_PASSWORD"
           KEY_PASS="${KEY_PASS#ANDROID_KEY_PASSWORD=}"
+          KEY_PASS="${KEY_PASS#KEY_PASSWORD=}"
           KEY_PASS="${KEY_PASS%\"}"
           KEY_PASS="${KEY_PASS#\"}"
 
