@@ -77,7 +77,7 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
  .welcome-card{padding:15px}.welcome-card .avatar{width:52px;height:52px}.teacher-module-grid{gap:10px}.teacher-module{padding:14px;grid-template-columns:44px 1fr auto}.module-icon{width:44px;height:44px}.submission-cards{grid-template-columns:1fr 1fr}
  .admin-stat-grid{grid-template-columns:1fr 1fr;gap:9px}.admin-stat{padding:11px}.admin-stat strong{font-size:19px}.overview-card,.class-status-card,.mini-section{padding:14px}
  .attendance-summary{gap:7px}.attendance-summary article{padding:10px}.attendance-summary strong{font-size:21px}
- .student-head{grid-template-columns:24px 1fr 118px;padding:9px 10px}.student-table article{grid-template-columns:24px 1fr 118px;padding:9px 10px}.status-control{display:grid;grid-template-columns:1fr;gap:3px}.status-control button{padding:5px 6px}
+ .student-head{grid-template-columns:24px 1fr 178px;padding:9px 10px}.student-table article{grid-template-columns:24px 1fr 178px;padding:9px 10px}.status-control{display:flex;flex-direction:row;gap:7px;width:100%;justify-content:flex-end}.status-control button{flex:1;min-width:82px;padding:9px 8px;font-size:10px}
  .teacher-attendance-table{border-radius:13px}.teacher-attendance-table table{min-width:620px}.teacher-attendance-table th,.teacher-attendance-table td{padding:9px 6px}
  .inline-form{grid-template-columns:1fr}.check-grid{grid-template-columns:repeat(2,1fr)}.data-list article{display:grid;grid-template-columns:1fr auto}.data-list article select{grid-column:1/-1}
  .history-list article{grid-template-columns:1fr auto}.history-list article>small{grid-column:1/-1;text-align:left}.report-list article{grid-template-columns:1fr auto auto auto}
