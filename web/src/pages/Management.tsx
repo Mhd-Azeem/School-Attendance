@@ -1,6 +1,6 @@
 import {useEffect,useState,type FormEvent} from 'react'
 import {Link} from 'react-router-dom'
-import {CalendarClock,MoreVertical,Search,UserRound} from 'lucide-react'
+import {CalendarClock,KeyRound,Pencil,Save,Search,UserRound,X} from 'lucide-react'
 import {api} from '../lib/api'
 import type {SchoolClass,Student} from '../types'
 type S=Student&{display_name:string}
@@ -11,9 +11,111 @@ export function Students(){const [students,setStudents]=useState<S[]>([]),[class
  async function add(e:FormEvent){e.preventDefault();setError('');try{await api('/api/students',{method:'POST',body:JSON.stringify(form)});setForm(x=>({...x,admission_number:'',full_name:''}));await load()}catch(e){setError(e instanceof Error&&e.message==='admission_number_exists'?'Admission number already exists.':'Could not add student.')}}
  return <><div className="screen-title-row"><div><h1>Classes & Students</h1><p>Manage students across Grades 6 and 7.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search student name…" value={search} onChange={e=>setSearch(e.target.value)}/></label><form className="inline-form" onSubmit={add}><input required placeholder="Admission number" value={form.admission_number} onChange={e=>setForm({...form,admission_number:e.target.value})}/><input required placeholder="Full name" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/><select value={form.class_id} onChange={e=>setForm({...form,class_id:e.target.value})}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select><button className="primary">Add Student</button></form>{error&&<div className="error">{error}</div>}<section className="data-list">{students.filter(s=>`${s.full_name} ${s.admission_number}`.toLowerCase().includes(search.toLowerCase())).map(s=><article key={s.id}><div><small>{s.admission_number} · {s.display_name}</small><strong>{s.full_name}</strong></div><select value={s.class_id} onChange={async e=>{await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({class_id:e.target.value,reason:'Section Head transfer'})});load()}}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select><span className={s.is_active?'status-pill active':'status-pill waiting'}>{s.is_active?'Active':'Inactive'}</span><button className="link" onClick={async()=>{if(confirm(`${s.is_active?'Deactivate':'Reactivate'} ${s.full_name}?`)){await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({is_active:!s.is_active})});load()}}}>{s.is_active?'Deactivate':'Reactivate'}</button></article>)}</section></>}
 
-export function Teachers(){const [rows,setRows]=useState<T[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[form,setForm]=useState({full_name:'',username:'',password:'',class_ids:[] as string[],class_teacher_id:''}),[error,setError]=useState('');async function load(){try{const [t,c]=await Promise.all([api<{teachers:T[]}>('/api/teachers'),api<{classes:SchoolClass[]}>('/api/classes')]);setRows(t.teachers);setClasses(c.classes)}catch{setError('Could not load teachers.')}}useEffect(()=>{load()},[])
- async function add(e:FormEvent){e.preventDefault();setError('');try{await api('/api/teachers',{method:'POST',body:JSON.stringify(form)});setForm({full_name:'',username:'',password:'',class_ids:[],class_teacher_id:''});load()}catch(e){setError(e instanceof Error&&e.message==='username_exists'?'Username already exists.':'Could not create teacher. Password must be at least 10 characters.')}}
- return <><div className="screen-title-row"><div><h1>Teachers Management</h1><p>Accounts, class access and class-teacher assignments.</p></div><Link className="secondary icon-button" to="/timetable"><CalendarClock size={17}/> Timetable</Link></div><form className="teacher-form" onSubmit={add}><input required placeholder="Full name" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/><input required placeholder="Username" value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/><input required minLength={10} type="password" placeholder="Temporary password (10+ characters)" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/><label>Class teacher of<select value={form.class_teacher_id} onChange={e=>setForm({...form,class_teacher_id:e.target.value})}><option value="">Not a class teacher</option>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label><div className="check-grid">{classes.map(c=><label key={c.id}><input type="checkbox" checked={form.class_ids.includes(c.id)} onChange={e=>setForm({...form,class_ids:e.target.checked?[...form.class_ids,c.id]:form.class_ids.filter(x=>x!==c.id)})}/>{c.display_name}</label>)}</div><button className="primary">+ Add Teacher</button></form>{error&&<div className="error">{error}</div>}<section className="teacher-list">{rows.map(t=><article key={t.id}><span className="teacher-avatar"><UserRound/></span><div><strong>{t.full_name}</strong><small>{t.class_teacher_of?`Class Teacher · ${t.class_teacher_of.display_name}`:`@${t.username}`}</small></div><span className={t.is_active?'status-pill active':'status-pill waiting'}>{t.is_active?'Active':'Disabled'}</span><button className="more" title={t.is_active?'Disable teacher':'Enable teacher'} onClick={async()=>{await api(`/api/teachers/${t.id}`,{method:'PUT',body:JSON.stringify({is_active:!t.is_active})});load()}}><MoreVertical/></button></article>)}</section></>}
+export function Teachers(){
+ const [rows,setRows]=useState<T[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[error,setError]=useState(''),[msg,setMsg]=useState('')
+ const [form,setForm]=useState({full_name:'',username:'',password:'',class_ids:[] as string[],class_teacher_id:''})
+ const [editId,setEditId]=useState<string|null>(null)
+ const [editForm,setEditForm]=useState({full_name:'',username:'',password:'',class_ids:[] as string[],class_teacher_id:'',is_active:true})
+
+ async function load(){
+  try{
+   const [t,c]=await Promise.all([api<{teachers:T[]}>('/api/teachers'),api<{classes:SchoolClass[]}>('/api/classes')])
+   setRows(t.teachers);setClasses(c.classes);setError('')
+  }catch{setError('Could not load teachers.')}
+ }
+ useEffect(()=>{load()},[])
+
+ function withClassTeacherAccess(ids:string[],classTeacherId:string){
+  return classTeacherId&&!ids.includes(classTeacherId)?[...ids,classTeacherId]:ids
+ }
+
+ async function add(e:FormEvent){
+  e.preventDefault();setError('');setMsg('')
+  try{
+   const payload={...form,class_ids:withClassTeacherAccess(form.class_ids,form.class_teacher_id)}
+   await api('/api/teachers',{method:'POST',body:JSON.stringify(payload)})
+   setForm({full_name:'',username:'',password:'',class_ids:[],class_teacher_id:''})
+   setMsg('Teacher created ✓');await load()
+  }catch(e){setError(e instanceof Error&&e.message==='username_exists'?'Username already exists.':'Could not create teacher. Password must be at least 10 characters.')}
+ }
+
+ function beginEdit(t:T){
+  setEditId(t.id);setMsg('');setError('')
+  setEditForm({
+   full_name:t.full_name,
+   username:t.username,
+   password:'',
+   class_ids:t.classes.map(c=>c.id),
+   class_teacher_id:t.class_teacher_of?.id||'',
+   is_active:!!t.is_active
+  })
+ }
+
+ function setEditClassTeacher(classId:string){
+  setEditForm(x=>({...x,class_teacher_id:classId,class_ids:withClassTeacherAccess(x.class_ids,classId)}))
+ }
+
+ async function saveEdit(e:FormEvent){
+  e.preventDefault()
+  if(!editId)return
+  setError('');setMsg('')
+  try{
+   const payload:any={
+    full_name:editForm.full_name.trim(),
+    is_active:editForm.is_active,
+    class_ids:withClassTeacherAccess(editForm.class_ids,editForm.class_teacher_id),
+    class_teacher_id:editForm.class_teacher_id
+   }
+   if(editForm.password.trim())payload.password=editForm.password
+   await api(`/api/teachers/${editId}`,{method:'PUT',body:JSON.stringify(payload)})
+   setMsg('Teacher updated ✓');setEditId(null);await load()
+  }catch(e){setError(e instanceof Error&&e.message==='password_min_10'?'New password must be at least 10 characters.':'Could not update teacher.')}
+ }
+
+ return <>
+  <div className="screen-title-row"><div><h1>Teachers Management</h1><p>Edit teacher details, class access and class-teacher assignments.</p></div><Link className="secondary icon-button" to="/timetable"><CalendarClock size={17}/> Timetable</Link></div>
+
+  <form className="teacher-form" onSubmit={add}>
+   <h3>Add Teacher</h3>
+   <input required placeholder="Full name" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/>
+   <input required placeholder="Username" value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/>
+   <input required minLength={10} type="password" placeholder="Temporary password (10+ characters)" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/>
+   <label>Class teacher of
+    <select value={form.class_teacher_id} onChange={e=>{const v=e.target.value;setForm(x=>({...x,class_teacher_id:v,class_ids:withClassTeacherAccess(x.class_ids,v)}))}}>
+     <option value="">Not a class teacher</option>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}
+    </select>
+   </label>
+   <div><small className="field-caption">Classes this teacher can access</small><div className="check-grid">{classes.map(c=><label key={c.id}><input type="checkbox" checked={form.class_ids.includes(c.id)} onChange={e=>setForm({...form,class_ids:e.target.checked?[...form.class_ids,c.id]:form.class_ids.filter(x=>x!==c.id)})}/>{c.display_name}</label>)}</div></div>
+   <button className="primary">+ Add Teacher</button>
+  </form>
+
+  {error&&<div className="error">{error}</div>}{msg&&<div className="notice">{msg}</div>}
+
+  <section className="teacher-list">{rows.map(t=><div className="teacher-management-item" key={t.id}>
+   <article>
+    <span className="teacher-avatar"><UserRound/></span>
+    <div><strong>{t.full_name}</strong><small>@{t.username}</small><small>{t.class_teacher_of?`Class Teacher · ${t.class_teacher_of.display_name}`:'Not assigned as class teacher'}</small><small>Access: {t.classes.length?t.classes.map(c=>c.display_name).join(', '):'No classes'}</small></div>
+    <span className={t.is_active?'status-pill active':'status-pill waiting'}>{t.is_active?'Active':'Disabled'}</span>
+    <button className="teacher-edit-button" type="button" onClick={()=>editId===t.id?setEditId(null):beginEdit(t)}>{editId===t.id?<X/>:<Pencil/>}<span>{editId===t.id?'Close':'Edit'}</span></button>
+   </article>
+
+   {editId===t.id&&<form className="teacher-edit-card" onSubmit={saveEdit}>
+    <div className="teacher-edit-title"><div><Pencil/><strong>Edit {t.full_name}</strong></div><small>Username cannot be changed.</small></div>
+    <div className="teacher-edit-grid">
+     <label>Full name<input required value={editForm.full_name} onChange={e=>setEditForm({...editForm,full_name:e.target.value})}/></label>
+     <label>Username<input value={editForm.username} disabled readOnly/></label>
+     <label>Class teacher of<select value={editForm.class_teacher_id} onChange={e=>setEditClassTeacher(e.target.value)}><option value="">Not a class teacher</option>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
+     <label>Account status<select value={editForm.is_active?'active':'disabled'} onChange={e=>setEditForm({...editForm,is_active:e.target.value==='active'})}><option value="active">Active</option><option value="disabled">Disabled</option></select></label>
+    </div>
+
+    <div className="teacher-access-editor"><strong>Assigned / accessible classes</strong><small>The class-teacher class is automatically kept accessible.</small><div className="check-grid">{classes.map(c=><label key={c.id}><input type="checkbox" checked={editForm.class_ids.includes(c.id)} disabled={editForm.class_teacher_id===c.id} onChange={e=>setEditForm({...editForm,class_ids:e.target.checked?[...editForm.class_ids,c.id]:editForm.class_ids.filter(x=>x!==c.id)})}/>{c.display_name}{editForm.class_teacher_id===c.id?' ★':''}</label>)}</div></div>
+
+    <label className="password-reset-field"><span><KeyRound/> Reset password <small>(optional)</small></span><input type="password" minLength={10} placeholder="Leave blank to keep current password" value={editForm.password} onChange={e=>setEditForm({...editForm,password:e.target.value})}/></label>
+
+    <div className="teacher-edit-actions"><button className="secondary" type="button" onClick={()=>setEditId(null)}><X size={16}/> Cancel</button><button className="primary" type="submit"><Save size={16}/> Save Teacher</button></div>
+   </form>}
+  </div>)}</section>
+ </>}
 
 export function Timetable(){const [classes,setClasses]=useState<SchoolClass[]>([]),[teachers,setTeachers]=useState<T[]>([]),[classId,setClassId]=useState(''),[periods,setPeriods]=useState<Period[]>(Array.from({length:9},(_,i)=>({period_no:i+1,subject:'',teacher_id:''}))),[msg,setMsg]=useState('')
  useEffect(()=>{Promise.all([api<{classes:SchoolClass[]}>('/api/classes'),api<{teachers:T[]}>('/api/teachers')]).then(([c,t])=>{setClasses(c.classes);setTeachers(t.teachers);setClassId(c.classes[0]?.id||'')})},[])

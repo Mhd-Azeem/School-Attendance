@@ -165,3 +165,19 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
  .crop-stage{width:min(260px,74vw);height:min(260px,74vw)}
  .pending-class-row{grid-template-columns:1fr}.send-reminder{width:100%}
 }
+
+
+/* Section Head teacher editor */
+.teacher-form h3{margin:0 0 2px;font-size:13px}.field-caption{display:block;color:#61766d;font-size:10px;font-weight:700;margin-bottom:7px}
+.teacher-management-item{border-bottom:1px solid #edf3ef}.teacher-management-item:last-child{border:0}.teacher-management-item>article{border:0!important}
+.teacher-edit-button{border:1px solid #cfe3d9;background:#f7fcf9;color:#08784f;border-radius:9px;padding:7px 9px;display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700}.teacher-edit-button svg{width:15px;height:15px}
+.teacher-edit-card{margin:0 12px 14px;padding:14px;background:#f8fcfa;border:1px solid #dceae3;border-radius:13px;display:grid;gap:13px}
+.teacher-edit-title{display:flex;justify-content:space-between;align-items:center;gap:10px}.teacher-edit-title>div{display:flex;align-items:center;gap:7px}.teacher-edit-title svg{width:16px;color:#078e59}.teacher-edit-title strong{font-size:12px}.teacher-edit-title small{font-size:9px;color:#71827b}
+.teacher-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.teacher-edit-grid label,.password-reset-field{display:grid;gap:6px;font-size:10px;font-weight:700}.teacher-edit-grid input,.teacher-edit-grid select,.password-reset-field input{width:100%}
+.teacher-access-editor{display:grid;gap:7px}.teacher-access-editor>strong{font-size:11px}.teacher-access-editor>small{font-size:9px;color:#71827b}.teacher-access-editor .check-grid label:has(input:disabled){background:#e6f6ee;color:#08784f}
+.password-reset-field>span{display:flex;align-items:center;gap:6px}.password-reset-field svg{width:15px;color:#7b55ce}.password-reset-field small{color:#71827b;font-weight:500}
+.teacher-edit-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.teacher-edit-actions button{display:flex;align-items:center;justify-content:center;gap:6px}
+@media(max-width:700px){
+ .teacher-list article{display:grid;grid-template-columns:40px 1fr auto;align-items:center}.teacher-list article .teacher-edit-button{grid-column:2/-1;justify-self:stretch;justify-content:center}
+ .teacher-edit-grid{grid-template-columns:1fr}.teacher-edit-title{align-items:flex-start;flex-direction:column}.teacher-edit-actions{grid-template-columns:1fr}
+}
