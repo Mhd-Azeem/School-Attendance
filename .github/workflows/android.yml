@@ -3,19 +3,31 @@ on:
   push:
     paths: ['android/**', 'web/**', 'branding/**', '.github/workflows/android.yml']
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   build-original:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '17' }
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: '8.13' }
+        with:
+          gradle-version: '8.13'
+
       - uses: actions/setup-node@v4
-        with: { node-version: '24', cache: 'npm', cache-dependency-path: web/package-lock.json }
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
 
       - name: Prepare Zahira College branding
         run: |
@@ -39,64 +51,35 @@ jobs:
           mkdir -p android/app/src/main/assets/web
           cp -R web/dist/. android/app/src/main/assets/web/
 
-      - name: Validate signing secrets
+      - name: Restore and validate permanent release keystore
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          set -euo pipefail
+
           test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
           test -n "$KEYSTORE_PASSWORD" || (echo "Missing KEYSTORE_PASSWORD" && exit 1)
           test -n "$KEY_PASSWORD" || (echo "Missing KEY_PASSWORD" && exit 1)
 
-      - name: Restore and validate permanent release keystore
-        shell: bash
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.ANDROID_KEY_PASSWORD }}
-        run: |
           RAW_B64="$ANDROID_KEYSTORE_BASE64"
-
-          # Accept either the raw Base64 payload or a copied
-          # ANDROID_KEYSTORE_BASE64=<payload> line from the backup file.
-          if printf '%s' "$RAW_B64" | grep -q 'ANDROID_KEYSTORE_BASE64='; then
-            RAW_B64=$(printf '%s\n' "$RAW_B64" | sed -n 's/^ANDROID_KEYSTORE_BASE64=//p' | head -n 1)
+          if printf '%s' "$RAW_B64" | grep -q '^ANDROID_KEYSTORE_BASE64='; then
+            RAW_B64="${RAW_B64#ANDROID_KEYSTORE_BASE64=}"
           fi
 
           CLEAN_B64=$(printf '%s' "$RAW_B64" | tr -d '\r\n\t ' | tr -d '"')
-          if ! printf '%s' "$CLEAN_B64" | base64 --decode > android/release-keystore.jks; then
-            echo "ANDROID_KEYSTORE_BASE64 is not valid Base64."
-            echo "Paste only the contents of keystore_base64.txt, or the full ANDROID_KEYSTORE_BASE64=<payload> line."
-            exit 1
-          fi
-
-          ACTUAL_SIZE=$(wc -c < android/release-keystore.jks | tr -d ' ')
-          if [ "$ACTUAL_SIZE" != "3998" ]; then
-            echo "Decoded keystore has the wrong size: $ACTUAL_SIZE bytes (expected 3998)."
-            exit 1
-          fi
-
-          ACTUAL_SHA=$(sha256sum android/release-keystore.jks | awk '{print $1}')
-          EXPECTED_SHA="fb229946f25169255bcc252a3e5993f7cb659bdc146f0abed247b0d1b4732cc2"
-          if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
-            echo "Decoded keystore does not match the permanent School Attendance keystore."
-            exit 1
-          fi
-
-          CLEAN_B64=$(printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n\t ' | tr -d '"')
           printf '%s' "$CLEAN_B64" | base64 --decode > android/release-keystore.jks
 
           ACTUAL_SHA=$(sha256sum android/release-keystore.jks | awk '{print $1}')
           EXPECTED_SHA="fb229946f25169255bcc252a3e5993f7cb659bdc146f0abed247b0d1b4732cc2"
           [ "$ACTUAL_SHA" = "$EXPECTED_SHA" ] || (echo "ANDROID_KEYSTORE_BASE64 does not match permanent keystore" && exit 1)
 
-          keytool -list -keystore android/release-keystore.jks -storepass "$KEYSTORE_PASSWORD" -alias school-attendance-release >/dev/null
+          keytool -list             -keystore android/release-keystore.jks             -storepass "$KEYSTORE_PASSWORD"             -alias school-attendance-release >/dev/null
 
           echo "ANDROID_KEYSTORE_PASSWORD_CLEAN=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_PASSWORD_CLEAN=$KEY_PASSWORD" >> "$GITHUB_ENV"
-          echo "Permanent keystore and signing passwords verified successfully."
 
       - name: Build permanently signed Original APK
         working-directory: android
@@ -137,6 +120,6 @@ jobs:
             Production APK signed with the permanent School Attendance release keystore.
             Build number: ${{ steps.app_version.outputs.version_code }}
             Package: com.azeem.schoolattendance
-            Future releases must use the same GitHub signing secrets so Android can update in place.
+            Future releases must use the same signing secrets so Android can update in place.
             This release publishes exactly one Android APK asset: School-Attendance-INSTALL.apk.
           files: ${{ steps.app_version.outputs.apk }}
