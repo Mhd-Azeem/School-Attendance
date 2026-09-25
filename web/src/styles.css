@@ -47,3 +47,36 @@
 
 /* Center-align primary app content for both Teacher and Section Head views. */
 .page-title{text-align:center;justify-content:center}.page-title>div{width:100%}.page-title h1,.page-title p{text-align:center}.stat-card,.module-card,.class-card{text-align:center}.data-list article{text-align:center}.data-list article>div{text-align:center}.teacher-form,.inline-form{text-align:center}.profile-page,.profile-card{text-align:center}.teacher-attendance-table th,.teacher-attendance-table td{text-align:center}
+
+/* 2026 green redesign — shared by PWA and bundled Android app */
+:root{--navy:#006b45;--blue:#07865b;--green:#079455;--red:#df3e46;--amber:#f59e0b;--line:#dcebe4;color:#173229;background:#f3f8f5}
+body{background:#f3f8f5}
+.sidebar{background:linear-gradient(180deg,#006b45,#004c34)}
+.sidebar a:hover,.sidebar a.active{background:#0b8059;color:#fff}
+header{background:linear-gradient(90deg,#006b45,#07865b);color:#fff;border:0}
+header small,.online{color:#d9f7e9}
+main{max-width:1180px}
+.primary,.submit{background:linear-gradient(135deg,#0aa05e,#008d55);box-shadow:0 6px 16px #07865b22}
+.secondary{border-color:#cfe5da;color:#08734f}
+.teacher-hero{background:linear-gradient(135deg,#06784f,#0ca164);box-shadow:0 10px 24px #087a5024}
+.module-card,.class-card,.panel,.student-list,.data-list,.success-panel,.profile-card,.teacher-form,.settings-form,.inline-form,.teacher-attendance-table{border-color:#dcebe4;box-shadow:0 5px 18px #1a69470b}
+.module-card{padding:22px;border-radius:16px}.module-card:hover{border-color:#62c99a;transform:translateY(-1px)}
+.class-badge{background:#dff5e9;color:#08734f}
+.stat{border-color:#dcebe4;box-shadow:0 4px 14px #1a69470b}
+.login-page{background:linear-gradient(150deg,#00583b,#00895a 58%,#004a33)}
+.login-card{box-shadow:0 24px 70px #00352255}
+.crest-logo{border:4px solid #e8fff3}
+.status-control button.present{background:#dcf8e9;color:#087848;border-color:#9be0bd}
+.status-control button.absent{background:#ffeded;color:#b32931;border-color:#f0b8bb}
+.teacher-attendance-table thead{background:#f0f8f4}
+.status-check input:checked+span{background:#079455;border-color:#079455;box-shadow:inset 0 0 0 5px #fff}
+.notice{background:#dcf8e9;color:#087848}.profile-photo{background:#e3f6ec;color:#08734f}
+@media(max-width:700px){
+ .sidebar{background:linear-gradient(90deg,#005d3e,#007d51);box-shadow:0 -5px 20px #003d2922}
+ .sidebar nav{width:100%;justify-content:space-around}
+ .sidebar a{border-radius:13px;min-width:64px}
+ .sidebar a.active{background:#159269}
+ header{background:linear-gradient(90deg,#006b45,#07865b)}
+ main{padding:20px 16px}
+ .module-card{padding:20px}
+}
