@@ -181,3 +181,7 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
  .teacher-list article{display:grid;grid-template-columns:40px 1fr auto;align-items:center}.teacher-list article .teacher-edit-button{grid-column:2/-1;justify-self:stretch;justify-content:center}
  .teacher-edit-grid{grid-template-columns:1fr}.teacher-edit-title{align-items:flex-start;flex-direction:column}.teacher-edit-actions{grid-template-columns:1fr}
 }
+
+.attendance-warning{display:flex;align-items:flex-start;gap:9px;background:#fff4df;color:#8a5a00;border:1px solid #f0d49a;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:11px;font-weight:600;line-height:1.45}.attendance-warning svg{width:18px;height:18px;flex:none;margin-top:1px}
+.student-table article.attendance-missing{background:#fffaf0;box-shadow:inset 3px 0 0 #e8a11a}.missing-label{font-style:normal;color:#b06a00;font-size:8px;font-weight:700;margin-top:2px}
+.status-control button:not(.present):not(.absent){background:#fff;color:#798a82;border-color:#d9e5df}
