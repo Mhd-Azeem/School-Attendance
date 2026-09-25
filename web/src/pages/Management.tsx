@@ -1,4 +1,4 @@
-import {useEffect,useState,type FormEvent} from 'react'
+import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {Link} from 'react-router-dom'
 import {CalendarClock,KeyRound,Pencil,Save,Search,UserRound,X} from 'lucide-react'
 import {api} from '../lib/api'
@@ -7,9 +7,65 @@ type S=Student&{display_name:string}
 type T={id:string;full_name:string;username:string;is_active:number;classes:SchoolClass[];class_teacher_of?:SchoolClass|null}
 type Period={period_no:number;subject:string;teacher_id:string}
 
-export function Students(){const [students,setStudents]=useState<S[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[search,setSearch]=useState(''),[form,setForm]=useState({admission_number:'',full_name:'',class_id:''}),[error,setError]=useState('');async function load(){try{const [s,c]=await Promise.all([api<{students:S[]}>('/api/students'),api<{classes:SchoolClass[]}>('/api/classes')]);setStudents(s.students);setClasses(c.classes);setForm(x=>({...x,class_id:x.class_id||c.classes[0]?.id||''}))}catch{setError('Could not load students.')}}useEffect(()=>{load()},[])
- async function add(e:FormEvent){e.preventDefault();setError('');try{await api('/api/students',{method:'POST',body:JSON.stringify(form)});setForm(x=>({...x,admission_number:'',full_name:''}));await load()}catch(e){setError(e instanceof Error&&e.message==='admission_number_exists'?'Admission number already exists.':'Could not add student.')}}
- return <><div className="screen-title-row"><div><h1>Classes & Students</h1><p>Manage students across Grades 6 and 7.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search student name…" value={search} onChange={e=>setSearch(e.target.value)}/></label><form className="inline-form" onSubmit={add}><input required placeholder="Admission number" value={form.admission_number} onChange={e=>setForm({...form,admission_number:e.target.value})}/><input required placeholder="Full name" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/><select value={form.class_id} onChange={e=>setForm({...form,class_id:e.target.value})}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select><button className="primary">Add Student</button></form>{error&&<div className="error">{error}</div>}<section className="data-list">{students.filter(s=>`${s.full_name} ${s.admission_number}`.toLowerCase().includes(search.toLowerCase())).map(s=><article key={s.id}><div><small>{s.admission_number} · {s.display_name}</small><strong>{s.full_name}</strong></div><select value={s.class_id} onChange={async e=>{await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({class_id:e.target.value,reason:'Section Head transfer'})});load()}}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select><span className={s.is_active?'status-pill active':'status-pill waiting'}>{s.is_active?'Active':'Inactive'}</span><button className="link" onClick={async()=>{if(confirm(`${s.is_active?'Deactivate':'Reactivate'} ${s.full_name}?`)){await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({is_active:!s.is_active})});load()}}}>{s.is_active?'Deactivate':'Reactivate'}</button></article>)}</section></>}
+export function Students(){
+ const [students,setStudents]=useState<S[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[search,setSearch]=useState(''),[form,setForm]=useState({admission_number:'',full_name:'',class_id:''}),[error,setError]=useState('')
+ async function load(){
+  try{
+   const [s,c]=await Promise.all([api<{students:S[]}>('/api/students'),api<{classes:SchoolClass[]}>('/api/classes')])
+   setStudents(s.students);setClasses(c.classes);setForm(x=>({...x,class_id:x.class_id||c.classes[0]?.id||''}));setError('')
+  }catch{setError('Could not load students.')}
+ }
+ useEffect(()=>{load()},[])
+
+ const grouped=useMemo(()=>classes.map(c=>{
+  const list=students
+   .filter(s=>s.class_id===c.id)
+   .filter(s=>!search.trim()||`${s.full_name} ${s.admission_number}`.toLowerCase().includes(search.trim().toLowerCase()))
+   .sort((a,b)=>String(a.admission_number).localeCompare(String(b.admission_number),undefined,{numeric:true,sensitivity:'base'}))
+  return{cls:c,students:list,total:students.filter(s=>s.class_id===c.id).length}
+ }).filter(g=>!search.trim()||g.students.length>0),[classes,students,search])
+
+ async function add(e:FormEvent){
+  e.preventDefault();setError('')
+  try{
+   await api('/api/students',{method:'POST',body:JSON.stringify(form)})
+   setForm(x=>({...x,admission_number:'',full_name:''}));await load()
+  }catch(e){setError(e instanceof Error&&e.message==='admission_number_exists'?'Admission number already exists.':'Could not add student.')}
+ }
+
+ return <>
+  <div className="screen-title-row"><div><h1>Classes & Students</h1><p>Students are separated by class and ordered by admission number.</p></div></div>
+
+  <label className="search modern-search"><Search/><input placeholder="Search student name or admission number…" value={search} onChange={e=>setSearch(e.target.value)}/></label>
+
+  <form className="inline-form" onSubmit={add}>
+   <input required placeholder="Admission number" value={form.admission_number} onChange={e=>setForm({...form,admission_number:e.target.value})}/>
+   <input required placeholder="Full name" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/>
+   <select value={form.class_id} onChange={e=>setForm({...form,class_id:e.target.value})}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select>
+   <button className="primary">Add Student</button>
+  </form>
+
+  {error&&<div className="error">{error}</div>}
+
+  <section className="class-student-groups">
+   {grouped.map(({cls,students:list,total})=><section className="class-student-card" key={cls.id}>
+    <header><div><strong>{cls.display_name}</strong><small>{total} student{total===1?'':'s'}</small></div><span>Admission order</span></header>
+    <div className="class-student-head"><span>#</span><span>Admission No.</span><span>Student Name</span><span>Status</span><span>Class</span><span>Action</span></div>
+    <div className="class-student-body">
+     {list.map((s,i)=><article key={s.id}>
+      <span className="student-index">{i+1}</span>
+      <strong className="student-admission">{s.admission_number}</strong>
+      <div className="student-main-name"><strong>{s.full_name}</strong><small>{s.display_name}</small></div>
+      <span className={s.is_active?'status-pill active':'status-pill waiting'}>{s.is_active?'Active':'Inactive'}</span>
+      <select value={s.class_id} aria-label={`Class for ${s.full_name}`} onChange={async e=>{await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({class_id:e.target.value,reason:'Section Head transfer'})});load()}}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select>
+      <button className="link" onClick={async()=>{if(confirm(`${s.is_active?'Deactivate':'Reactivate'} ${s.full_name}?`)){await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({is_active:!s.is_active})});load()}}}>{s.is_active?'Deactivate':'Reactivate'}</button>
+     </article>)}
+     {!list.length&&<div className="class-empty-students">{search?'No matching students in this class.':'No students added to this class yet.'}</div>}
+    </div>
+   </section>)}
+   {!grouped.length&&<div className="empty-card">No students match your search.</div>}
+  </section>
+ </>}
 
 export function Teachers(){
  const [rows,setRows]=useState<T[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[error,setError]=useState(''),[msg,setMsg]=useState('')
