@@ -39,21 +39,21 @@ jobs:
         run: gradle assembleRelease
         working-directory: android
       - name: Prepare Original APK
-        run: cp android/app/build/outputs/apk/release/app-release-unsigned.apk School-Attendance-Original-v0.1.7.apk
+        run: cp android/app/build/outputs/apk/release/app-release-unsigned.apk School-Attendance-Original-v0.1.8.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: School-Attendance-Original-v0.1.7
-          path: School-Attendance-Original-v0.1.7.apk
+          name: School-Attendance-Original-v0.1.8
+          path: School-Attendance-Original-v0.1.8.apk
           if-no-files-found: error
       - name: Publish Original GitHub Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.7-original
-          name: School Attendance Original v0.1.7
+          tag_name: v0.1.8-original
+          name: School Attendance Original v0.1.8
           prerelease: false
           generate_release_notes: true
           body: |
             Original production Android app for the School Attendance Management System.
             Connected to the shared Cloudflare Worker + D1 backend.
-          files: School-Attendance-Original-v0.1.7.apk
+          files: School-Attendance-Original-v0.1.8.apk
