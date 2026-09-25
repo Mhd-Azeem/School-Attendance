@@ -44,28 +44,36 @@ jobs:
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
           test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
-          test -n "$ANDROID_KEY_ALIAS" || (echo "Missing ANDROID_KEY_ALIAS" && exit 1)
           test -n "$ANDROID_KEY_PASSWORD" || (echo "Missing ANDROID_KEY_PASSWORD" && exit 1)
 
-      - name: Restore permanent release keystore
+      - name: Restore and validate permanent release keystore
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release-keystore.jks
-          keytool -list -keystore android/release-keystore.jks -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" -alias "${{ secrets.ANDROID_KEY_ALIAS }}" >/dev/null
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 --decode > android/release-keystore.jks
+          ACTUAL_SHA=$(sha256sum android/release-keystore.jks | awk '{print $1}')
+          EXPECTED_SHA="fb229946f25169255bcc252a3e5993f7cb659bdc146f0abed247b0d1b4732cc2"
+          if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+            echo "The ANDROID_KEYSTORE_BASE64 secret is not the permanent School Attendance keystore."
+            echo "Expected SHA-256: $EXPECTED_SHA"
+            echo "Actual SHA-256:   $ACTUAL_SHA"
+            exit 1
+          fi
+          keytool -list -keystore android/release-keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null
+          echo "Permanent keystore verified."
 
       - name: Build permanently signed Original APK
         working-directory: android
         env:
           ANDROID_KEYSTORE_PATH: release-keystore.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_ALIAS: school-attendance-release
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: gradle assembleRelease
 
