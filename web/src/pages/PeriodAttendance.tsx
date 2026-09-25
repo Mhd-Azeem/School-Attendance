@@ -38,7 +38,7 @@ export function PeriodAttendance(){
  }
 
  return <>
-  <div className="screen-title-row"><div><h1>Teachers Attendance & Status</h1><p>{prettyDate(date)}</p></div>{admin?<select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select>:className&&<span className="class-chip">{className}</span>}</div>
+  <div className="screen-title-row period-title-row"><div><h1>Teachers Attendance & Status</h1><p>{prettyDate(date)}</p></div><div className="period-top-controls"><label>Date<input type="date" value={date} onChange={e=>setDate(e.target.value||schoolDate())}/></label>{admin?<select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select>:className&&<span className="class-chip">{className}</span>}</div></div>
   <div className="period-date-picker"><label>Register Date<input type="date" value={date} onChange={e=>setDate(e.target.value)} max={schoolDate()}/></label><small>Default is today. Select an earlier date to view, edit or resubmit that register.</small></div>
   {msg&&<div className={msg.includes('✓')?'notice':'error'}>{msg}</div>}
   <div className="period-status-cards">

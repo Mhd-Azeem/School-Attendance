@@ -260,3 +260,7 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 .period-date-picker label,.section-head-date-filter label{display:grid;gap:5px;font-size:10px;font-weight:800}.period-date-picker input,.section-head-date-filter input{padding:8px 10px}
 .period-date-picker small{color:var(--muted);font-size:9px;line-height:1.4}
 @media(max-width:600px){.period-date-picker{align-items:stretch;flex-direction:column}.period-date-picker input,.section-head-date-filter input{width:100%}}
+
+/* Date selection and resubmission controls */
+.period-top-controls,.class-status-controls{display:flex;align-items:center;gap:9px}.period-top-controls label{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;color:#61766d}.period-top-controls input,.class-status-controls input{padding:9px 10px}
+@media(max-width:700px){.period-title-row{align-items:flex-start}.period-top-controls{align-items:flex-end;flex-direction:column}.period-top-controls label{align-items:flex-end;flex-direction:column;gap:3px}.class-status-controls{flex-direction:column;align-items:stretch}}
