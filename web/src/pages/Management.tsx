@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {Link} from 'react-router-dom'
-import {CalendarClock,KeyRound,Pencil,Save,Search,UserRound,X} from 'lucide-react'
+import {CalendarClock,ChevronDown,KeyRound,Pencil,Save,Search,UserRound,X} from 'lucide-react'
 import {api} from '../lib/api'
 import type {SchoolClass,Student} from '../types'
 type S=Student&{display_name:string}
@@ -8,11 +8,11 @@ type T={id:string;full_name:string;username:string;is_active:number;classes:Scho
 type Period={period_no:number;subject:string;teacher_id:string}
 
 export function Students(){
- const [students,setStudents]=useState<S[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[search,setSearch]=useState(''),[form,setForm]=useState({admission_number:'',full_name:'',class_id:''}),[error,setError]=useState('')
+ const [students,setStudents]=useState<S[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[search,setSearch]=useState(''),[form,setForm]=useState({admission_number:'',full_name:'',class_id:''}),[error,setError]=useState(''),[expandedClass,setExpandedClass]=useState<string|null>(null)
  async function load(){
   try{
    const [s,c]=await Promise.all([api<{students:S[]}>('/api/students'),api<{classes:SchoolClass[]}>('/api/classes')])
-   setStudents(s.students);setClasses(c.classes);setForm(x=>({...x,class_id:x.class_id||c.classes[0]?.id||''}));setError('')
+   setStudents(s.students);setClasses(c.classes);setForm(x=>({...x,class_id:x.class_id||c.classes[0]?.id||''}));setExpandedClass(x=>x??c.classes[0]?.id??null);setError('')
   }catch{setError('Could not load students.')}
  }
  useEffect(()=>{load()},[])
@@ -49,8 +49,8 @@ export function Students(){
 
   <section className="class-student-groups">
    {grouped.map(({cls,students:list,total})=><section className="class-student-card" key={cls.id}>
-    <header><div><strong>{cls.display_name}</strong><small>{total} student{total===1?'':'s'}</small></div><span>Admission order</span></header>
-    <div className="class-student-head"><span>#</span><span>Admission No.</span><span>Student Name</span><span>Status</span><span>Class</span><span>Action</span></div>
+    <header className="expandable-class-header" role="button" tabIndex={0} onClick={()=>setExpandedClass(x=>x===cls.id?null:cls.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setExpandedClass(x=>x===cls.id?null:cls.id)}}}><div><strong>{cls.display_name}</strong><small>{total} student{total===1?'':'s'}</small></div><div className="class-header-actions"><span>Admission order</span><ChevronDown className={expandedClass===cls.id?'rotated':''}/></div></header>
+    {expandedClass===cls.id&&<><div className="class-student-head"><span>#</span><span>Admission No.</span><span>Student Name</span><span>Status</span><span>Class</span><span>Action</span></div>
     <div className="class-student-body">
      {list.map((s,i)=><article key={s.id}>
       <span className="student-index">{i+1}</span>
@@ -61,7 +61,7 @@ export function Students(){
       <button className="link" onClick={async()=>{if(confirm(`${s.is_active?'Deactivate':'Reactivate'} ${s.full_name}?`)){await api(`/api/students/${s.id}`,{method:'PUT',body:JSON.stringify({is_active:!s.is_active})});load()}}}>{s.is_active?'Deactivate':'Reactivate'}</button>
      </article>)}
      {!list.length&&<div className="class-empty-students">{search?'No matching students in this class.':'No students added to this class yet.'}</div>}
-    </div>
+    </div></>}
    </section>)}
    {!grouped.length&&<div className="empty-card">No students match your search.</div>}
   </section>
