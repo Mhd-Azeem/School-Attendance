@@ -39,7 +39,7 @@ jobs:
         run: gradle assembleRelease
         working-directory: android
       - name: Prepare Original APK
-        run: cp android/app/build/outputs/apk/release/app-release.apk School-Attendance-Original-v0.1.7.apk
+        run: cp android/app/build/outputs/apk/release/app-release-unsigned.apk School-Attendance-Original-v0.1.7.apk
       - uses: actions/upload-artifact@v4
         with:
           name: School-Attendance-Original-v0.1.7
