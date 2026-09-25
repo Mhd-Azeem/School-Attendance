@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useEffect,useMemo,useState,type ReactNode} from 'react'
 import {Link} from 'react-router-dom'
 import {AlertCircle,BookOpenCheck,CheckCircle2,Clock3,ClipboardCheck,UserRound,Users} from 'lucide-react'
 import {useAuth} from '../AuthContext'
@@ -57,4 +57,4 @@ function AdminDashboard(){
   {pending.length>0&&<section className="pending"><AlertCircle/><div><strong>Pending Classes</strong><p>{pending.map(c=>c.display_name).join(' · ')}</p></div></section>}
   <section className="class-status-card"><div className="section-heading"><h3>Class Submission Status</h3><Link to="/classes">View all</Link></div>{rows.slice(0,10).map(c=><div className="class-status-row" key={c.id}><strong>{c.display_name}</strong><span className={c.session_id?'status-pill submitted':'status-pill waiting'}>{c.session_id?'✓ Submitted':'Not Submitted'}</span><small>{c.session_id?`${c.present}/${c.total} present`:'—'}</small></div>)}</section>
  </>}
-function Stat({label,value,icon,tone='blue'}:{label:string,value:string|number,icon:React.ReactNode,tone?:string}){return <article className={'admin-stat '+tone}><span>{icon}</span><small>{label}</small><strong>{value}</strong></article>}
+function Stat({label,value,icon,tone='blue'}:{label:string,value:string|number,icon:ReactNode,tone?:string}){return <article className={'admin-stat '+tone}><span>{icon}</span><small>{label}</small><strong>{value}</strong></article>}
