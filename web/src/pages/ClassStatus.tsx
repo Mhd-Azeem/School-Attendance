@@ -7,17 +7,17 @@ import type {SchoolClass} from '../types'
 import {ClassAttendanceDetails} from '../components/ClassAttendanceDetails'
 
 type Period={id:string;period_no:number;status?:string|null}
-type Row=SchoolClass&{session_id:string|null;studentSubmitted:boolean;periodDone:number;periodTotal:number;marked:number;total:number;periods:Period[]}
+type Row=SchoolClass&{session_id:string|null;studentSubmitted:boolean;periodDone:number;periodTotal:number;marked:number;total:number;present:number;absent:number;periods:Period[]}
 const statusLabel=(s?:string|null)=>s==='ARRIVED'?'Arrived':s==='NOT_ARRIVED'?'Not Arrived':s==='DELAYED'?'Delayed':s==='RELIEF'?'Relief':s==='NOT_ARRIVED_RELIEF'?'No Teacher Presented':'Not Marked'
 
 export function ClassStatus(){
  const today=schoolDate()
  const [date,setDate]=useState(today),[rows,setRows]=useState<Row[]>([]),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null),[refreshKey,setRefreshKey]=useState(0),[loading,setLoading]=useState(false)
  useEffect(()=>{(async()=>{setLoading(true);setError('');try{
-  const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${date}`)
+  const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${date}&_=${Date.now()}`)
   const out:Row[]=await Promise.all(d.classes.map(async c=>{
    let periods:Period[]=[]
-   try{periods=(await api<{periods:Period[]}>(`/api/period-attendance/today?date=${date}&class_id=${encodeURIComponent(c.id)}`)).periods}catch{}
+   try{periods=(await api<{periods:Period[]}>(`/api/period-attendance/today?date=${date}&class_id=${encodeURIComponent(c.id)}&_=${Date.now()}`)).periods}catch{}
    const marked=Number(c.marked??(Number(c.present||0)+Number(c.absent||0)+Number(c.late||0)))
    return{...c,studentSubmitted:!!c.session_id&&marked>=Number(c.total||0),marked,periodDone:periods.filter(x=>x.status).length,periodTotal:periods.length,periods}
   }))
@@ -34,7 +34,7 @@ export function ClassStatus(){
     <em className={full?'status-pill submitted':partial?'status-pill progress':'status-pill waiting'}>{full?'Submitted':partial?'In Progress':'Not Submitted'}</em>{canExpand&&<ChevronDown className={expanded===r.id?'rotated':''}/>}
    </button>
    {expanded===r.id&&<div className="section-head-expanded-results">
-    {r.session_id&&<ClassAttendanceDetails sessionId={r.session_id} classId={r.id}/>}
+    {r.session_id&&<ClassAttendanceDetails key={`${r.session_id}-${refreshKey}`} sessionId={r.session_id} classId={r.id}/>}
     <section className="period-result-card"><h4>Teacher Attendance & Status</h4><div className="period-result-list">{r.periods.map(p=><div key={p.id}><strong>{p.period_no}{p.period_no===1?'st':p.period_no===2?'nd':p.period_no===3?'rd':'th'} Period</strong><span className={'period-result-status '+(p.status||'').toLowerCase()}>{statusLabel(p.status)}</span></div>)}</div></section>
    </div>}
   </div>})}</section></>

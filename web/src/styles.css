@@ -272,3 +272,7 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 /* Section Head live register refresh and always-expandable teacher tables */
 .class-status-actions{display:flex;align-items:center;gap:8px}.refresh-status{display:flex;align-items:center;gap:6px}.refresh-status svg{width:14px;height:14px}.spin{animation:status-spin .8s linear infinite}@keyframes status-spin{to{transform:rotate(360deg)}}.class-table-row-button:disabled{opacity:1;cursor:pointer}.period-result-card .period-result-status:empty{display:none}
 @media(max-width:600px){.class-status-actions{flex-direction:column;align-items:stretch}.class-status-actions .secondary{justify-content:center}}
+
+/* Section Head expandable teacher register */
+.period-result-card{box-shadow:0 4px 14px #19583c0a}.period-result-card h4:after{content:" · 1st–9th periods";font-weight:500;color:#71827b}.section-head-expanded-results .period-result-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.section-head-expanded-results .period-result-list>div{min-width:0}
+@media(max-width:700px){.section-head-expanded-results .period-result-list{grid-template-columns:1fr}.section-head-expanded-results{padding:0 8px 12px}}
