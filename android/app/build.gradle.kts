@@ -4,7 +4,7 @@ val local=Properties().apply { rootProject.file("local.properties").takeIf { it.
 android {
  namespace="com.azeem.schoolattendance"; compileSdk=36
  defaultConfig {
-  applicationId="com.azeem.schoolattendance"; minSdk=26; targetSdk=36; versionCode=6; versionName="0.1.5"
+  applicationId="com.azeem.schoolattendance"; minSdk=26; targetSdk=36; versionCode=7; versionName="0.1.6"
   buildConfigField("String","API_URL","\"https://school-attendance-api.azeemzahira111.workers.dev\"")
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
