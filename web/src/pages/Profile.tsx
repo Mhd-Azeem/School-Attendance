@@ -2,16 +2,18 @@ import {useEffect,useMemo,useRef,useState} from 'react'
 import {Camera,Crop,LogOut,Trash2,UserRound,X} from 'lucide-react'
 import {api} from '../lib/api'
 import {useAuth} from '../AuthContext'
+import {clearLegacyProfilePhoto,getProfilePhoto,removeProfilePhoto,setProfilePhoto} from '../lib/profilePhoto'
 
 type CropInfo={src:string;width:number;height:number}
 
 export function Profile(){
  const auth=useAuth(),profile=auth.profile
- const [name,setName]=useState(profile?.full_name||''),[photo,setPhoto]=useState(()=>localStorage.getItem('school_attendance_profile_photo')||''),[msg,setMsg]=useState('')
+ const [name,setName]=useState(profile?.full_name||''),[photo,setPhoto]=useState(()=>getProfilePhoto(profile?.id)),[msg,setMsg]=useState('')
  const [crop,setCrop]=useState<CropInfo|null>(null),[zoom,setZoom]=useState(1),[panX,setPanX]=useState(0),[panY,setPanY]=useState(0),[savingCrop,setSavingCrop]=useState(false)
  const inputRef=useRef<HTMLInputElement>(null)
 
  useEffect(()=>setName(profile?.full_name||''),[profile?.full_name])
+ useEffect(()=>{clearLegacyProfilePhoto();setPhoto(getProfilePhoto(profile?.id))},[profile?.id])
 
  const cropMetrics=useMemo(()=>{
   if(!crop)return null
@@ -41,14 +43,14 @@ export function Profile(){
    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas')
    ctx.fillStyle='#fff';ctx.fillRect(0,0,512,512);ctx.drawImage(img,sx,sy,sw,sh,0,0,512,512)
    const v=canvas.toDataURL('image/jpeg',0.86)
-   localStorage.setItem('school_attendance_profile_photo',v);setPhoto(v);window.dispatchEvent(new Event('profile-photo-changed'))
+   if(!profile?.id)throw new Error('profile_missing');setProfilePhoto(profile.id,v);setPhoto(v);window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}))
    URL.revokeObjectURL(crop.src);setCrop(null);setMsg('Profile picture updated ✓')
   }catch{setMsg('Could not crop this image. Please try another photo.')}
   finally{setSavingCrop(false)}
  }
 
  function cancelCrop(){if(crop)URL.revokeObjectURL(crop.src);setCrop(null)}
- function removePhoto(){if(!photo)return;if(!confirm('Remove your profile picture?'))return;localStorage.removeItem('school_attendance_profile_photo');setPhoto('');window.dispatchEvent(new Event('profile-photo-changed'));setMsg('Profile picture removed ✓')}
+ function removePhoto(){if(!photo)return;if(!confirm('Remove your profile picture?'))return;if(!profile?.id)return;removeProfilePhoto(profile.id);setPhoto('');window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}));setMsg('Profile picture removed ✓')}
  async function save(e:React.FormEvent){e.preventDefault();setMsg('');try{const d=await api<{user:any}>('/api/profile',{method:'PUT',body:JSON.stringify({full_name:name})});auth.setProfile(d.user);setMsg('Profile updated ✓')}catch(err){setMsg(err instanceof Error?err.message:'Could not update profile.')}}
 
  return <>

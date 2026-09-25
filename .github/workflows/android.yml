@@ -44,7 +44,7 @@ jobs:
         run: |
           VERSION=$(grep -oP 'versionName="\K[^"]+' android/app/build.gradle.kts)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "apk=School-Attendance-INSTALL-v$VERSION-build-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+          echo "apk=School-Attendance-INSTALL.apk" >> "$GITHUB_OUTPUT"
       - name: Prepare Original APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk "${{ steps.app_version.outputs.apk }}"
       - name: Publish APK to GitHub Releases
@@ -52,11 +52,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-v${{ steps.app_version.outputs.version }}-build-${{ github.run_number }}
-          name: School Attendance v${{ steps.app_version.outputs.version }} · Build ${{ github.run_number }}
+          name: School Attendance v${{ steps.app_version.outputs.version }} · Build ${{ github.run_number }} — ONE APK
           prerelease: false
           generate_release_notes: true
           body: |
-            INSTALL ONLY the file ending in .apk under Assets.
+            This release publishes exactly ONE Android APK asset: School-Attendance-INSTALL.apk.
             GitHub automatically adds Source code (zip) and Source code (tar.gz); those are not Android app files.
             Every successful APK build is published to the GitHub Releases tab.
           files: ${{ steps.app_version.outputs.apk }}

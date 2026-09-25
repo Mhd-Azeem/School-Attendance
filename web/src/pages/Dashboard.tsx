@@ -6,9 +6,16 @@ import {api} from '../lib/api'
 import {schoolDate,prettyDate} from '../lib/date'
 import type {SchoolClass} from '../types'
 import {ClassAttendanceDetails} from '../components/ClassAttendanceDetails'
+import {clearLegacyProfilePhoto,getProfilePhoto} from '../lib/profilePhoto'
 
 type Summary=SchoolClass&{session_id:string|null;submitted_at:string|null;total:number;marked?:number;present:number;absent:number;late:number}
 type TeacherRow={id:string;full_name:string}
+
+function useAccountPhoto(userId?:string){
+ const [photo,setPhoto]=useState(()=>getProfilePhoto(userId))
+ useEffect(()=>{clearLegacyProfilePhoto();setPhoto(getProfilePhoto(userId));const h=(e:Event)=>{const id=(e as CustomEvent<{userId?:string}>).detail?.userId;if(!id||id===userId)setPhoto(getProfilePhoto(userId))};window.addEventListener('profile-photo-changed',h);return()=>window.removeEventListener('profile-photo-changed',h)},[userId])
+ return photo
+}
 
 export function Dashboard(){const {profile}=useAuth();return profile?.role==='SECTION_HEAD'?<AdminDashboard/>:<TeacherDashboard/>}
 
@@ -17,7 +24,7 @@ function TeacherDashboard(){
  const [classes,setClasses]=useState<SchoolClass[]>([])
  const [studentDone,setStudentDone]=useState(false)
  const [periodDone,setPeriodDone]=useState({done:0,total:0})
- const photo=localStorage.getItem('school_attendance_profile_photo')||''
+ const photo=useAccountPhoto(profile?.id)
  useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(async x=>{setClasses(x.classes);const first=x.classes[0];if(!first)return;try{const h=await api<{sessions:any[]}>(`/api/history?class_id=${first.id}&from=${today}&to=${today}`);setStudentDone(h.sessions.length>0)}catch{}try{const p=await api<{periods:any[]}>(`/api/period-attendance/today?date=${today}`);setPeriodDone({done:p.periods.filter(r=>r.status).length,total:p.periods.length})}catch{}}).catch(()=>setClasses([]))},[today])
  const classLabel=classes.map(c=>c.display_name).join(', ')||'No class assigned'
  return <>
@@ -38,7 +45,7 @@ function TeacherDashboard(){
  </>}
 
 function AdminDashboard(){
- const today=schoolDate(),{profile}=useAuth()
+ const today=schoolDate(),{profile}=useAuth(),photo=useAccountPhoto(profile?.id)
  const [rows,setRows]=useState<Summary[]>([]),[teachers,setTeachers]=useState<TeacherRow[]>([]),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null),[pendingOpen,setPendingOpen]=useState(false),[sending,setSending]=useState<Record<string,string>>({})
  async function load(){try{const [d,t]=await Promise.all([api<{classes:Summary[]}>(`/api/dashboard/today?date=${today}`),api<{teachers:TeacherRow[]}>('/api/teachers')]);setRows(d.classes);setTeachers(t.teachers);setError('')}catch{setError('Could not load today’s dashboard.')}}
  useEffect(()=>{load()},[today])
@@ -48,7 +55,7 @@ function AdminDashboard(){
  async function sendReminder(c:Summary){setSending(s=>({...s,[c.id]:'Sending…'}));try{const r=await api<{teacher:{full_name:string}}>('/api/notifications/pending-class',{method:'POST',body:JSON.stringify({class_id:c.id,date:today})});setSending(s=>({...s,[c.id]:`Sent to ${r.teacher.full_name} ✓`}))}catch(e){const m=e instanceof Error?e.message:'';setSending(s=>({...s,[c.id]:m==='class_teacher_not_assigned'?'No class teacher assigned':'Could not send reminder'}))}}
  async function notifyAll(){for(const c of pending)await sendReminder(c)}
  return <>
-  <section className="welcome-card admin-welcome"><div className="avatar"><UserRound/></div><div><p>Welcome, <strong>{profile?.full_name.split(' ')[0]}</strong></p><small>Section Head</small><span className="date-chip">{prettyDate(today)}</span></div></section>
+  <section className="welcome-card admin-welcome"><div className="avatar">{photo?<img src={photo} alt="Profile"/>:<UserRound/>}</div><div><p>Welcome, <strong>{profile?.full_name.split(' ')[0]}</strong></p><small>Section Head</small><span className="date-chip">{prettyDate(today)}</span></div></section>
   {error&&<div className="error">{error}</div>}
   <div className="admin-stat-grid">
    <Stat label="Total Classes" value={rows.length} icon={<Users/>}/>
