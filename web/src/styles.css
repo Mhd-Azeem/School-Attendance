@@ -264,3 +264,7 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 /* Date selection and resubmission controls */
 .period-top-controls,.class-status-controls{display:flex;align-items:center;gap:9px}.period-top-controls label{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;color:#61766d}.period-top-controls input,.class-status-controls input{padding:9px 10px}
 @media(max-width:700px){.period-title-row{align-items:flex-start}.period-top-controls{align-items:flex-end;flex-direction:column}.period-top-controls label{align-items:flex-end;flex-direction:column;gap:3px}.class-status-controls{flex-direction:column;align-items:stretch}}
+
+/* Editable dated student attendance register */
+.attendance-top-controls{display:flex;align-items:center;gap:9px}.attendance-top-controls label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#61766d}.attendance-top-controls input{padding:9px 10px}.editable-register{margin-bottom:12px}.editable-register p{max-width:520px}
+@media(max-width:700px){.student-attendance-title{align-items:flex-start}.attendance-top-controls{flex-direction:column;align-items:flex-end}.attendance-top-controls label{flex-direction:column;align-items:flex-end;gap:3px}}

@@ -61,14 +61,14 @@ export default {async fetch(req,env){
       if(!students.length||b.records.length!==students.length||new Set(b.records.map(x=>x.student_id)).size!==students.length||b.records.some(x=>!allowed.has(x.student_id)||!["PRESENT","ABSENT"].includes(x.status)))return out({error:"incomplete_or_invalid_register"},400);
       const existing=await env.DB.prepare("SELECT id FROM attendance_sessions WHERE class_id=? AND attendance_date=?").bind(b.class_id,b.date).first();
       if(existing){
-        const marked=(await env.DB.prepare("SELECT student_id FROM attendance_records WHERE session_id=?").bind(existing.id).all()).results;
-        const markedIds=new Set(marked.map(x=>x.student_id)),incoming=new Map(b.records.map(x=>[x.student_id,x.status]));
-        const missing=students.filter(x=>!markedIds.has(x.id));
-        if(!missing.length)return out({error:"attendance_already_submitted"},409);
-        const stmts=[];
-        for(const s of missing)stmts.push(env.DB.prepare("INSERT INTO attendance_records(id,session_id,student_id,status,marked_by) VALUES(?,?,?,?,?)").bind(id(),existing.id,s.id,incoming.get(s.id),u.id));
-        stmts.push(env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"ATTENDANCE_COMPLETED","attendance_session",existing.id,JSON.stringify({class_id:b.class_id,date:b.date,added:missing.length,total:students.length})));
-        await env.DB.batch(stmts);return out({ok:true,session_id:existing.id,added:missing.length,completed:true},200);
+        const current=(await env.DB.prepare("SELECT id,student_id,status FROM attendance_records WHERE session_id=?").bind(existing.id).all()).results;
+        const byStudent=new Map(current.map(x=>[x.student_id,x])),incoming=new Map(b.records.map(x=>[x.student_id,x.status])),stmts=[];let changed=0,added=0;
+        for(const st of students){const rec=byStudent.get(st.id),next=incoming.get(st.id);if(rec){if(rec.status!==next){stmts.push(env.DB.prepare("INSERT INTO attendance_changes(id,attendance_record_id,old_status,new_status,changed_by,reason) VALUES(?,?,?,?,?,?)").bind(id(),rec.id,rec.status,next,u.id,"Register edited and resubmitted"));stmts.push(env.DB.prepare("UPDATE attendance_records SET status=?,marked_by=? WHERE id=?").bind(next,u.id,rec.id));changed++}}else{stmts.push(env.DB.prepare("INSERT INTO attendance_records(id,session_id,student_id,status,marked_by) VALUES(?,?,?,?,?)").bind(id(),existing.id,st.id,next,u.id));added++}}
+        stmts.push(env.DB.prepare("UPDATE attendance_sessions SET submitted_by=?,submitted_at=CURRENT_TIMESTAMP WHERE id=?").bind(u.id,existing.id));
+        stmts.push(env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"ATTENDANCE_RESUBMITTED","attendance_session",existing.id,JSON.stringify({class_id:b.class_id,date:b.date,changed,added,total:students.length})));
+        const heads=(await env.DB.prepare("SELECT id FROM users WHERE role='SECTION_HEAD' AND is_active=1").all()).results,cls=await env.DB.prepare("SELECT display_name FROM classes WHERE id=?").bind(b.class_id).first();
+        if(u.role!=="SECTION_HEAD")for(const h of heads)stmts.push(env.DB.prepare("INSERT INTO notifications(id,recipient_user_id,sender_user_id,class_id,type,title,message) VALUES(?,?,?,?,?,?,?)").bind(id(),h.id,u.id,b.class_id,"STUDENT_ATTENDANCE_RESUBMITTED","Student register resubmitted: "+(cls?.display_name||"Class"),(cls?.display_name||"Class")+" student attendance register for "+b.date+" was edited and resubmitted."));
+        await env.DB.batch(stmts);return out({ok:true,session_id:existing.id,resubmitted:true,changed,added},200);
       }
       const sid=id();const stmts=[env.DB.prepare("INSERT INTO attendance_sessions(id,class_id,attendance_date,submitted_by) VALUES(?,?,?,?)").bind(sid,b.class_id,b.date,u.id)];
       for(const r of b.records)stmts.push(env.DB.prepare("INSERT INTO attendance_records(id,session_id,student_id,status,marked_by) VALUES(?,?,?,?,?)").bind(id(),sid,r.student_id,r.status,u.id));
