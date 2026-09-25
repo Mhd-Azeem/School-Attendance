@@ -185,3 +185,11 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 .attendance-warning{display:flex;align-items:flex-start;gap:9px;background:#fff4df;color:#8a5a00;border:1px solid #f0d49a;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:11px;font-weight:600;line-height:1.45}.attendance-warning svg{width:18px;height:18px;flex:none;margin-top:1px}
 .student-table article.attendance-missing{background:#fffaf0;box-shadow:inset 3px 0 0 #e8a11a}.missing-label{font-style:normal;color:#b06a00;font-size:8px;font-weight:700;margin-top:2px}
 .status-control button:not(.present):not(.absent){background:#fff;color:#798a82;border-color:#d9e5df}
+
+/* Settings-only permanent student deletion */
+.student-delete-settings{background:#fff;border:1px solid #f0d0d2;border-radius:15px;padding:16px;margin-top:16px;box-shadow:0 5px 18px #7d1c2608}
+.danger-heading{display:flex;gap:11px;align-items:flex-start;margin-bottom:13px;color:#a72f38}.danger-heading>svg{width:22px;flex:none}.danger-heading h3{margin:0 0 4px;font-size:14px}.danger-heading p{margin:0;color:#7b6668;font-size:10px;line-height:1.5}
+.danger-note{background:#fff4f4;border:1px solid #f2c7ca;border-radius:10px;padding:10px 12px;margin-bottom:11px;display:grid;gap:2px;color:#a72f38}.danger-note strong{font-size:10px}.danger-note span{font-size:9px;color:#80696b}
+.student-delete-list{border:1px solid #edf1ef;border-radius:12px;overflow:hidden}.student-delete-list article{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid #edf1ef}.student-delete-list article:last-child{border:0}.student-delete-list article>div{display:grid;gap:3px}.student-delete-list strong{font-size:11px}.student-delete-list small{font-size:9px;color:#72847b}
+.permanent-delete{border:1px solid #efc3c6;background:#fff;color:#c7333d;border-radius:9px;padding:8px 9px;display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800}.permanent-delete svg{width:14px;height:14px}.permanent-delete:disabled{opacity:.55}
+@media(max-width:700px){.student-delete-list article{grid-template-columns:1fr}.permanent-delete{width:100%;justify-content:center}}

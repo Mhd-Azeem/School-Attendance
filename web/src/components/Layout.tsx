@@ -8,6 +8,7 @@ import {schoolDate} from '../lib/date'
 const teacherLinks=[['/','Home',Home],['/attendance','Student',ClipboardCheck],['/period-attendance','Teacher Period',Users],['/history','History',History],['/profile','Profile',UserRound]] as const
 const adminLinks=[['/','Home',Home],['/classes','Classes',GraduationCap],['/teachers','Teachers',Users],['/reports','Reports',BarChart3],['/profile','Profile',UserRound]] as const
 const adminMenuExtras=[['/students','Manage Students',Users],['/timetable','Timetable',CalendarClock],['/calendar','Calendar',CalendarDays],['/audit','Audit',ShieldCheck],['/settings','Settings',Settings]] as const
+const teacherMenuExtras=[['/settings','Settings',Settings]] as const
 const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Manage Students','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/profile':'Profile','/timetable':'Timetable / Period Setup'}
 type Notice={id:string;title:string;text:string;tone:'warn'|'ok'|'info';backendId?:string;read?:boolean}
 
@@ -15,7 +16,7 @@ export function Layout(){
  const {profile,signOut}=useAuth(),loc=useLocation()
  const [menuOpen,setMenuOpen]=useState(false),[notificationsOpen,setNotificationsOpen]=useState(false),[notices,setNotices]=useState<Notice[]>([]),[noticeLoading,setNoticeLoading]=useState(false)
  const links=profile?.role==='SECTION_HEAD'?adminLinks:teacherLinks
- const drawerLinks=profile?.role==='SECTION_HEAD'?[...adminLinks,...adminMenuExtras]:[...teacherLinks]
+ const drawerLinks=profile?.role==='SECTION_HEAD'?[...adminLinks,...adminMenuExtras]:[...teacherLinks,...teacherMenuExtras]
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
 
  useEffect(()=>{setMenuOpen(false);setNotificationsOpen(false)},[loc.pathname])
