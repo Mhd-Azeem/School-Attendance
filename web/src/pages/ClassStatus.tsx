@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react'
 import {Link} from 'react-router-dom'
-import {ChevronDown} from 'lucide-react'
+import {ChevronDown,RefreshCw} from 'lucide-react'
 import {api} from '../lib/api'
 import {prettyDate,schoolDate} from '../lib/date'
 import type {SchoolClass} from '../types'
@@ -12,8 +12,8 @@ const statusLabel=(s?:string|null)=>s==='ARRIVED'?'Arrived':s==='NOT_ARRIVED'?'N
 
 export function ClassStatus(){
  const today=schoolDate()
- const [date,setDate]=useState(today),[rows,setRows]=useState<Row[]>([]),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null)
- useEffect(()=>{(async()=>{try{
+ const [date,setDate]=useState(today),[rows,setRows]=useState<Row[]>([]),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null),[refreshKey,setRefreshKey]=useState(0),[loading,setLoading]=useState(false)
+ useEffect(()=>{(async()=>{setLoading(true);setError('');try{
   const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${date}`)
   const out:Row[]=await Promise.all(d.classes.map(async c=>{
    let periods:Period[]=[]
@@ -22,20 +22,20 @@ export function ClassStatus(){
    return{...c,studentSubmitted:!!c.session_id&&marked>=Number(c.total||0),marked,periodDone:periods.filter(x=>x.status).length,periodTotal:periods.length,periods}
   }))
   setRows(out)
- }catch{setError('Could not load class submission status.')}})()},[date])
+ }catch{setError('Could not load class submission status.')}finally{setLoading(false)}})()},[date,refreshKey])
 
- return <><div className="screen-title-row"><div><h1>Class Submission Status</h1><p>{prettyDate(date)}</p></div><Link className="secondary" to="/students">Manage Students</Link></div><div className="section-head-date-filter"><label>Submission Date<input type="date" value={date} onChange={e=>setDate(e.target.value)} max={today}/></label></div>
+ return <><div className="screen-title-row"><div><h1>Class Submission Status</h1><p>{prettyDate(date)}</p></div><div className="class-status-actions"><button className="secondary refresh-status" onClick={()=>setRefreshKey(x=>x+1)} disabled={loading}><RefreshCw className={loading?'spin':''}/> {loading?'Refreshing…':'Refresh'}</button><Link className="secondary" to="/students">Manage Students</Link></div></div><div className="section-head-date-filter"><label>Submission Date<input type="date" value={date} onChange={e=>setDate(e.target.value)} max={today}/></label></div>
  {error&&<div className="error">{error}</div>}
  <section className="class-table"><div className="class-table-head"><span>Class</span><span>Student</span><span>Teacher Period</span><span>Status</span></div>
- {rows.map(r=>{const periodComplete=r.periodTotal===9&&r.periodDone===9,full=r.studentSubmitted&&periodComplete,partial=r.studentSubmitted||r.periodDone>0,canExpand=!!r.session_id||r.periodDone>0
+ {rows.map(r=>{const periodComplete=r.periodTotal===9&&r.periodDone===9,full=r.studentSubmitted&&periodComplete,partial=r.studentSubmitted||r.periodDone>0,canExpand=true
   return <div className="class-table-item" key={r.id}>
    <button className="class-table-row-button" disabled={!canExpand} onClick={()=>canExpand&&setExpanded(expanded===r.id?null:r.id)}>
     <strong>{r.display_name}</strong><span>{r.session_id?`${r.marked}/${r.total}`:'✕'}</span><span>{r.periodTotal?`${r.periodDone}/9`:'0/9'}</span>
     <em className={full?'status-pill submitted':partial?'status-pill progress':'status-pill waiting'}>{full?'Submitted':partial?'In Progress':'Not Submitted'}</em>{canExpand&&<ChevronDown className={expanded===r.id?'rotated':''}/>}
    </button>
-   {expanded===r.id&&canExpand&&<div className="section-head-expanded-results">
+   {expanded===r.id&&<div className="section-head-expanded-results">
     {r.session_id&&<ClassAttendanceDetails sessionId={r.session_id} classId={r.id}/>}
-    {r.periodDone>0&&<section className="period-result-card"><h4>Teacher Attendance & Status</h4><div className="period-result-list">{r.periods.map(p=><div key={p.id}><strong>{p.period_no}{p.period_no===1?'st':p.period_no===2?'nd':p.period_no===3?'rd':'th'} Period</strong><span className={'period-result-status '+(p.status||'').toLowerCase()}>{statusLabel(p.status)}</span></div>)}</div></section>}
+    <section className="period-result-card"><h4>Teacher Attendance & Status</h4><div className="period-result-list">{r.periods.map(p=><div key={p.id}><strong>{p.period_no}{p.period_no===1?'st':p.period_no===2?'nd':p.period_no===3?'rd':'th'} Period</strong><span className={'period-result-status '+(p.status||'').toLowerCase()}>{statusLabel(p.status)}</span></div>)}</div></section>
    </div>}
   </div>})}</section></>
 }

@@ -268,3 +268,7 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 /* Editable dated student attendance register */
 .attendance-top-controls{display:flex;align-items:center;gap:9px}.attendance-top-controls label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#61766d}.attendance-top-controls input{padding:9px 10px}.editable-register{margin-bottom:12px}.editable-register p{max-width:520px}
 @media(max-width:700px){.student-attendance-title{align-items:flex-start}.attendance-top-controls{flex-direction:column;align-items:flex-end}.attendance-top-controls label{flex-direction:column;align-items:flex-end;gap:3px}}
+
+/* Section Head live register refresh and always-expandable teacher tables */
+.class-status-actions{display:flex;align-items:center;gap:8px}.refresh-status{display:flex;align-items:center;gap:6px}.refresh-status svg{width:14px;height:14px}.spin{animation:status-spin .8s linear infinite}@keyframes status-spin{to{transform:rotate(360deg)}}.class-table-row-button:disabled{opacity:1;cursor:pointer}.period-result-card .period-result-status:empty{display:none}
+@media(max-width:600px){.class-status-actions{flex-direction:column;align-items:stretch}.class-status-actions .secondary{justify-content:center}}
