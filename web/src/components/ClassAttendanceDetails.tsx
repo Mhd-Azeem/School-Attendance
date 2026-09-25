@@ -7,12 +7,18 @@ type RosterStudent={id:string;admission_number:string;full_name:string;class_id:
 export function ClassAttendanceDetails({sessionId,classId}:{sessionId:string;classId:string}){
  const [records,setRecords]=useState<RecordRow[]>([]),[roster,setRoster]=useState<RosterStudent[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState('')
  useEffect(()=>{let active=true;(async()=>{setLoading(true);setError('');try{const [a,c]=await Promise.all([api<{records:RecordRow[]}>(`/api/attendance/${encodeURIComponent(sessionId)}`),api<{students:RosterStudent[]}>(`/api/classes/${encodeURIComponent(classId)}/students`)]);if(active){setRecords(a.records);setRoster(c.students)}}catch{if(active)setError('Could not load student details.')}finally{if(active)setLoading(false)}})();return()=>{active=false}},[sessionId,classId])
- const grouped=useMemo(()=>{const marked=new Set(records.map(r=>r.student_id));return{
-  present:records.filter(r=>r.status==='PRESENT'),
-  absent:records.filter(r=>r.status==='ABSENT'),
-  late:records.filter(r=>r.status==='LATE'),
-  unmarked:roster.filter(s=>!marked.has(s.id))
- }},[records,roster])
+ const grouped=useMemo(()=>{
+  const rosterIds=new Set(roster.map(s=>s.id))
+  const current=records.filter(r=>rosterIds.has(r.student_id))
+  const marked=new Set(current.map(r=>r.student_id))
+  const byAdmission=<T extends {admission_number:string}>(a:T,b:T)=>String(a.admission_number).localeCompare(String(b.admission_number),undefined,{numeric:true,sensitivity:'base'})
+  return{
+   present:current.filter(r=>r.status==='PRESENT').sort(byAdmission),
+   absent:current.filter(r=>r.status==='ABSENT').sort(byAdmission),
+   late:current.filter(r=>r.status==='LATE').sort(byAdmission),
+   unmarked:roster.filter(s=>!marked.has(s.id)).sort(byAdmission)
+  }
+ },[records,roster])
  if(loading)return <div className="class-detail-loading">Loading class attendance…</div>
  if(error)return <div className="class-detail-error">{error}</div>
  return <div className="class-attendance-detail">

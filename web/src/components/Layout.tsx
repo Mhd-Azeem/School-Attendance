@@ -41,9 +41,10 @@ export function Layout(){
     const c=await api<{classes:any[]}>('/api/classes')
     const first=c.classes[0]
     if(first){
-     const h=await api<{sessions:any[]}>(`/api/history?class_id=${encodeURIComponent(first.id)}&from=${today}&to=${today}`)
-     if(!h.sessions.length)next.push({id:'student-pending',title:'Student attendance pending',text:`${first.display_name} has not submitted student attendance today.`,tone:'warn'})
-     else next.push({id:'student-done',title:'Student attendance submitted',text:`${first.display_name} attendance is recorded for today.`,tone:'ok'})
+     const a=await api<{session_id:string|null;complete:boolean;marked:number;total:number}>(`/api/attendance/status?class_id=${encodeURIComponent(first.id)}&date=${today}`)
+     if(!a.session_id)next.push({id:'student-pending',title:'Student attendance pending',text:`${first.display_name} has not submitted student attendance today.`,tone:'warn'})
+     else if(!a.complete)next.push({id:'student-incomplete',title:'Student attendance incomplete',text:`${a.marked}/${a.total} students are marked for ${first.display_name}.`,tone:'warn'})
+     else next.push({id:'student-done',title:'Student attendance submitted',text:`${first.display_name} attendance is complete for today.`,tone:'ok'})
      try{
       const p=await api<{periods:any[]}>(`/api/period-attendance/today?date=${today}`)
       const done=p.periods.filter(x=>x.status).length

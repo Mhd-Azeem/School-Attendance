@@ -22,11 +22,21 @@ export function Dashboard(){const {profile}=useAuth();return profile?.role==='SE
 function TeacherDashboard(){
  const {profile}=useAuth(),today=schoolDate()
  const [classes,setClasses]=useState<SchoolClass[]>([])
- const [studentDone,setStudentDone]=useState(false)
+ const [studentStatus,setStudentStatus]=useState({session:false,complete:false,marked:0,total:0})
  const [periodDone,setPeriodDone]=useState({done:0,total:0})
  const photo=useAccountPhoto(profile?.id)
- useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(async x=>{setClasses(x.classes);const first=x.classes[0];if(!first)return;try{const h=await api<{sessions:any[]}>(`/api/history?class_id=${first.id}&from=${today}&to=${today}`);setStudentDone(h.sessions.length>0)}catch{}try{const p=await api<{periods:any[]}>(`/api/period-attendance/today?date=${today}`);setPeriodDone({done:p.periods.filter(r=>r.status).length,total:p.periods.length})}catch{}}).catch(()=>setClasses([]))},[today])
+
+ useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(async x=>{
+  setClasses(x.classes);const first=x.classes[0];if(!first)return
+  try{
+   const a=await api<{session_id:string|null;complete:boolean;marked:number;total:number}>(`/api/attendance/status?class_id=${encodeURIComponent(first.id)}&date=${today}`)
+   setStudentStatus({session:!!a.session_id,complete:a.complete,marked:Number(a.marked||0),total:Number(a.total||0)})
+  }catch{setStudentStatus({session:false,complete:false,marked:0,total:0})}
+  try{const p=await api<{periods:any[]}>(`/api/period-attendance/today?date=${today}`);setPeriodDone({done:p.periods.filter(r=>r.status).length,total:p.periods.length})}catch{}
+ }).catch(()=>setClasses([]))},[today])
+
  const classLabel=classes.map(c=>c.display_name).join(', ')||'No class assigned'
+ const studentText=studentStatus.complete?'Submitted':studentStatus.session?`${studentStatus.marked}/${studentStatus.total} marked · Incomplete`:'Not submitted'
  return <>
   <section className="welcome-card">
    <div className="avatar">{photo?<img src={photo} alt="Profile"/>:<UserRound/>}</div>
@@ -38,7 +48,7 @@ function TeacherDashboard(){
   </div>
   <section className="mini-section"><h3>Today's Submission Status</h3>
    <div className="submission-cards">
-    <div><span className="mini-icon"><ClipboardCheck/></span><p><strong>Student Attendance</strong><small>{studentDone?'Submitted':'Not submitted'}</small></p><em className={studentDone?'ok':'pending-dot'}>{studentDone?'✓':'!'}</em></div>
+    <div><span className="mini-icon"><ClipboardCheck/></span><p><strong>Student Attendance</strong><small>{studentText}</small></p><em className={studentStatus.complete?'ok':'pending-dot'}>{studentStatus.complete?'✓':'!'}</em></div>
     <div><span className="mini-icon"><BookOpenCheck/></span><p><strong>Teacher Period Attendance</strong><small>{periodDone.total?`${periodDone.done}/${periodDone.total} completed`:'Not configured'}</small></p><em className={periodDone.total&&periodDone.done===periodDone.total?'ok':'pending-dot'}>{periodDone.total&&periodDone.done===periodDone.total?'✓':periodDone.total?periodDone.done:'—'}</em></div>
    </div>
   </section>
