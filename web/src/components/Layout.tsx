@@ -9,7 +9,7 @@ const teacherLinks=[['/','Home',Home],['/attendance','Student',ClipboardCheck],[
 const adminLinks=[['/','Home',Home],['/classes','Classes',GraduationCap],['/teachers','Teachers',Users],['/reports','Reports',BarChart3],['/profile','Profile',UserRound]] as const
 const adminMenuExtras=[['/students','Manage Students',Users],['/timetable','Timetable',CalendarClock],['/calendar','Calendar',CalendarDays],['/audit','Audit',ShieldCheck],['/settings','Settings',Settings]] as const
 const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Manage Students','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/profile':'Profile','/timetable':'Timetable / Period Setup'}
-type Notice={id:string;title:string;text:string;tone:'warn'|'ok'|'info'}
+type Notice={id:string;title:string;text:string;tone:'warn'|'ok'|'info';backendId?:string;read?:boolean}
 
 export function Layout(){
  const {profile,signOut}=useAuth(),loc=useLocation()
@@ -27,6 +27,7 @@ export function Layout(){
   try{
    const today=schoolDate()
    const next:Notice[]=[]
+   try{const server=await api<{notifications:any[]}>('/api/notifications');for(const n of server.notifications){next.push({id:'server-'+n.id,backendId:n.id,read:!!n.is_read,title:n.title,text:n.message,tone:n.is_read?'info':'warn'})}}catch{}
    if(profile.role==='SECTION_HEAD'){
     const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${today}`)
     for(const c of d.classes){
@@ -56,6 +57,7 @@ export function Layout(){
   finally{setNoticeLoading(false)}
  }
  async function toggleNotifications(){const open=!notificationsOpen;setNotificationsOpen(open);setMenuOpen(false);if(open)await loadNotifications()}
+ async function markNotice(n:Notice){if(!n.backendId||n.read)return;try{await api(`/api/notifications/${encodeURIComponent(n.backendId)}/read`,{method:'POST'});setNotices(xs=>xs.map(x=>x.id===n.id?{...x,read:true,tone:'info'}:x))}catch{}}
 
  return <div className="shell">
    <aside className="sidebar">
@@ -80,7 +82,7 @@ export function Layout(){
     </header>
     {notificationsOpen&&<section className="notification-panel">
       <div className="notification-head"><div><strong>Notifications</strong><small>Today</small></div><button onClick={()=>setNotificationsOpen(false)} aria-label="Close notifications"><X/></button></div>
-      {noticeLoading?<div className="notification-loading">Checking today’s status…</div>:<div className="notification-list">{notices.map(n=><div className={`notification-item ${n.tone}`} key={n.id}><span/ ><div><strong>{n.title}</strong><small>{n.text}</small></div></div>)}</div>}
+      {noticeLoading?<div className="notification-loading">Checking today’s status…</div>:<div className="notification-list">{notices.map(n=><button className={`notification-item ${n.tone} ${n.read?'read':''}`} key={n.id} onClick={()=>markNotice(n)}><span/><div><strong>{n.title}</strong><small>{n.text}</small></div></button>)}</div>}
       <button className="notification-refresh" onClick={loadNotifications}>Refresh</button>
     </section>}
     <main><Outlet/></main>
