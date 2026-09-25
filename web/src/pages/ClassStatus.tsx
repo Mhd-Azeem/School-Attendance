@@ -15,10 +15,11 @@ export function ClassStatus(){
  useEffect(()=>{(async()=>{setLoading(true);setError('');try{
   const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${date}&_=${Date.now()}`)
   const out:Row[]=await Promise.all(d.classes.map(async c=>{
+   const classId=String(c.class_id??c.id)
    let periods:Period[]=[]
-   try{periods=(await api<{periods:Period[]}>(`/api/period-attendance/today?date=${date}&class_id=${encodeURIComponent(c.id)}&_=${Date.now()}`)).periods}catch{}
+   try{periods=(await api<{periods:Period[]}>(`/api/period-attendance/today?date=${date}&class_id=${encodeURIComponent(classId)}&_=${Date.now()}`)).periods}catch{}
    const marked=Number(c.marked??(Number(c.present||0)+Number(c.absent||0)+Number(c.late||0)))
-   return{...c,id:String(c.id),studentSubmitted:!!c.session_id&&marked>=Number(c.total||0),marked,periodDone:periods.filter(x=>x.status).length,periodTotal:periods.length,periods}
+   return{...c,id:classId,studentSubmitted:!!c.session_id&&marked>=Number(c.total||0),marked,periodDone:periods.filter(x=>x.status).length,periodTotal:periods.length,periods}
   }))
   setRows(out)
  }catch{setError('Could not load class submission status.')}finally{setLoading(false)}})()},[date,refreshKey])
