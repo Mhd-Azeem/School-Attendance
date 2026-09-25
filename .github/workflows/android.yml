@@ -1,7 +1,7 @@
 name: Original Android APK
 on:
   push:
-    paths: ['android/**', 'web/**', 'branding/**', '.github/workflows/android.yml']
+    paths: ['release-trigger/**']
   workflow_dispatch:
 permissions:
   contents: write
