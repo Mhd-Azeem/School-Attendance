@@ -49,8 +49,14 @@ jobs:
           KEY_PASSWORD_ALT: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
-          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
-          test -n "$ANDROID_KEY_PASSWORD" || (echo "Missing ANDROID_KEY_PASSWORD" && exit 1)
+          if [ -z "$KEYSTORE_PASSWORD_PRIMARY" ] && [ -z "$KEYSTORE_PASSWORD_ALT" ]; then
+            echo "Missing keystore password secret: set KEYSTORE_PASSWORD or ANDROID_KEYSTORE_PASSWORD"
+            exit 1
+          fi
+          if [ -z "$KEY_PASSWORD_PRIMARY" ] && [ -z "$KEY_PASSWORD_ALT" ]; then
+            echo "Missing key password secret: set KEY_PASSWORD or ANDROID_KEY_PASSWORD"
+            exit 1
+          fi
 
       - name: Restore and validate permanent release keystore
         shell: bash
