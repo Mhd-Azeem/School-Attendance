@@ -44,8 +44,8 @@ export function Settings(){
  const {profile}=useAuth(),admin=profile?.role==='SECTION_HEAD'
  const [s,setS]=useState<any>({attendance_threshold:'80',school_timezone:'Asia/Colombo',teacher_correction_allowed:'false'}),[msg,setMsg]=useState(''),[error,setError]=useState('')
  const [teachers,setTeachers]=useState<any[]>([]),[teacherSearch,setTeacherSearch]=useState(''),[deletingTeacher,setDeletingTeacher]=useState<string|null>(null)
- const [tempHeads,setTempHeads]=useState<any[]>([]),[tempName,setTempName]=useState(''),[tempUsername,setTempUsername]=useState(''),[tempPassword,setTempPassword]=useState(''),[tempAllowed,setTempAllowed]=useState(false),[creatingTemp,setCreatingTemp]=useState(false)
- useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true)}).catch(()=>setTempAllowed(false))}},[admin])
+ const [tempHeads,setTempHeads]=useState<any[]>([]),[tempName,setTempName]=useState(''),[tempUsername,setTempUsername]=useState(''),[tempPassword,setTempPassword]=useState(''),[tempAllowed,setTempAllowed]=useState(true),[tempBackendReady,setTempBackendReady]=useState(true),[creatingTemp,setCreatingTemp]=useState(false)
+ useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true);setTempBackendReady(true)}).catch((e:any)=>{if(e?.message==='primary_section_head_only'||e?.message==='forbidden')setTempAllowed(false);else{setTempAllowed(true);setTempBackendReady(false)}})}},[admin])
  const filteredTeachers=useMemo(()=>teachers.filter(t=>`${t.full_name} ${t.username}`.toLowerCase().includes(teacherSearch.toLowerCase())),[teachers,teacherSearch])
  async function deleteTeacher(t:any){const typed=prompt(`Permanently delete teacher ${t.full_name}?\n\nType the username "${t.username}" to confirm.`);if(typed===null)return;if(typed.trim().toLowerCase()!==String(t.username).toLowerCase()){setError('Username did not match.');return}setDeletingTeacher(t.id);try{await api(`/api/teachers/${encodeURIComponent(t.id)}`,{method:'DELETE'});setTeachers(xs=>xs.filter(x=>x.id!==t.id));setMsg(`${t.full_name} was permanently deleted ✓`)}catch{setError('Could not permanently delete this teacher.')}finally{setDeletingTeacher(null)}}
 
@@ -62,6 +62,7 @@ export function Settings(){
  {admin&&tempAllowed&&<section className="settings-form temporary-head-settings">
   <h3>Temporary Section Head Login</h3>
   <p>Create a temporary Section Head login for another authorized person. You can revoke it at any time.</p>
+  {!tempBackendReady&&<div className="error">Temporary login service is not available on the backend yet. The section is visible, but account creation will work after the backend update is deployed.</div>}
   <div className="temp-head-form">
    <label><span>Name</span><input value={tempName} onChange={e=>setTempName(e.target.value)} placeholder="Person's name"/></label>
    <label><span>Username</span><input value={tempUsername} onChange={e=>setTempUsername(e.target.value)} placeholder="Temporary username" autoCapitalize="none"/></label>
