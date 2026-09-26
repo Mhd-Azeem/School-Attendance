@@ -63,8 +63,16 @@ class MainActivity : ComponentActivity() {
             settings.allowFileAccess = false
             settings.allowContentAccess = true
             addJavascriptInterface(object {
-                @JavascriptInterface fun saveCsv(fileName: String, base64: String) {
-                    try { val safe=fileName.replace(Regex("[^A-Za-z0-9._-]"), "_"); val dir=getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir; val file=File(dir,safe); file.writeBytes(Base64.decode(base64,Base64.DEFAULT)); runOnUiThread{Toast.makeText(this@MainActivity,"CSV saved: ${file.absolutePath}",Toast.LENGTH_LONG).show()} } catch (_:Exception) { runOnUiThread{Toast.makeText(this@MainActivity,"Could not save CSV",Toast.LENGTH_SHORT).show()} }
+                @JavascriptInterface fun saveFile(fileName: String, base64: String) {
+                    try {
+                        val safe=fileName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        val dir=getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
+                        val file=File(dir,safe)
+                        file.writeBytes(Base64.decode(base64,Base64.DEFAULT))
+                        runOnUiThread{Toast.makeText(this@MainActivity,"File saved: ${file.absolutePath}",Toast.LENGTH_LONG).show()}
+                    } catch (_:Exception) {
+                        runOnUiThread{Toast.makeText(this@MainActivity,"Could not save exported file",Toast.LENGTH_SHORT).show()}
+                    }
                 }
             }, "AndroidDownloads")
             setBackgroundColor(Color.parseColor("#F4FAF7"))
