@@ -3,6 +3,8 @@ package com.azeem.schoolattendance
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.content.ContentValues
+import android.provider.MediaStore
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
