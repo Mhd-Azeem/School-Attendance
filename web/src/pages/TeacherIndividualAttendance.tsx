@@ -24,6 +24,6 @@ export function TeacherIndividualAttendance(){
  return <><div className="screen-title-row"><div><h1>Individual Attendance</h1><p>Attendance count for each student in your assigned classes.</p></div></div>
  <div className="filters"><label className="search modern-search"><Search/><input placeholder="Search name or admission number…" value={search} onChange={e=>setSearch(e.target.value)}/></label><select value={grade} onChange={e=>setGrade(e.target.value)}><option value="ALL">All Grades</option>{grades.map(g=><option key={g} value={g}>Grade {g}</option>)}</select></div>
  {loading&&<div className="loading">Loading attendance…</div>}{error&&<div className="error">{error}</div>}
- <section className="report-list">{filtered.map(r=><article key={r.student_id}><div><small>{r.admission_number} · {r.display_name}</small><strong>{r.full_name}</strong></div><span className="green"><strong>{r.present}</strong> attended</span><span className="red"><strong>{r.absent}</strong> absent</span><strong>{r.present}/{r.total} days</strong></article>)}</section>
+ <section className="report-list">{filtered.map(r=><article key={r.student_id}><div><small>{r.admission_number} · {r.display_name}</small><strong>{r.full_name}</strong></div><span className="green"><strong>{r.present}</strong> present</span><span className="red"><strong>{r.absent}</strong> absent</span><strong>{r.present}/{r.total} days</strong></article>)}</section>
  {!loading&&!error&&!filtered.length&&<div className="empty-card">No matching students.</div>}</>
 }
