@@ -75,34 +75,38 @@ export function Settings(){
 
  return <><div className="screen-title-row"><div><h1>Settings</h1><p>{admin?'System settings and permanent student record management.':'Student record management for your assigned classes.'}</p></div></div>
 
- {admin&&<section className="settings-form">
-  <h3>Attendance Settings</h3>
-  <label>Low attendance threshold (%)<input type="number" min="1" max="100" value={s.attendance_threshold||80} onChange={e=>setS({...s,attendance_threshold:e.target.value})}/></label>
-  <label>School timezone<input value={s.school_timezone||''} onChange={e=>setS({...s,school_timezone:e.target.value})}/></label>
-  <label className="toggle"><input type="checkbox" checked={s.teacher_correction_allowed==='true'} onChange={e=>setS({...s,teacher_correction_allowed:String(e.target.checked)})}/> Allow teachers to correct submitted attendance</label>
-  <button className="primary" onClick={async()=>{try{await api('/api/settings',{method:'PUT',body:JSON.stringify(s)});setMsg('Settings saved ✓');setError('')}catch{setError('Could not save settings.')}}}>Save Settings</button>
- </section>}
-
- {admin&&tempAllowed&&<section className="settings-form temporary-head-settings">
-  <h3>Temporary Section Head Login</h3>
-  <p>Create a temporary Section Head login for another authorized person. You can revoke it at any time.</p>
-  {!tempBackendReady&&<div className="error">Temporary login service is not available on the backend yet. The section is visible, but account creation will work after the backend update is deployed.</div>}
-  <div className="temp-head-form">
-   <label><span>Name</span><input value={tempName} onChange={e=>setTempName(e.target.value)} placeholder="Person's name"/></label>
-   <label><span>Username</span><input value={tempUsername} onChange={e=>setTempUsername(e.target.value)} placeholder="Temporary username" autoCapitalize="none"/></label>
-   <label><span>Temporary Password</span><input type="password" value={tempPassword} onChange={e=>setTempPassword(e.target.value)} placeholder="4–64 characters"/></label>
+ {admin&&<details className="settings-form settings-accordion">
+  <summary className="settings-summary"><strong>Attendance Settings</strong><span>Threshold, timezone and correction permissions</span></summary>
+  <div className="settings-accordion-content">
+   <label>Low attendance threshold (%)<input type="number" min="1" max="100" value={s.attendance_threshold||80} onChange={e=>setS({...s,attendance_threshold:e.target.value})}/></label>
+   <label>School timezone<input value={s.school_timezone||''} onChange={e=>setS({...s,school_timezone:e.target.value})}/></label>
+   <label className="toggle"><input type="checkbox" checked={s.teacher_correction_allowed==='true'} onChange={e=>setS({...s,teacher_correction_allowed:String(e.target.checked)})}/> Allow teachers to correct submitted attendance</label>
+   <button className="primary" onClick={async()=>{try{await api('/api/settings',{method:'PUT',body:JSON.stringify(s)});setMsg('Settings saved ✓');setError('')}catch{setError('Could not save settings.')}}}>Save Settings</button>
   </div>
-  <button className="primary" disabled={creatingTemp||!tempName.trim()||tempUsername.trim().length<3||tempPassword.length<4} onClick={async()=>{setCreatingTemp(true);setError('');try{const x=await api<{account:any}>('/api/temporary-section-heads',{method:'POST',body:JSON.stringify({full_name:tempName,username:tempUsername,password:tempPassword})});setTempHeads(v=>[x.account,...v]);setTempName('');setTempUsername('');setTempPassword('');setMsg('Temporary Section Head login created ✓')}catch(e:any){setError(e?.message==='username_already_exists'?'That username is already in use.':'Could not create temporary Section Head login.')}finally{setCreatingTemp(false)}}}>{creatingTemp?'Creating…':'Create Temporary Login'}</button>
-  {tempHeads.length>0&&<div className="temp-head-list">{tempHeads.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username} · Temporary Section Head</small></div><button className="permanent-delete" onClick={async()=>{if(!confirm(`Delete temporary Section Head @${t.username}? This will immediately sign out that account.`))return;try{await api(`/api/temporary-section-heads/${encodeURIComponent(t.id)}`,{method:'DELETE'});setTempHeads(v=>v.filter(x=>x.id!==t.id));setMsg('Temporary Section Head login deleted ✓')}catch{setError('Could not delete temporary Section Head login.')}}}><Trash2/>Delete</button></article>)}</div>}
- </section>}
+ </details>}
 
- <section className="settings-form"><h3>Student Deletion</h3><p>Open the permanent student deletion page to search and remove student records.</p><Link className="primary" to="/student-deletion">Open Student Deletion</Link></section>
+ {admin&&tempAllowed&&<details className="settings-form temporary-head-settings settings-accordion">
+  <summary className="settings-summary"><strong>Temporary Section Head Login</strong><span>Create and revoke temporary administrator access</span></summary>
+  <div className="settings-accordion-content">
+   <p>Create a temporary Section Head login for another authorized person. You can revoke it at any time.</p>
+   {!tempBackendReady&&<div className="error">Temporary login service is not available on the backend yet. The section is visible, but account creation will work after the backend update is deployed.</div>}
+   <div className="temp-head-form">
+    <label><span>Name</span><input value={tempName} onChange={e=>setTempName(e.target.value)} placeholder="Person's name"/></label>
+    <label><span>Username</span><input value={tempUsername} onChange={e=>setTempUsername(e.target.value)} placeholder="Temporary username" autoCapitalize="none"/></label>
+    <label><span>Temporary Password</span><input type="password" value={tempPassword} onChange={e=>setTempPassword(e.target.value)} placeholder="4–64 characters"/></label>
+   </div>
+   <button className="primary" disabled={creatingTemp||!tempName.trim()||tempUsername.trim().length<3||tempPassword.length<4} onClick={async()=>{setCreatingTemp(true);setError('');try{const x=await api<{account:any}>('/api/temporary-section-heads',{method:'POST',body:JSON.stringify({full_name:tempName,username:tempUsername,password:tempPassword})});setTempHeads(v=>[x.account,...v]);setTempName('');setTempUsername('');setTempPassword('');setMsg('Temporary Section Head login created ✓')}catch(e:any){setError(e?.message==='username_already_exists'?'That username is already in use.':'Could not create temporary Section Head login.')}finally{setCreatingTemp(false)}}}>{creatingTemp?'Creating…':'Create Temporary Login'}</button>
+   {tempHeads.length>0&&<div className="temp-head-list">{tempHeads.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username} · Temporary Section Head</small></div><button className="permanent-delete" onClick={async()=>{if(!confirm(`Delete temporary Section Head @${t.username}? This will immediately sign out that account.`))return;try{await api(`/api/temporary-section-heads/${encodeURIComponent(t.id)}`,{method:'DELETE'});setTempHeads(v=>v.filter(x=>x.id!==t.id));setMsg('Temporary Section Head login deleted ✓')}catch{setError('Could not delete temporary Section Head login.')}}}><Trash2/>Delete</button></article>)}</div>}
+  </div>
+ </details>}
 
- {admin&&<section className="student-delete-settings"><div className="danger-heading"><AlertTriangle/><div><h3>Permanent Teacher Deletion</h3><p>Section Head only. Permanently removes the teacher account, class assignments, sessions and teacher attendance records.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search teacher name or username…" value={teacherSearch} onChange={e=>setTeacherSearch(e.target.value)}/></label><div className="danger-note"><strong>Permanent action</strong><span>You must type the teacher's username to confirm deletion.</span></div><div className="student-delete-list">{filteredTeachers.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username}{t.class_teacher_of?.display_name?` · Class Teacher ${t.class_teacher_of.display_name}`:''}</small></div><button className="permanent-delete" disabled={deletingTeacher===t.id} onClick={()=>deleteTeacher(t)}><Trash2/>{deletingTeacher===t.id?'Deleting…':'Delete Permanently'}</button></article>)}{!filteredTeachers.length&&<div className="empty-mini">No matching teachers.</div>}</div></section>}
+ <details className="settings-form settings-accordion"><summary className="settings-summary"><strong>Student Deletion</strong><span>Search and permanently remove student records</span></summary><div className="settings-accordion-content"><p>Open the permanent student deletion page to search and remove student records.</p><Link className="primary" to="/student-deletion">Open Student Deletion</Link></div></details>
+
+ {admin&&<details className="student-delete-settings settings-accordion"><summary className="settings-summary danger-settings-summary"><strong>Permanent Teacher Deletion</strong><span>Section Head only · destructive action</span></summary><div className="settings-accordion-content"><div className="danger-heading"><AlertTriangle/><div><p>Permanently removes the teacher account, class assignments, sessions and teacher attendance records.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search teacher name or username…" value={teacherSearch} onChange={e=>setTeacherSearch(e.target.value)}/></label><div className="danger-note"><strong>Permanent action</strong><span>You must type the teacher's username to confirm deletion.</span></div><div className="student-delete-list">{filteredTeachers.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username}{t.class_teacher_of?.display_name?` · Class Teacher ${t.class_teacher_of.display_name}`:''}</small></div><button className="permanent-delete" disabled={deletingTeacher===t.id} onClick={()=>deleteTeacher(t)}><Trash2/>{deletingTeacher===t.id?'Deleting…':'Delete Permanently'}</button></article>)}{!filteredTeachers.length&&<div className="empty-mini">No matching teachers.</div>}</div></div></details>}
  {error&&<div className="error">{error}</div>}{msg&&<div className="notice">{msg}</div>}
 
- <details className="settings-form about-section">
-  <summary className="about-summary"><strong>About School Attendance</strong><span>App information and features</span></summary>
+ <details className="settings-form about-section settings-accordion">
+  <summary className="settings-summary"><strong>About School Attendance</strong><span>App information and features</span></summary>
   <div className="about-content">
   <p>A centralized school attendance management system designed for fast, accurate student and teacher attendance management across mobile and web devices.</p>
   <div className="about-feature-grid">
