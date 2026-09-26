@@ -398,3 +398,205 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 .teacher-period-table{width:100%!important;border-collapse:collapse!important;background:#fff!important}
 .teacher-period-table th,.teacher-period-table td{border:1px solid #d8e3de!important;padding:9px 10px!important;text-align:center!important;font-size:11px!important}
 .teacher-period-table th{background:#f2f7f4!important;font-weight:800!important}
+
+
+/* =========================================================
+   GREEN LIQUID BUTTON SYSTEM — Section Head + Teacher
+   ========================================================= */
+button,.primary,.secondary,.submit,.logout,.drawer-logout,.teacher-edit-button,.profile-logout,.notification-refresh{
+ transition:transform .22s cubic-bezier(.2,.9,.25,1.25),box-shadow .25s ease,background .25s ease,border-color .25s ease,color .25s ease,filter .25s ease;
+ -webkit-tap-highlight-color:transparent;
+}
+.primary,.submit,
+.secondary,
+.teacher-edit-button,
+.notification-refresh,
+.profile-photo-button,
+.success-modal button,
+.export-options button,
+.settings-form .primary,
+.teacher-edit-actions button,
+.filters button,
+.report-generate{
+ position:relative;
+ overflow:hidden;
+ isolation:isolate;
+ border:1px solid #ffffff70!important;
+ background:
+  linear-gradient(135deg,#20c978d9 0%,#07965fdc 46%,#006f49e8 100%)!important;
+ color:#fff!important;
+ box-shadow:
+  0 8px 20px #006b4430,
+  inset 0 1px 0 #ffffff8a,
+  inset 0 -1px 0 #004f3738!important;
+ backdrop-filter:blur(12px) saturate(145%);
+ -webkit-backdrop-filter:blur(12px) saturate(145%);
+ text-shadow:0 1px 2px #004c3235;
+}
+.primary::before,.submit::before,
+.secondary::before,
+.teacher-edit-button::before,
+.notification-refresh::before,
+.profile-photo-button::before,
+.success-modal button::before,
+.export-options button::before,
+.settings-form .primary::before,
+.teacher-edit-actions button::before,
+.filters button::before,
+.report-generate::before{
+ content:"";
+ position:absolute;
+ z-index:-1;
+ left:7%;
+ right:7%;
+ top:2px;
+ height:42%;
+ border-radius:999px;
+ background:linear-gradient(180deg,#ffffff75,#ffffff08);
+ opacity:.72;
+ pointer-events:none;
+}
+.primary::after,.submit::after,
+.secondary::after,
+.teacher-edit-button::after,
+.notification-refresh::after,
+.profile-photo-button::after,
+.success-modal button::after,
+.export-options button::after,
+.settings-form .primary::after,
+.teacher-edit-actions button::after,
+.filters button::after,
+.report-generate::after{
+ content:"";
+ position:absolute;
+ z-index:-1;
+ width:46%;
+ height:180%;
+ top:-40%;
+ left:-58%;
+ transform:rotate(18deg);
+ background:linear-gradient(90deg,transparent,#ffffff3d,transparent);
+ transition:left .5s cubic-bezier(.22,1,.36,1);
+ pointer-events:none;
+}
+@media(hover:hover) and (pointer:fine){
+ .primary:hover::after,.submit:hover::after,
+ .secondary:hover::after,
+ .teacher-edit-button:hover::after,
+ .notification-refresh:hover::after,
+ .profile-photo-button:hover::after,
+ .success-modal button:hover::after,
+ .export-options button:hover::after,
+ .settings-form .primary:hover::after,
+ .teacher-edit-actions button:hover::after,
+ .filters button:hover::after,
+ .report-generate:hover::after{left:118%}
+ .primary:hover,.submit:hover,.secondary:hover,.teacher-edit-button:hover,
+ .notification-refresh:hover,.profile-photo-button:hover,.success-modal button:hover,
+ .export-options button:hover,.settings-form .primary:hover,
+ .teacher-edit-actions button:hover,.filters button:hover,.report-generate:hover{
+  transform:translateY(-1px);
+  filter:saturate(1.08) brightness(1.03);
+  box-shadow:0 11px 24px #006b4438,inset 0 1px 0 #ffffffa0,inset 0 -1px 0 #004f3740!important;
+ }
+}
+.primary:active,.submit:active,.secondary:active,.teacher-edit-button:active,
+.notification-refresh:active,.profile-photo-button:active,.success-modal button:active,
+.export-options button:active,.settings-form .primary:active,
+.teacher-edit-actions button:active,.filters button:active,.report-generate:active{
+ transform:translateY(1px) scale(.985);
+ box-shadow:0 4px 11px #006b4428,inset 0 2px 6px #003f2c30!important;
+}
+
+/* compact icon / chrome buttons */
+.appbar-icon,.notification-head button,.drawer-head button,.crop-head button,.more{
+ border:1px solid #ffffff38!important;
+ background:linear-gradient(145deg,#ffffff20,#0ab06b24)!important;
+ color:inherit;
+ box-shadow:inset 0 1px 0 #ffffff43,0 4px 10px #003f2b18;
+ backdrop-filter:blur(10px) saturate(140%);
+ -webkit-backdrop-filter:blur(10px) saturate(140%);
+}
+.appbar-icon:active,.notification-head button:active,.drawer-head button:active,.crop-head button:active,.more:active{
+ transform:scale(.93);
+ background:linear-gradient(145deg,#ffffff2d,#0ab06b38)!important;
+}
+
+/* drawer / sidebar logout uses green glass like the rest of the app */
+.logout,.drawer-logout,.profile-logout{
+ position:relative;
+ overflow:hidden;
+ border:1px solid #ffffff42!important;
+ background:linear-gradient(135deg,#14a96b42,#006b4a55)!important;
+ color:#fff!important;
+ box-shadow:inset 0 1px 0 #ffffff3f,0 6px 16px #003c291f!important;
+ backdrop-filter:blur(10px) saturate(135%);
+ -webkit-backdrop-filter:blur(10px) saturate(135%);
+}
+.profile-logout{color:#08784f!important;background:linear-gradient(135deg,#e6fff3e8,#bdebd6d9)!important;border-color:#96d6b8!important}
+
+/* segmented controls receive a softer liquid treatment */
+.segmented{background:linear-gradient(145deg,#e9f7f0,#dfeee7);border:1px solid #d3e8dd;box-shadow:inset 0 1px 3px #0b6d4510}
+.segmented button{
+ transition:transform .22s cubic-bezier(.2,.9,.25,1.2),background .25s ease,box-shadow .25s ease,color .25s ease;
+}
+.segmented button.active{
+ border:1px solid #ffffff78;
+ background:linear-gradient(135deg,#20c978d9,#078e59ea)!important;
+ box-shadow:0 5px 13px #006b4429,inset 0 1px 0 #ffffff75;
+ color:#fff;
+}
+
+/* attendance status buttons keep semantic present/absent meaning but use liquid depth */
+.status-control button{
+ box-shadow:inset 0 1px 0 #ffffffb8,0 3px 8px #174d3511;
+ backdrop-filter:blur(8px);
+ -webkit-backdrop-filter:blur(8px);
+ transition:transform .18s ease,box-shadow .22s ease,filter .22s ease;
+}
+.status-control button:active{transform:scale(.96)}
+.status-control button.present{
+ background:linear-gradient(135deg,#e8fff3,#bff0d7)!important;
+ border-color:#9eddbd!important;color:#057847!important;
+}
+.status-control button.absent{
+ background:linear-gradient(135deg,#fff4f4,#ffd9db)!important;
+ border-color:#efbdc1!important;color:#b72b35!important;
+}
+
+/* clickable class/table rows stay readable, but gain subtle liquid feedback */
+.class-status-row.class-status-button,.class-table-row-button{
+ transition:background .22s ease,box-shadow .22s ease,transform .18s ease;
+}
+.class-status-row.class-status-button:active,.class-table-row-button:active{
+ transform:scale(.995);
+ background:linear-gradient(90deg,#f7fffb,#eaf8f1)!important;
+ box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px #cfe8dc;
+}
+
+/* text-style actions become compact green liquid pills */
+.link{
+ border:1px solid #b9decf!important;
+ border-radius:999px!important;
+ background:linear-gradient(135deg,#f2fff9,#dff5e9)!important;
+ color:#07764d!important;
+ padding:6px 10px!important;
+ box-shadow:inset 0 1px 0 #fff,0 3px 8px #006b4412;
+ transition:transform .18s ease,box-shadow .22s ease;
+}
+.link:active{transform:scale(.96)}
+
+/* destructive actions remain unmistakable while matching the liquid material */
+.permanent-delete{
+ position:relative;
+ overflow:hidden;
+ background:linear-gradient(135deg,#fff7f7e8,#ffdfe2e8)!important;
+ border:1px solid #ecb4b9!important;
+ color:#b92733!important;
+ box-shadow:0 5px 13px #a72b3517,inset 0 1px 0 #fff!important;
+ backdrop-filter:blur(10px);
+ -webkit-backdrop-filter:blur(10px);
+ transition:transform .2s ease,box-shadow .22s ease,filter .22s ease;
+}
+.permanent-delete:active{transform:scale(.97)}
+button:disabled,.primary:disabled,.submit:disabled{filter:saturate(.65);box-shadow:none!important}
