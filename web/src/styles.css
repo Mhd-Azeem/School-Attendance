@@ -285,3 +285,5 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 /* Simplified Manage Students rows */
 .class-student-head.simple-student-head{grid-template-columns:34px 120px 1fr}.class-student-body article{grid-template-columns:34px 120px 1fr!important;align-items:center}.class-student-body article .student-main-name{grid-column:auto!important}.class-student-body article .student-admission{grid-column:auto!important}
 @media(max-width:700px){.class-student-head.simple-student-head{grid-template-columns:28px 110px 1fr}.class-student-body article{grid-template-columns:28px 110px 1fr!important}}
+
+.stat-link{display:block;color:inherit;text-decoration:none}.stat-link .admin-stat{height:100%;box-sizing:border-box}.stat-link:active{transform:scale(.98)}
