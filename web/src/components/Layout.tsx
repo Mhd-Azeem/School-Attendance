@@ -1,5 +1,5 @@
-import {useEffect,useState} from 'react'
-import {NavLink,Outlet,useLocation} from 'react-router-dom'
+import {useEffect,useState,type CSSProperties} from 'react'
+import {NavLink,Outlet,useLocation,useNavigate} from 'react-router-dom'
 import {BarChart3,Bell,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
 import {useAuth} from '../AuthContext'
 import {api} from '../lib/api'
@@ -14,9 +14,27 @@ type Notice={id:string;title:string;text:string;tone:'warn'|'ok'|'info';backendI
 type SuccessPopup={title:string;message:string}|null
 
 export function Layout(){
- const {profile,signOut}=useAuth(),loc=useLocation()
+ const {profile,signOut}=useAuth(),loc=useLocation(),navigate=useNavigate()
  const [menuOpen,setMenuOpen]=useState(false),[notificationsOpen,setNotificationsOpen]=useState(false),[notices,setNotices]=useState<Notice[]>([]),[noticeLoading,setNoticeLoading]=useState(false),[successPopup,setSuccessPopup]=useState<SuccessPopup>(null)
  const links=profile?.role==='SECTION_HEAD'?adminLinks:teacherLinks
+ const isNativeApp=window.location.hostname==='appassets.androidplatform.net'
+ const showBranding=!isNativeApp||loc.pathname==='/'
+ const activeNavIndex=Math.max(0,links.findIndex(([to])=>to==='/'?loc.pathname==='/':loc.pathname.startsWith(to)))
+ const [navDragIndex,setNavDragIndex]=useState<number|null>(null)
+ const navPosition=navDragIndex??activeNavIndex
+ function navPointerPosition(e:any){
+  const rect=e.currentTarget.getBoundingClientRect()
+  const raw=((e.clientX-rect.left)/rect.width)*links.length-.5
+  return Math.max(0,Math.min(links.length-1,raw))
+ }
+ function beginNavDrag(e:any){if(window.innerWidth>700)return;e.currentTarget.setPointerCapture?.(e.pointerId);setNavDragIndex(navPointerPosition(e))}
+ function moveNavDrag(e:any){if(navDragIndex===null)return;setNavDragIndex(navPointerPosition(e))}
+ function endNavDrag(e:any){
+  if(navDragIndex===null)return
+  const target=Math.max(0,Math.min(links.length-1,Math.round(navPointerPosition(e))))
+  setNavDragIndex(null)
+  navigate(links[target][0])
+ }
  const drawerLinks=profile?.role==='SECTION_HEAD'?[...adminLinks,...adminMenuExtras]:[...teacherLinks,...teacherMenuExtras]
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
 
@@ -65,8 +83,11 @@ export function Layout(){
 
  return <div className="shell">
    <aside className="sidebar">
-    {loc.pathname==='/'&&<div className="brand"><img src="zahira-logo.jpg" alt="Zahira College Matale"/><div><strong>School Attendance App</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head Portal':'Teacher Portal'}</small></div></div>}
-    <nav>{links.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon size={20}/><span>{label}</span></NavLink>})}</nav>
+    {showBranding&&<div className="brand"><img src="zahira-logo.jpg" alt="Zahira College Matale"/><div><strong>School Attendance App</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head Portal':'Teacher Portal'}</small></div></div>}
+    <nav className={`primary-nav ${navDragIndex!==null?'is-dragging':''}`} style={{'--nav-position':navPosition} as CSSProperties} onPointerDown={beginNavDrag} onPointerMove={moveNavDrag} onPointerUp={endNavDrag} onPointerCancel={()=>setNavDragIndex(null)}>
+     <span className="liquid-nav-indicator" aria-hidden="true"/>
+     {links.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon size={20}/><span>{label}</span></NavLink>})}
+    </nav>
     {profile?.role==='SECTION_HEAD'&&<div className="desktop-extra"><NavLink to="/calendar">Calendar</NavLink><NavLink to="/audit">Audit</NavLink><NavLink to="/settings">Settings</NavLink></div>}
     <button className="logout" onClick={signOut}><LogOut size={19}/>Logout</button>
    </aside>
@@ -84,7 +105,7 @@ export function Layout(){
      <strong className="appbar-page-title">{title}</strong>
      <button className="appbar-icon bell-button" aria-label="Notifications" onClick={toggleNotifications}><Bell size={21}/>{notices.some(n=>n.tone==='warn')&&<span className="notification-badge">{notices.filter(n=>n.tone==='warn').length}</span>}</button>
     </header>
-    {loc.pathname==='/'&&<section className="mobile-brand-strip" aria-label="School Attendance App">
+    {showBranding&&<section className="mobile-brand-strip" aria-label="School Attendance App">
      <img src="zahira-logo.jpg" alt="Zahira College Matale"/>
      <strong>School Attendance App</strong>
     </section>}
