@@ -81,7 +81,11 @@ export function Layout(){
    <div className="workspace">
     <header className="appbar">
      <button className="appbar-icon mobile-only" aria-label="Open menu" onClick={()=>{setMenuOpen(true);setNotificationsOpen(false)}}><Menu size={24}/></button>
-     <strong>{title}</strong>
+     <div className="appbar-mobile-brand" aria-label="School Attendance App">
+      <img src="zahira-logo.jpg" alt="Zahira College Matale"/>
+      <div><strong>School Attendance App</strong><small>{title}</small></div>
+     </div>
+     <strong className="appbar-page-title">{title}</strong>
      <button className="appbar-icon bell-button" aria-label="Notifications" onClick={toggleNotifications}><Bell size={21}/>{notices.some(n=>n.tone==='warn')&&<span className="notification-badge">{notices.filter(n=>n.tone==='warn').length}</span>}</button>
     </header>
     {notificationsOpen&&<section className="notification-panel">
