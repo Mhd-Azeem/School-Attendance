@@ -19,21 +19,22 @@ export function Layout(){
  const links=profile?.role==='SECTION_HEAD'?adminLinks:teacherLinks
  const isNativeApp=window.location.hostname==='appassets.androidplatform.net'
  const showBranding=!isNativeApp||loc.pathname==='/'
- const activeNavIndex=Math.max(0,links.findIndex(([to])=>to==='/'?loc.pathname==='/':loc.pathname.startsWith(to)))
+ const navLinks=links as readonly (readonly [string,string,any])[]
+ const activeNavIndex=Math.max(0,navLinks.findIndex(item=>{const to=item[0];return to==='/'?loc.pathname==='/':loc.pathname.startsWith(to)}))
  const [navDragIndex,setNavDragIndex]=useState<number|null>(null)
  const navPosition=navDragIndex??activeNavIndex
  function navPointerPosition(e:any){
   const rect=e.currentTarget.getBoundingClientRect()
   const raw=((e.clientX-rect.left)/rect.width)*links.length-.5
-  return Math.max(0,Math.min(links.length-1,raw))
+  return Math.max(0,Math.min(navLinks.length-1,raw))
  }
  function beginNavDrag(e:any){if(window.innerWidth>700)return;e.currentTarget.setPointerCapture?.(e.pointerId);setNavDragIndex(navPointerPosition(e))}
  function moveNavDrag(e:any){if(navDragIndex===null)return;setNavDragIndex(navPointerPosition(e))}
  function endNavDrag(e:any){
   if(navDragIndex===null)return
-  const target=Math.max(0,Math.min(links.length-1,Math.round(navPointerPosition(e))))
+  const target=Math.max(0,Math.min(navLinks.length-1,Math.round(navPointerPosition(e))))
   setNavDragIndex(null)
-  navigate(links[target][0])
+  navigate(navLinks[target][0])
  }
  const drawerLinks=profile?.role==='SECTION_HEAD'?[...adminLinks,...adminMenuExtras]:[...teacherLinks,...teacherMenuExtras]
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
@@ -86,7 +87,7 @@ export function Layout(){
     {showBranding&&<div className="brand"><img src="zahira-logo.jpg" alt="Zahira College Matale"/><div><strong>School Attendance App</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head Portal':'Teacher Portal'}</small></div></div>}
     <nav className={`primary-nav ${navDragIndex!==null?'is-dragging':''}`} style={{'--nav-position':navPosition} as CSSProperties} onPointerDown={beginNavDrag} onPointerMove={moveNavDrag} onPointerUp={endNavDrag} onPointerCancel={()=>setNavDragIndex(null)}>
      <span className="liquid-nav-indicator" aria-hidden="true"/>
-     {links.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon size={20}/><span>{label}</span></NavLink>})}
+     {navLinks.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon size={20}/><span>{label}</span></NavLink>})}
     </nav>
     {profile?.role==='SECTION_HEAD'&&<div className="desktop-extra"><NavLink to="/calendar">Calendar</NavLink><NavLink to="/audit">Audit</NavLink><NavLink to="/settings">Settings</NavLink></div>}
     <button className="logout" onClick={signOut}><LogOut size={19}/>Logout</button>
