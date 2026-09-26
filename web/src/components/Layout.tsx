@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react'
 import {NavLink,Outlet,useLocation} from 'react-router-dom'
-import {BarChart3,Bell,CalendarClock,CalendarDays,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
+import {BarChart3,Bell,CalendarClock,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
 import {useAuth} from '../AuthContext'
 import {api} from '../lib/api'
 import {schoolDate} from '../lib/date'
@@ -11,16 +11,18 @@ const adminMenuExtras=[['/individual-attendance','Individual Attendance',Clipboa
 const teacherMenuExtras=[['/individual-attendance','Individual Attendance',ClipboardCheck],['/settings','Settings',Settings]] as const
 const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Manage Students','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/profile':'Profile','/timetable':'Timetable / Period Setup','/individual-attendance':'Individual Attendance'}
 type Notice={id:string;title:string;text:string;tone:'warn'|'ok'|'info';backendId?:string;read?:boolean}
+type SuccessPopup={title:string;message:string}|null
 
 export function Layout(){
  const {profile,signOut}=useAuth(),loc=useLocation()
- const [menuOpen,setMenuOpen]=useState(false),[notificationsOpen,setNotificationsOpen]=useState(false),[notices,setNotices]=useState<Notice[]>([]),[noticeLoading,setNoticeLoading]=useState(false)
+ const [menuOpen,setMenuOpen]=useState(false),[notificationsOpen,setNotificationsOpen]=useState(false),[notices,setNotices]=useState<Notice[]>([]),[noticeLoading,setNoticeLoading]=useState(false),[successPopup,setSuccessPopup]=useState<SuccessPopup>(null)
  const links=profile?.role==='SECTION_HEAD'?adminLinks:teacherLinks
  const drawerLinks=profile?.role==='SECTION_HEAD'?[...adminLinks,...adminMenuExtras]:[...teacherLinks,...teacherMenuExtras]
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
 
  useEffect(()=>{setMenuOpen(false);setNotificationsOpen(false)},[loc.pathname])
  useEffect(()=>{loadNotifications()},[profile?.role])
+ useEffect(()=>{const show=(e:Event)=>{const d=(e as CustomEvent<{title?:string;message?:string}>).detail||{};setSuccessPopup({title:d.title||'Submitted Successfully',message:d.message||'Your changes have been saved.'})};window.addEventListener('app-success',show);return()=>window.removeEventListener('app-success',show)},[])
 
  async function loadNotifications(){
   if(!profile)return
@@ -89,5 +91,6 @@ export function Layout(){
     </section>}
     <main><Outlet/></main>
    </div>
+   {successPopup&&<div className="success-modal-backdrop" role="presentation"><section className="success-modal" role="dialog" aria-modal="true" aria-labelledby="success-title"><CheckCircle2 className="success-modal-icon" size={52}/><h2 id="success-title">{successPopup.title}</h2><p>{successPopup.message}</p><button autoFocus onClick={()=>setSuccessPopup(null)}>OK</button></section></div>}
  </div>
 }
