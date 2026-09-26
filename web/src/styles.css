@@ -399,312 +399,163 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 .teacher-period-table th,.teacher-period-table td{border:1px solid #d8e3de!important;padding:9px 10px!important;text-align:center!important;font-size:11px!important}
 .teacher-period-table th{background:#f2f7f4!important;font-weight:800!important}
 
-
 /* =========================================================
-   GREEN LIQUID BUTTON SYSTEM — Section Head + Teacher
+   SOLID BUTTON SYSTEM — Section Head + Teacher
    ========================================================= */
-button,.primary,.secondary,.submit,.logout,.drawer-logout,.teacher-edit-button,.profile-logout,.notification-refresh{
- transition:transform .22s cubic-bezier(.2,.9,.25,1.25),box-shadow .25s ease,background .25s ease,border-color .25s ease,color .25s ease,filter .25s ease;
+button,.primary,.secondary,.submit,.logout,.drawer-logout,.teacher-edit-button,
+.profile-logout,.notification-refresh,.permanent-delete,.link{
+ transition:background-color .16s ease,border-color .16s ease,color .16s ease,transform .12s ease,opacity .16s ease;
  -webkit-tap-highlight-color:transparent;
 }
-.primary,.submit,
-.secondary,
-.teacher-edit-button,
-.notification-refresh,
-.profile-photo-button,
-.success-modal button,
-.export-options button,
-.settings-form .primary,
-.teacher-edit-actions button,
-.filters button,
-.report-generate{
- position:relative;
- overflow:hidden;
- isolation:isolate;
- border:1px solid #ffffff70!important;
- background:
-  linear-gradient(135deg,#20c978d9 0%,#07965fdc 46%,#006f49e8 100%)!important;
+
+.primary,.submit,.secondary,.teacher-edit-button,.notification-refresh,
+.profile-photo-button,.success-modal button,.export-options button,
+.settings-form .primary,.teacher-edit-actions button,.filters button,.report-generate{
+ background:#0a965e!important;
  color:#fff!important;
- box-shadow:
-  0 8px 20px #006b4430,
-  inset 0 1px 0 #ffffff8a,
-  inset 0 -1px 0 #004f3738!important;
- backdrop-filter:blur(12px) saturate(145%);
- -webkit-backdrop-filter:blur(12px) saturate(145%);
- text-shadow:0 1px 2px #004c3235;
+ border:1px solid #0a965e!important;
+ border-radius:10px!important;
+ box-shadow:none!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+ text-shadow:none!important;
+ animation:none!important;
+ filter:none!important;
+ overflow:visible;
 }
-.primary::before,.submit::before,
-.secondary::before,
-.teacher-edit-button::before,
-.notification-refresh::before,
-.profile-photo-button::before,
-.success-modal button::before,
-.export-options button::before,
-.settings-form .primary::before,
-.teacher-edit-actions button::before,
-.filters button::before,
-.report-generate::before{
- content:"";
- position:absolute;
- z-index:-1;
- left:7%;
- right:7%;
- top:2px;
- height:42%;
- border-radius:999px;
- background:linear-gradient(180deg,#ffffff75,#ffffff08);
- opacity:.72;
- pointer-events:none;
+
+.primary::before,.primary::after,.submit::before,.submit::after,
+.secondary::before,.secondary::after,.teacher-edit-button::before,.teacher-edit-button::after,
+.notification-refresh::before,.notification-refresh::after,.profile-photo-button::before,.profile-photo-button::after,
+.success-modal button::before,.success-modal button::after,.export-options button::before,.export-options button::after,
+.settings-form .primary::before,.settings-form .primary::after,.teacher-edit-actions button::before,.teacher-edit-actions button::after,
+.filters button::before,.filters button::after,.report-generate::before,.report-generate::after{
+ content:none!important;
+ display:none!important;
+ animation:none!important;
 }
-.primary::after,.submit::after,
-.secondary::after,
-.teacher-edit-button::after,
-.notification-refresh::after,
-.profile-photo-button::after,
-.success-modal button::after,
-.export-options button::after,
-.settings-form .primary::after,
-.teacher-edit-actions button::after,
-.filters button::after,
-.report-generate::after{
- content:"";
- position:absolute;
- z-index:-1;
- width:46%;
- height:180%;
- top:-40%;
- left:-58%;
- transform:rotate(18deg);
- background:linear-gradient(90deg,transparent,#ffffff3d,transparent);
- transition:left .5s cubic-bezier(.22,1,.36,1);
- pointer-events:none;
-}
+
 @media(hover:hover) and (pointer:fine){
- .primary:hover::after,.submit:hover::after,
- .secondary:hover::after,
- .teacher-edit-button:hover::after,
- .notification-refresh:hover::after,
- .profile-photo-button:hover::after,
- .success-modal button:hover::after,
- .export-options button:hover::after,
- .settings-form .primary:hover::after,
- .teacher-edit-actions button:hover::after,
- .filters button:hover::after,
- .report-generate:hover::after{left:118%}
  .primary:hover,.submit:hover,.secondary:hover,.teacher-edit-button:hover,
  .notification-refresh:hover,.profile-photo-button:hover,.success-modal button:hover,
  .export-options button:hover,.settings-form .primary:hover,
  .teacher-edit-actions button:hover,.filters button:hover,.report-generate:hover{
-  transform:translateY(-1px);
-  filter:saturate(1.08) brightness(1.03);
-  box-shadow:0 11px 24px #006b4438,inset 0 1px 0 #ffffffa0,inset 0 -1px 0 #004f3740!important;
+  background:#078653!important;
+  border-color:#078653!important;
+  transform:none!important;
+  box-shadow:none!important;
+  filter:none!important;
  }
 }
+
 .primary:active,.submit:active,.secondary:active,.teacher-edit-button:active,
 .notification-refresh:active,.profile-photo-button:active,.success-modal button:active,
 .export-options button:active,.settings-form .primary:active,
 .teacher-edit-actions button:active,.filters button:active,.report-generate:active{
- transform:translateY(1px) scale(.985);
- box-shadow:0 4px 11px #006b4428,inset 0 2px 6px #003f2c30!important;
+ background:#06794c!important;
+ border-color:#06794c!important;
+ transform:scale(.985)!important;
+ box-shadow:none!important;
+ filter:none!important;
 }
 
-/* compact icon / chrome buttons */
+/* icon buttons use a simple solid green */
 .appbar-icon,.notification-head button,.drawer-head button,.crop-head button,.more{
- border:1px solid #ffffff38!important;
- background:linear-gradient(145deg,#ffffff20,#0ab06b24)!important;
- color:inherit;
- box-shadow:inset 0 1px 0 #ffffff43,0 4px 10px #003f2b18;
- backdrop-filter:blur(10px) saturate(140%);
- -webkit-backdrop-filter:blur(10px) saturate(140%);
+ background:#087f54!important;
+ color:#fff!important;
+ border:1px solid #0c9564!important;
+ box-shadow:none!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+ animation:none!important;
 }
 .appbar-icon:active,.notification-head button:active,.drawer-head button:active,.crop-head button:active,.more:active{
- transform:scale(.93);
- background:linear-gradient(145deg,#ffffff2d,#0ab06b38)!important;
+ background:#066f49!important;
+ transform:scale(.96);
 }
 
-/* drawer / sidebar logout uses green glass like the rest of the app */
-.logout,.drawer-logout,.profile-logout{
- position:relative;
- overflow:hidden;
- border:1px solid #ffffff42!important;
- background:linear-gradient(135deg,#14a96b42,#006b4a55)!important;
+/* logout/profile actions */
+.logout,.drawer-logout{
+ background:#087f54!important;
  color:#fff!important;
- box-shadow:inset 0 1px 0 #ffffff3f,0 6px 16px #003c291f!important;
- backdrop-filter:blur(10px) saturate(135%);
- -webkit-backdrop-filter:blur(10px) saturate(135%);
+ border:1px solid #15966b!important;
+ box-shadow:none!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
 }
-.profile-logout{color:#08784f!important;background:linear-gradient(135deg,#e6fff3e8,#bdebd6d9)!important;border-color:#96d6b8!important}
+.profile-logout{
+ background:#e6f5ee!important;
+ color:#08784f!important;
+ border:1px solid #b8dcca!important;
+ box-shadow:none!important;
+}
 
-/* segmented controls receive a softer liquid treatment */
-.segmented{background:linear-gradient(145deg,#e9f7f0,#dfeee7);border:1px solid #d3e8dd;box-shadow:inset 0 1px 3px #0b6d4510}
+/* segmented controls: solid active state */
+.segmented{
+ background:#edf3ef!important;
+ border:1px solid #d8e5df!important;
+ box-shadow:none!important;
+}
 .segmented button{
- transition:transform .22s cubic-bezier(.2,.9,.25,1.2),background .25s ease,box-shadow .25s ease,color .25s ease;
+ background:transparent!important;
+ box-shadow:none!important;
+ animation:none!important;
 }
 .segmented button.active{
- border:1px solid #ffffff78;
- background:linear-gradient(135deg,#20c978d9,#078e59ea)!important;
- box-shadow:0 5px 13px #006b4429,inset 0 1px 0 #ffffff75;
- color:#fff;
+ background:#0a965e!important;
+ color:#fff!important;
+ border:1px solid #0a965e!important;
+ box-shadow:none!important;
 }
 
-/* attendance status buttons keep semantic present/absent meaning but use liquid depth */
+/* attendance controls retain semantic solid colors */
 .status-control button{
- box-shadow:inset 0 1px 0 #ffffffb8,0 3px 8px #174d3511;
- backdrop-filter:blur(8px);
- -webkit-backdrop-filter:blur(8px);
- transition:transform .18s ease,box-shadow .22s ease,filter .22s ease;
+ box-shadow:none!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+ animation:none!important;
 }
-.status-control button:active{transform:scale(.96)}
 .status-control button.present{
- background:linear-gradient(135deg,#e8fff3,#bff0d7)!important;
- border-color:#9eddbd!important;color:#057847!important;
+ background:#d8f4e6!important;
+ color:#067747!important;
+ border-color:#a9ddc2!important;
 }
 .status-control button.absent{
- background:linear-gradient(135deg,#fff4f4,#ffd9db)!important;
- border-color:#efbdc1!important;color:#b72b35!important;
+ background:#fde3e5!important;
+ color:#b52d37!important;
+ border-color:#edbdc1!important;
 }
 
-/* clickable class/table rows stay readable, but gain subtle liquid feedback */
-.class-status-row.class-status-button,.class-table-row-button{
- transition:background .22s ease,box-shadow .22s ease,transform .18s ease;
-}
-.class-status-row.class-status-button:active,.class-table-row-button:active{
- transform:scale(.995);
- background:linear-gradient(90deg,#f7fffb,#eaf8f1)!important;
- box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px #cfe8dc;
-}
-
-/* text-style actions become compact green liquid pills */
+/* text actions */
 .link{
- border:1px solid #b9decf!important;
- border-radius:999px!important;
- background:linear-gradient(135deg,#f2fff9,#dff5e9)!important;
- color:#07764d!important;
+ background:#e7f5ee!important;
+ color:#08784f!important;
+ border:1px solid #bddfce!important;
+ border-radius:9px!important;
  padding:6px 10px!important;
- box-shadow:inset 0 1px 0 #fff,0 3px 8px #006b4412;
- transition:transform .18s ease,box-shadow .22s ease;
+ box-shadow:none!important;
 }
-.link:active{transform:scale(.96)}
 
-/* destructive actions remain unmistakable while matching the liquid material */
+/* destructive actions stay clearly red */
 .permanent-delete{
- position:relative;
- overflow:hidden;
- background:linear-gradient(135deg,#fff7f7e8,#ffdfe2e8)!important;
- border:1px solid #ecb4b9!important;
- color:#b92733!important;
- box-shadow:0 5px 13px #a72b3517,inset 0 1px 0 #fff!important;
- backdrop-filter:blur(10px);
- -webkit-backdrop-filter:blur(10px);
- transition:transform .2s ease,box-shadow .22s ease,filter .22s ease;
+ background:#fff!important;
+ color:#c7333d!important;
+ border:1px solid #efc3c6!important;
+ box-shadow:none!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+ animation:none!important;
 }
-.permanent-delete:active{transform:scale(.97)}
-button:disabled,.primary:disabled,.submit:disabled{filter:saturate(.65);box-shadow:none!important}
+.permanent-delete:active{background:#fff0f1!important;transform:scale(.98)}
 
-
-/* =========================================================
-   LIQUID SURFACE V2 — visibly fluid, not just glossy
-   ========================================================= */
-@keyframes liquid-surface-flow{
- 0%{background-position:0% 20%,100% 80%,50% 50%}
- 50%{background-position:85% 65%,15% 20%,50% 50%}
- 100%{background-position:0% 20%,100% 80%,50% 50%}
-}
-@keyframes liquid-edge-breathe{
- 0%,100%{box-shadow:0 9px 24px #005f4030,inset 0 1px 0 #ffffffa8,inset 0 -2px 7px #00472f26,inset 8px 0 14px #46e69a15}
- 50%{box-shadow:0 11px 28px #005f4038,inset 0 2px 0 #ffffffbd,inset 0 -3px 9px #003e2a30,inset -8px 0 16px #62f3ad20}
-}
-.primary,.submit,.secondary,.teacher-edit-button,.notification-refresh,
-.profile-photo-button,.success-modal button,.export-options button,
-.settings-form .primary,.teacher-edit-actions button,.filters button,.report-generate{
- border-radius:18px!important;
- border:1px solid #ffffff88!important;
- background:
-  radial-gradient(ellipse at 18% 8%,#ffffff85 0 8%,#bfffe339 22%,transparent 43%),
-  radial-gradient(ellipse at 86% 92%,#75ffc757 0 13%,#008e5d34 34%,transparent 55%),
-  linear-gradient(135deg,#20c77ec7 0%,#079661d4 46%,#006e4bdc 100%)!important;
- background-size:165% 165%,175% 175%,100% 100%!important;
- animation:liquid-surface-flow 5.2s ease-in-out infinite,liquid-edge-breathe 4.3s ease-in-out infinite!important;
- box-shadow:0 9px 24px #005f4030,inset 0 1px 0 #ffffffa8,inset 0 -2px 7px #00472f26,inset 8px 0 14px #46e69a15!important;
- backdrop-filter:blur(16px) saturate(175%) contrast(1.04)!important;
- -webkit-backdrop-filter:blur(16px) saturate(175%) contrast(1.04)!important;
-}
-.primary::before,.submit::before,.secondary::before,.teacher-edit-button::before,
-.notification-refresh::before,.profile-photo-button::before,.success-modal button::before,
-.export-options button::before,.settings-form .primary::before,.teacher-edit-actions button::before,
-.filters button::before,.report-generate::before{
- left:3%!important;
- right:3%!important;
- top:2px!important;
- height:44%!important;
- border-radius:16px 16px 52% 52%!important;
- background:linear-gradient(180deg,#ffffff8c 0%,#ffffff22 58%,transparent 100%)!important;
- opacity:.58!important;
- filter:blur(.2px);
-}
-.primary::after,.submit::after,.secondary::after,.teacher-edit-button::after,
-.notification-refresh::after,.profile-photo-button::after,.success-modal button::after,
-.export-options button::after,.settings-form .primary::after,.teacher-edit-actions button::after,
-.filters button::after,.report-generate::after{
- width:34%!important;
- height:230%!important;
- top:-65%!important;
- left:-50%!important;
- border-radius:50%!important;
- transform:rotate(22deg)!important;
- background:linear-gradient(90deg,transparent,#ffffff42,transparent)!important;
- filter:blur(3px);
- animation:liquid-refraction 4.8s ease-in-out infinite;
-}
-@keyframes liquid-refraction{
- 0%,22%{left:-52%}
- 48%,72%{left:118%}
- 100%{left:118%}
-}
-.primary:active,.submit:active,.secondary:active,.teacher-edit-button:active,
-.notification-refresh:active,.profile-photo-button:active,.success-modal button:active,
-.export-options button:active,.settings-form .primary:active,
-.teacher-edit-actions button:active,.filters button:active,.report-generate:active{
- transform:translateY(1px) scale(.976,1.025)!important;
- border-radius:22px 15px 21px 16px!important;
- animation-play-state:paused!important;
- filter:saturate(1.12) brightness(1.02)!important;
- box-shadow:0 4px 12px #005f4029,inset 0 3px 10px #003f2d35,inset 0 1px 0 #ffffff8c!important;
+.class-status-row.class-status-button:active,.class-table-row-button:active{
+ background:#f2f8f5!important;
+ box-shadow:none!important;
+ transform:none!important;
 }
 
-/* full-width/high-emphasis actions get a deeper liquid pool */
-.wide,.report-generate,.submit{
- border-radius:20px!important;
- min-height:48px;
-}
-.appbar-icon,.notification-head button,.drawer-head button,.crop-head button,.more{
- background:
-  radial-gradient(circle at 24% 12%,#ffffff52 0 11%,transparent 38%),
-  linear-gradient(145deg,#ffffff22,#0ac17735)!important;
- box-shadow:0 6px 15px #003d2b22,inset 0 1px 0 #ffffff70,inset 0 -1px 5px #00452e20!important;
- backdrop-filter:blur(14px) saturate(165%)!important;
- -webkit-backdrop-filter:blur(14px) saturate(165%)!important;
-}
-
-/* keep semantic attendance controls liquid while preserving meaning */
-.status-control button.present{
- background:
-  radial-gradient(circle at 20% 0%,#ffffffa5,transparent 38%),
-  linear-gradient(135deg,#d8ffeb,#a9ecca)!important;
- box-shadow:0 4px 10px #08784b18,inset 0 1px 0 #fff,inset 0 -2px 5px #08784b12!important;
-}
-.status-control button.absent{
- background:
-  radial-gradient(circle at 20% 0%,#ffffffb0,transparent 38%),
-  linear-gradient(135deg,#fff0f1,#ffd0d4)!important;
- box-shadow:0 4px 10px #b52d3814,inset 0 1px 0 #fff,inset 0 -2px 5px #a5293310!important;
-}
-@media(prefers-reduced-motion:reduce){
- .primary,.submit,.secondary,.teacher-edit-button,.notification-refresh,
- .profile-photo-button,.success-modal button,.export-options button,
- .settings-form .primary,.teacher-edit-actions button,.filters button,.report-generate,
- .primary::after,.submit::after,.secondary::after,.teacher-edit-button::after,
- .notification-refresh::after,.profile-photo-button::after,.success-modal button::after,
- .export-options button::after,.settings-form .primary::after,.teacher-edit-actions button::after,
- .filters button::after,.report-generate::after{animation:none!important}
+button:disabled,.primary:disabled,.submit:disabled{
+ opacity:.55!important;
+ filter:none!important;
+ box-shadow:none!important;
 }
