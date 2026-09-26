@@ -7,7 +7,7 @@ val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
 
 android {
  namespace="com.azeem.schoolattendance"; compileSdk=36
- defaultConfig { applicationId="com.azeem.schoolattendance"; minSdk=26; targetSdk=36; versionCode=44; versionName="0.2.32" }
+ defaultConfig { applicationId="com.azeem.schoolattendance"; minSdk=26; targetSdk=36; versionCode=45; versionName="0.2.33" }
 
  signingConfigs {
   create("release") {
