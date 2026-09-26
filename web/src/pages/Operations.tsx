@@ -44,7 +44,8 @@ export function Settings(){
  const {profile}=useAuth(),admin=profile?.role==='SECTION_HEAD'
  const [s,setS]=useState<any>({attendance_threshold:'80',school_timezone:'Asia/Colombo',teacher_correction_allowed:'false'}),[msg,setMsg]=useState(''),[error,setError]=useState('')
  const [teachers,setTeachers]=useState<any[]>([]),[teacherSearch,setTeacherSearch]=useState(''),[deletingTeacher,setDeletingTeacher]=useState<string|null>(null)
- useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'))}},[admin])
+ const [tempHeads,setTempHeads]=useState<any[]>([]),[tempName,setTempName]=useState(''),[tempUsername,setTempUsername]=useState(''),[tempPassword,setTempPassword]=useState(''),[tempAllowed,setTempAllowed]=useState(false),[creatingTemp,setCreatingTemp]=useState(false)
+ useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true)}).catch(()=>setTempAllowed(false))}},[admin])
  const filteredTeachers=useMemo(()=>teachers.filter(t=>`${t.full_name} ${t.username}`.toLowerCase().includes(teacherSearch.toLowerCase())),[teachers,teacherSearch])
  async function deleteTeacher(t:any){const typed=prompt(`Permanently delete teacher ${t.full_name}?\n\nType the username "${t.username}" to confirm.`);if(typed===null)return;if(typed.trim().toLowerCase()!==String(t.username).toLowerCase()){setError('Username did not match.');return}setDeletingTeacher(t.id);try{await api(`/api/teachers/${encodeURIComponent(t.id)}`,{method:'DELETE'});setTeachers(xs=>xs.filter(x=>x.id!==t.id));setMsg(`${t.full_name} was permanently deleted ✓`)}catch{setError('Could not permanently delete this teacher.')}finally{setDeletingTeacher(null)}}
 
@@ -56,6 +57,18 @@ export function Settings(){
   <label>School timezone<input value={s.school_timezone||''} onChange={e=>setS({...s,school_timezone:e.target.value})}/></label>
   <label className="toggle"><input type="checkbox" checked={s.teacher_correction_allowed==='true'} onChange={e=>setS({...s,teacher_correction_allowed:String(e.target.checked)})}/> Allow teachers to correct submitted attendance</label>
   <button className="primary" onClick={async()=>{try{await api('/api/settings',{method:'PUT',body:JSON.stringify(s)});setMsg('Settings saved ✓');setError('')}catch{setError('Could not save settings.')}}}>Save Settings</button>
+ </section>}
+
+ {admin&&tempAllowed&&<section className="settings-form temporary-head-settings">
+  <h3>Temporary Section Head Login</h3>
+  <p>Create a temporary Section Head login for another authorized person. You can revoke it at any time.</p>
+  <div className="temp-head-form">
+   <label><span>Name</span><input value={tempName} onChange={e=>setTempName(e.target.value)} placeholder="Person's name"/></label>
+   <label><span>Username</span><input value={tempUsername} onChange={e=>setTempUsername(e.target.value)} placeholder="Temporary username" autoCapitalize="none"/></label>
+   <label><span>Temporary Password</span><input type="password" value={tempPassword} onChange={e=>setTempPassword(e.target.value)} placeholder="4–64 characters"/></label>
+  </div>
+  <button className="primary" disabled={creatingTemp||!tempName.trim()||tempUsername.trim().length<3||tempPassword.length<4} onClick={async()=>{setCreatingTemp(true);setError('');try{const x=await api<{account:any}>('/api/temporary-section-heads',{method:'POST',body:JSON.stringify({full_name:tempName,username:tempUsername,password:tempPassword})});setTempHeads(v=>[x.account,...v]);setTempName('');setTempUsername('');setTempPassword('');setMsg('Temporary Section Head login created ✓')}catch(e:any){setError(e?.message==='username_already_exists'?'That username is already in use.':'Could not create temporary Section Head login.')}finally{setCreatingTemp(false)}}}>{creatingTemp?'Creating…':'Create Temporary Login'}</button>
+  {tempHeads.length>0&&<div className="temp-head-list">{tempHeads.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username} · Temporary Section Head</small></div><button className="permanent-delete" onClick={async()=>{if(!confirm(`Delete temporary Section Head @${t.username}? This will immediately sign out that account.`))return;try{await api(`/api/temporary-section-heads/${encodeURIComponent(t.id)}`,{method:'DELETE'});setTempHeads(v=>v.filter(x=>x.id!==t.id));setMsg('Temporary Section Head login deleted ✓')}catch{setError('Could not delete temporary Section Head login.')}}}><Trash2/>Delete</button></article>)}</div>}
  </section>}
 
  <section className="settings-form"><h3>Student Deletion</h3><p>Open the permanent student deletion page to search and remove student records.</p><Link className="primary" to="/student-deletion">Open Student Deletion</Link></section>
