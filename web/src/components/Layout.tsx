@@ -1,15 +1,15 @@
 import {useEffect,useState} from 'react'
 import {NavLink,Outlet,useLocation} from 'react-router-dom'
-import {BarChart3,Bell,CalendarClock,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
+import {BarChart3,Bell,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
 import {useAuth} from '../AuthContext'
 import {api} from '../lib/api'
 import {schoolDate} from '../lib/date'
 
 const teacherLinks=[['/','Home',Home],['/attendance','Student',ClipboardCheck],['/period-attendance','Teacher Period',Users],['/history','History',History],['/profile','Profile',UserRound]] as const
 const adminLinks=[['/','Home',Home],['/classes','Classes',GraduationCap],['/teachers','Teachers',Users],['/reports','Reports',BarChart3],['/profile','Profile',UserRound]] as const
-const adminMenuExtras=[['/individual-attendance','Individual Attendance',ClipboardCheck],['/students','Manage Students',Users],['/timetable','Timetable',CalendarClock],['/calendar','Calendar',CalendarDays],['/audit','Audit',ShieldCheck],['/settings','Settings',Settings]] as const
+const adminMenuExtras=[['/individual-attendance','Individual Attendance',ClipboardCheck],['/students','Manage Students',Users],['/calendar','Calendar',CalendarDays],['/audit','Audit',ShieldCheck],['/settings','Settings',Settings]] as const
 const teacherMenuExtras=[['/individual-attendance','Individual Attendance',ClipboardCheck],['/settings','Settings',Settings]] as const
-const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Manage Students','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/profile':'Profile','/timetable':'Timetable / Period Setup','/individual-attendance':'Individual Attendance'}
+const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Manage Students','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/profile':'Profile','/individual-attendance':'Individual Attendance'}
 type Notice={id:string;title:string;text:string;tone:'warn'|'ok'|'info';backendId?:string;read?:boolean}
 type SuccessPopup={title:string;message:string}|null
 
@@ -65,7 +65,7 @@ export function Layout(){
 
  return <div className="shell">
    <aside className="sidebar">
-    <div className="brand"><img src="zahira-logo.jpg" alt="Zahira College Matale"/><div><strong>School Attendance</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head Portal':'Teacher Portal'}</small></div></div>
+    {loc.pathname==='/'&&<div className="brand"><img src="zahira-logo.jpg" alt="Zahira College Matale"/><div><strong>School Attendance App</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head Portal':'Teacher Portal'}</small></div></div>}
     <nav>{links.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon size={20}/><span>{label}</span></NavLink>})}</nav>
     {profile?.role==='SECTION_HEAD'&&<div className="desktop-extra"><NavLink to="/calendar">Calendar</NavLink><NavLink to="/audit">Audit</NavLink><NavLink to="/settings">Settings</NavLink></div>}
     <button className="logout" onClick={signOut}><LogOut size={19}/>Logout</button>
@@ -84,10 +84,10 @@ export function Layout(){
      <strong className="appbar-page-title">{title}</strong>
      <button className="appbar-icon bell-button" aria-label="Notifications" onClick={toggleNotifications}><Bell size={21}/>{notices.some(n=>n.tone==='warn')&&<span className="notification-badge">{notices.filter(n=>n.tone==='warn').length}</span>}</button>
     </header>
-    <section className="mobile-brand-strip" aria-label="School Attendance App">
+    {loc.pathname==='/'&&<section className="mobile-brand-strip" aria-label="School Attendance App">
      <img src="zahira-logo.jpg" alt="Zahira College Matale"/>
      <strong>School Attendance App</strong>
-    </section>
+    </section>}
     {notificationsOpen&&<section className="notification-panel">
       <div className="notification-head"><div><strong>Notifications</strong><small>Today</small></div><button onClick={()=>setNotificationsOpen(false)} aria-label="Close notifications"><X/></button></div>
       {noticeLoading?<div className="notification-loading">Checking today’s status…</div>:<div className="notification-list">{notices.map(n=><button className={`notification-item ${n.tone} ${n.read?'read':''}`} key={n.id} onClick={()=>markNotice(n)}><span/><div><strong>{n.title}</strong><small>{n.text}</small></div></button>)}</div>}
