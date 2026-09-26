@@ -64,7 +64,7 @@ export function Layout(){
  return <div className="shell">
    <aside className="sidebar">
     <div className="brand"><img src="zahira-logo.jpg" alt="Zahira College Matale"/><div><strong>School Attendance</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head Portal':'Teacher Portal'}</small></div></div>
-    <nav>{links.map(([to,label,Icon])=><NavLink key={to} to={to} end={to==='/'}><Icon size={20}/><span>{label}</span></NavLink>)}</nav>
+    <nav>{links.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon size={20}/><span>{label}</span></NavLink>})}</nav>
     {profile?.role==='SECTION_HEAD'&&<div className="desktop-extra"><NavLink to="/calendar">Calendar</NavLink><NavLink to="/audit">Audit</NavLink><NavLink to="/settings">Settings</NavLink></div>}
     <button className="logout" onClick={signOut}><LogOut size={19}/>Logout</button>
    </aside>
@@ -72,7 +72,7 @@ export function Layout(){
    {menuOpen&&<button className="drawer-backdrop" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}
    <aside className={`mobile-drawer ${menuOpen?'open':''}`} aria-hidden={!menuOpen}>
     <div className="drawer-head"><div><strong>{profile?.full_name}</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head':'Teacher'}</small></div><button onClick={()=>setMenuOpen(false)} aria-label="Close menu"><X/></button></div>
-    <nav>{drawerLinks.map(([to,label,Icon])=><NavLink key={to} to={to} end={to==='/'}><Icon/><span>{label}</span></NavLink>)}</nav>
+    <nav>{drawerLinks.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon/><span>{label}</span></NavLink>})}</nav>
     <button className="drawer-logout" onClick={signOut}><LogOut/> Logout</button>
    </aside>
 
