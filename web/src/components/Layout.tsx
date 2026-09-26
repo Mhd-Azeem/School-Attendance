@@ -1,4 +1,4 @@
-import {useEffect,useState,type CSSProperties} from 'react'
+import {useEffect,useRef,useState,type CSSProperties} from 'react'
 import {NavLink,Outlet,useLocation,useNavigate} from 'react-router-dom'
 import {BarChart3,Bell,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
 import {useAuth} from '../AuthContext'
@@ -22,20 +22,41 @@ export function Layout(){
  const navLinks=links as readonly (readonly [string,string,any])[]
  const activeNavIndex=Math.max(0,navLinks.findIndex(item=>{const to=item[0];return to==='/'?loc.pathname==='/':loc.pathname.startsWith(to)}))
  const [navDragIndex,setNavDragIndex]=useState<number|null>(null)
+ const navPointer=useRef({active:false,startX:0,pointerId:-1,dragging:false})
+ const suppressNavClick=useRef(false)
  const navPosition=navDragIndex??activeNavIndex
  function navPointerPosition(e:any){
   const rect=e.currentTarget.getBoundingClientRect()
-  const raw=((e.clientX-rect.left)/rect.width)*links.length-.5
+  const raw=((e.clientX-rect.left)/rect.width)*navLinks.length-.5
   return Math.max(0,Math.min(navLinks.length-1,raw))
  }
- function beginNavDrag(e:any){if(window.innerWidth>700)return;e.currentTarget.setPointerCapture?.(e.pointerId);setNavDragIndex(navPointerPosition(e))}
- function moveNavDrag(e:any){if(navDragIndex===null)return;setNavDragIndex(navPointerPosition(e))}
+ function beginNavDrag(e:any){
+  if(window.innerWidth>700)return
+  navPointer.current={active:true,startX:e.clientX,pointerId:e.pointerId,dragging:false}
+ }
+ function moveNavDrag(e:any){
+  const p=navPointer.current
+  if(!p.active||p.pointerId!==e.pointerId)return
+  if(!p.dragging){
+   if(Math.abs(e.clientX-p.startX)<10)return
+   p.dragging=true
+   e.currentTarget.setPointerCapture?.(e.pointerId)
+  }
+  setNavDragIndex(navPointerPosition(e))
+ }
  function endNavDrag(e:any){
-  if(navDragIndex===null)return
+  const p=navPointer.current
+  if(!p.active||p.pointerId!==e.pointerId)return
+  navPointer.current={active:false,startX:0,pointerId:-1,dragging:false}
+  if(!p.dragging)return
+  e.preventDefault()
+  suppressNavClick.current=true
   const target=Math.max(0,Math.min(navLinks.length-1,Math.round(navPointerPosition(e))))
   setNavDragIndex(null)
   navigate(navLinks[target][0])
  }
+ function cancelNavDrag(){navPointer.current={active:false,startX:0,pointerId:-1,dragging:false};setNavDragIndex(null)}
+ function blockDraggedClick(e:any){if(!suppressNavClick.current)return;suppressNavClick.current=false;e.preventDefault();e.stopPropagation()}
  const drawerLinks=profile?.role==='SECTION_HEAD'?[...adminLinks,...adminMenuExtras]:[...teacherLinks,...teacherMenuExtras]
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
 
@@ -85,7 +106,7 @@ export function Layout(){
  return <div className="shell">
    <aside className="sidebar">
     {showBranding&&<div className="brand"><img src="zahira-logo.jpg" alt="Zahira College Matale"/><div><strong>School Attendance App</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head Portal':'Teacher Portal'}</small></div></div>}
-    <nav className={`primary-nav ${navDragIndex!==null?'is-dragging':''}`} style={{'--nav-position':navPosition} as CSSProperties} onPointerDown={beginNavDrag} onPointerMove={moveNavDrag} onPointerUp={endNavDrag} onPointerCancel={()=>setNavDragIndex(null)}>
+    <nav className={`primary-nav ${navDragIndex!==null?'is-dragging':''}`} style={{'--nav-position':navPosition} as CSSProperties} onPointerDown={beginNavDrag} onPointerMove={moveNavDrag} onPointerUp={endNavDrag} onPointerCancel={cancelNavDrag} onClickCapture={blockDraggedClick}>
      <span className="liquid-nav-indicator" aria-hidden="true"/>
      {navLinks.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon size={20}/><span>{label}</span></NavLink>})}
     </nav>
