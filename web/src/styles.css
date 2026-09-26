@@ -390,3 +390,11 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
  .settings-summary{gap:8px}
  .settings-summary>span{font-size:9px}
 }
+
+/* Teacher report caption/table hardening */
+.teacher-report-caption{display:block!important;margin-bottom:10px!important;text-align:left!important}
+.teacher-report-caption>div{display:block!important;margin:2px 0!important;font-size:12px!important;line-height:1.35!important}
+.teacher-report-caption>div strong{font-size:12px!important}
+.teacher-period-table{width:100%!important;border-collapse:collapse!important;background:#fff!important}
+.teacher-period-table th,.teacher-period-table td{border:1px solid #d8e3de!important;padding:9px 10px!important;text-align:center!important;font-size:11px!important}
+.teacher-period-table th{background:#f2f7f4!important;font-weight:800!important}
