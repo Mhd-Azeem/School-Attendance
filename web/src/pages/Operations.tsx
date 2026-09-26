@@ -63,8 +63,9 @@ export function Settings(){
  {admin&&<section className="student-delete-settings"><div className="danger-heading"><AlertTriangle/><div><h3>Permanent Teacher Deletion</h3><p>Section Head only. Permanently removes the teacher account, class assignments, sessions and teacher attendance records.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search teacher name or username…" value={teacherSearch} onChange={e=>setTeacherSearch(e.target.value)}/></label><div className="danger-note"><strong>Permanent action</strong><span>You must type the teacher's username to confirm deletion.</span></div><div className="student-delete-list">{filteredTeachers.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username}{t.class_teacher_of?.display_name?` · Class Teacher ${t.class_teacher_of.display_name}`:''}</small></div><button className="permanent-delete" disabled={deletingTeacher===t.id} onClick={()=>deleteTeacher(t)}><Trash2/>{deletingTeacher===t.id?'Deleting…':'Delete Permanently'}</button></article>)}{!filteredTeachers.length&&<div className="empty-mini">No matching teachers.</div>}</div></section>}
  {error&&<div className="error">{error}</div>}{msg&&<div className="notice">{msg}</div>}
 
- <section className="settings-form about-section">
-  <h3>About School Attendance</h3>
+ <details className="settings-form about-section">
+  <summary className="about-summary"><strong>About School Attendance</strong><span>App information and features</span></summary>
+  <div className="about-content">
   <p>A centralized school attendance management system designed for fast, accurate student and teacher attendance management across mobile and web devices.</p>
   <div className="about-feature-grid">
    <div><strong>Student Attendance</strong><span>Mark daily attendance by class, track present and absent students, and review attendance history.</span></div>
@@ -78,8 +79,9 @@ export function Settings(){
    <div><strong>Cross-device System</strong><span>The Android app and web application use the same central attendance system so records remain consistent across supported devices.</span></div>
    <div><strong>App Updates</strong><span>The Android application can check for newer released versions to keep the installed app up to date.</span></div>
   </div>
-  <div className="creator-credit"><small>CREATOR &amp; DEVELOPER</small><strong>Created and developed by Mohammed Aslam ©</strong><span>School Attendance Management System</span></div>
- </section>
+  <div className="creator-credit"><small>CREATOR &amp; DEVELOPER</small><strong>Created and developed by Mohammed Azeem ©</strong><span>School Attendance Management System</span></div>
+  </div>
+ </details>
  </>}
 
 export function IndividualAttendance(){
