@@ -36,6 +36,34 @@ export default {async fetch(req,env){
     }
     const u=await userFromRequest(req,env); if(!u)return out({error:"unauthorized"},401);
     if(p==="/api/auth/me"&&req.method==="GET")return out({user:u});
+    if(p==="/api/temporary-section-heads"&&req.method==="GET"){
+      if(u.role!=="SECTION_HEAD")return out({error:"forbidden"},403);
+      const primary=await env.DB.prepare("SELECT id FROM users WHERE role='SECTION_HEAD' ORDER BY created_at ASC LIMIT 1").first();
+      if(!primary||primary.id!==u.id)return out({error:"primary_section_head_only"},403);
+      const rr=await env.DB.prepare("SELECT id,full_name,username,created_at,is_active FROM users WHERE role='SECTION_HEAD' AND id<>? ORDER BY created_at DESC").bind(primary.id).all();
+      return out({accounts:rr.results});
+    }
+    if(p==="/api/temporary-section-heads"&&req.method==="POST"){
+      if(u.role!=="SECTION_HEAD")return out({error:"forbidden"},403);
+      const primary=await env.DB.prepare("SELECT id FROM users WHERE role='SECTION_HEAD' ORDER BY created_at ASC LIMIT 1").first();
+      if(!primary||primary.id!==u.id)return out({error:"primary_section_head_only"},403);
+      const b=await json(req),name=String(b?.full_name||"").trim(),username=String(b?.username||"").trim().toLowerCase(),password=String(b?.password||"");
+      if(name.length<2||username.length<3||password.length<4||password.length>64)return out({error:"name_username_and_password_4_to_64_required"},400);
+      if(await env.DB.prepare("SELECT 1 FROM users WHERE username=? COLLATE NOCASE").bind(username).first())return out({error:"username_already_exists"},409);
+      const uid=id(),ph=await hashPassword(password);
+      await env.DB.batch([env.DB.prepare("INSERT INTO users(id,full_name,email,username,password_hash,role,is_active) VALUES(?,?,?,?,?,'SECTION_HEAD',1)").bind(uid,name,username+'@temporary.local',username,ph),env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"TEMP_SECTION_HEAD_CREATED","user",uid,JSON.stringify({full_name:name,username}))]);
+      return out({ok:true,account:{id:uid,full_name:name,username}},201);
+    }
+    const tsh=p.match(/^\/api\/temporary-section-heads\/([^/]+)$/);
+    if(tsh&&req.method==="DELETE"){
+      if(u.role!=="SECTION_HEAD")return out({error:"forbidden"},403);
+      const primary=await env.DB.prepare("SELECT id FROM users WHERE role='SECTION_HEAD' ORDER BY created_at ASC LIMIT 1").first(),target=decodeURIComponent(tsh[1]);
+      if(!primary||primary.id!==u.id)return out({error:"primary_section_head_only"},403);
+      if(target===primary.id)return out({error:"cannot_delete_primary_section_head"},400);
+      const account=await env.DB.prepare("SELECT id,username FROM users WHERE id=? AND role='SECTION_HEAD'").bind(target).first();if(!account)return out({error:"temporary_section_head_not_found"},404);
+      await env.DB.batch([env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(target),env.DB.prepare("UPDATE users SET is_active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(target),env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,old_values) VALUES(?,?,?,?,?)").bind(u.id,"TEMP_SECTION_HEAD_DELETED","user",target,JSON.stringify({username:account.username}))]);
+      return out({ok:true});
+    }
     if(p==="/api/profile"&&req.method==="PUT"){const b=await json(req);const name=String(b?.full_name||"").trim();if(name.length<2||name.length>100)return out({error:"name_must_be_2_to_100_characters"},400);await env.DB.prepare("UPDATE users SET full_name=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name,u.id).run();await env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"PROFILE_UPDATED","user",u.id,JSON.stringify({full_name:name})).run();return out({user:{...u,full_name:name}})}
     if(p==="/api/notifications"&&req.method==="GET"){const rr=await env.DB.prepare("SELECT n.id,n.type,n.title,n.message,n.class_id,n.is_read,n.created_at,s.full_name sender_name,c.display_name FROM notifications n LEFT JOIN users s ON s.id=n.sender_user_id LEFT JOIN classes c ON c.id=n.class_id WHERE n.recipient_user_id=? ORDER BY n.created_at DESC LIMIT 100").bind(u.id).all();return out({notifications:rr.results})}
     const nr=p.match(/^\/api\/notifications\/([^/]+)\/read$/);if(nr&&req.method==="POST"){const nid=decodeURIComponent(nr[1]);await env.DB.prepare("UPDATE notifications SET is_read=1,read_at=CURRENT_TIMESTAMP WHERE id=? AND recipient_user_id=?").bind(nid,u.id).run();return out({ok:true})}
