@@ -1,11 +1,9 @@
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
-import {Link} from 'react-router-dom'
-import {CalendarClock,ChevronDown,KeyRound,Pencil,Save,Search,UserRound,X} from 'lucide-react'
+import {ChevronDown,KeyRound,Pencil,Save,Search,UserRound,X} from 'lucide-react'
 import {api} from '../lib/api'
 import type {SchoolClass,Student} from '../types'
 type S=Student&{display_name:string}
 type T={id:string;full_name:string;username:string;is_active:number;classes:SchoolClass[];class_teacher_of?:SchoolClass|null}
-type Period={period_no:number;subject:string;teacher_id:string}
 
 export function Students(){
  const [students,setStudents]=useState<S[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[search,setSearch]=useState(''),[form,setForm]=useState({admission_number:'',full_name:'',class_id:''}),[error,setError]=useState(''),[msg,setMsg]=useState(''),[expandedClass,setExpandedClass]=useState<string|null>(null),[bulkOpen,setBulkOpen]=useState(false),[bulkClass,setBulkClass]=useState(''),[bulkText,setBulkText]=useState(''),[bulkBusy,setBulkBusy]=useState(false)
@@ -180,12 +178,5 @@ export function Teachers(){
    </form>}
   </div>)}</section>
  </>}
-
-export function Timetable(){const [classes,setClasses]=useState<SchoolClass[]>([]),[teachers,setTeachers]=useState<T[]>([]),[classId,setClassId]=useState(''),[periods,setPeriods]=useState<Period[]>(Array.from({length:9},(_,i)=>({period_no:i+1,subject:'',teacher_id:''}))),[msg,setMsg]=useState('')
- useEffect(()=>{Promise.all([api<{classes:SchoolClass[]}>('/api/classes'),api<{teachers:T[]}>('/api/teachers')]).then(([c,t])=>{setClasses(c.classes);setTeachers(t.teachers);setClassId(c.classes[0]?.id||'')})},[])
- useEffect(()=>{if(!classId)return;api<{periods:any[]}>(`/api/timetable?class_id=${classId}`).then(x=>{const by=new Map(x.periods.map(p=>[Number(p.period_no),p]));setPeriods(Array.from({length:9},(_,i)=>{const p:any=by.get(i+1);return{period_no:i+1,subject:p?.subject||'',teacher_id:p?.teacher_id||''}}))}).catch(()=>setMsg('Deploy the latest Worker and database migration to configure timetables.'))},[classId])
- function patch(n:number,k:'subject'|'teacher_id',v:string){setPeriods(ps=>ps.map(p=>p.period_no===n?{...p,[k]:v}:p))}
- async function save(){const active=periods.filter(p=>p.subject.trim());try{await api('/api/timetable',{method:'PUT',body:JSON.stringify({class_id:classId,periods:active})});setMsg('Timetable saved ✓')}catch{setMsg('Could not save timetable. Deploy the latest backend first.')}}
- return <><div className="screen-title-row"><div><h1>Timetable / Period Setup</h1><p>Configure Periods 1–9, subjects and teachers.</p></div><select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></div><section className="timetable-card"><div className="timetable-head"><span>Period</span><span>Subject</span><span>Teacher</span></div>{periods.map(p=><div className="timetable-row" key={p.period_no}><strong>{p.period_no}</strong><input placeholder="Subject" value={p.subject} onChange={e=>patch(p.period_no,'subject',e.target.value)}/><select value={p.teacher_id} onChange={e=>patch(p.period_no,'teacher_id',e.target.value)}><option value="">Select teacher</option>{teachers.filter(t=>t.is_active).map(t=><option key={t.id} value={t.id}>{t.full_name}</option>)}</select></div>)}</section>{msg&&<div className={msg.includes('✓')?'notice':'error'}>{msg}</div>}<button className="submit" onClick={save}>Save Timetable</button></>}
 
 export function Placeholder({title,description}:{title:string;description:string}){return <><div className="screen-title-row"><div><h1>{title}</h1><p>{description}</p></div></div></>}
