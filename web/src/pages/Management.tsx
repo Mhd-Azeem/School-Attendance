@@ -135,7 +135,7 @@ export function Teachers(){
  }
 
  return <>
-  <div className="screen-title-row"><div><h1>Teachers Management</h1><p>Edit teacher details, class access and class-teacher assignments.</p></div><Link className="secondary icon-button" to="/timetable"><CalendarClock size={17}/> Timetable</Link></div>
+  <div className="screen-title-row"><div><h1>Teachers Management</h1><p>Edit teacher details, class access and class-teacher assignments.</p></div></div>
 
   <form className="teacher-form" onSubmit={add}>
    <h3>Add Teacher</h3>
