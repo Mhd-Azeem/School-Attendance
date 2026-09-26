@@ -88,7 +88,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: school-attendance-release
           ANDROID_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          BUILD_VERSION_CODE: ${{ 100000 + github.run_number }}
+          BUILD_VERSION_CODE: ${{ github.run_number }}
           BUILD_VERSION_NAME: 0.2.${{ github.run_number }}
         run: gradle assembleRelease
 
@@ -97,7 +97,7 @@ jobs:
         shell: bash
         run: |
           VERSION="0.2.${{ github.run_number }}"
-          VERSION_CODE="${{ 100000 + github.run_number }}"
+          VERSION_CODE="${{ github.run_number }}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "apk=School-Attendance-INSTALL.apk" >> "$GITHUB_OUTPUT"
