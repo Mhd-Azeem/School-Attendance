@@ -66,10 +66,28 @@ class MainActivity : ComponentActivity() {
                 @JavascriptInterface fun saveFile(fileName: String, base64: String) {
                     try {
                         val safe=fileName.replace(Regex("[^A-Za-z0-9._-]"), "_")
-                        val dir=getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
-                        val file=File(dir,safe)
-                        file.writeBytes(Base64.decode(base64,Base64.DEFAULT))
-                        runOnUiThread{Toast.makeText(this@MainActivity,"File saved: ${file.absolutePath}",Toast.LENGTH_LONG).show()}
+                        val bytes=Base64.decode(base64,Base64.DEFAULT)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                            val values=ContentValues().apply {
+                                put(MediaStore.Downloads.DISPLAY_NAME,safe)
+                                put(MediaStore.Downloads.MIME_TYPE,if(safe.endsWith(".doc",true)) "application/msword" else "application/octet-stream")
+                                put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS)
+                                put(MediaStore.Downloads.IS_PENDING,1)
+                            }
+                            val uri=contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values)
+                                ?: throw IllegalStateException("Could not create download")
+                            contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                                ?: throw IllegalStateException("Could not open download")
+                            values.clear()
+                            values.put(MediaStore.Downloads.IS_PENDING,0)
+                            contentResolver.update(uri,values,null,null)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            val dir=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                            if(!dir.exists()) dir.mkdirs()
+                            File(dir,safe).writeBytes(bytes)
+                        }
+                        runOnUiThread{Toast.makeText(this@MainActivity,"Saved to Downloads/$safe",Toast.LENGTH_LONG).show()}
                     } catch (_:Exception) {
                         runOnUiThread{Toast.makeText(this@MainActivity,"Could not save exported file",Toast.LENGTH_SHORT).show()}
                     }
