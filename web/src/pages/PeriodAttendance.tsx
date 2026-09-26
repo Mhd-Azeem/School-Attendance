@@ -5,7 +5,7 @@ import {useAuth} from '../AuthContext'
 import type {SchoolClass} from '../types'
 
 type P={id:string;period_no:number;status?:string|null}
-const choices=[['ARRIVED','ARRIVED'],['NOT_ARRIVED','NOT ARRIVED'],['DELAYED','DELAYED'],['RELIEF','RELIEF'],['NOT_ARRIVED_RELIEF','NO TEACHER PRESENTED']] as const
+const choices=[['ARRIVED','ARRIVED'],['DELAYED','DELAYED'],['RELIEF','RELIEF'],['NOT_ARRIVED_RELIEF','NO TEACHER PRESENTED']] as const
 const ordinal=(n:number)=>['','1st Period','2nd Period','3rd Period','4th Period','5th Period','6th Period','7th Period','8th Period','9th Period'][n]||`Period ${n}`
 
 export function PeriodAttendance(){
@@ -48,7 +48,7 @@ export function PeriodAttendance(){
    </article>)}
   </div>
   {!msg&&periods.length===0&&<div className="empty-card">No periods have been configured for this class yet.</div>}
-  {periods.length>0&&<div className="period-legend"><span className="green">● Arrived</span><span className="red">● Not Arrived</span><span className="amber">● Delayed</span><span className="blue">● Relief</span><span className="darkred">● No Teacher Presented</span></div>}
+  {periods.length>0&&<div className="period-legend"><span className="green">● Arrived</span><span className="amber">● Delayed</span><span className="blue">● Relief</span><span className="darkred">● No Teacher Presented</span></div>}
   {periods.length>0&&<button className="submit" onClick={save}>{periods.some(p=>p.status)?'Update / Resubmit Register':'Submit Register to Section Head'}</button>}
  </>
 }
