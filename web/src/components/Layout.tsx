@@ -81,13 +81,13 @@ export function Layout(){
    <div className="workspace">
     <header className="appbar">
      <button className="appbar-icon mobile-only" aria-label="Open menu" onClick={()=>{setMenuOpen(true);setNotificationsOpen(false)}}><Menu size={24}/></button>
-     <div className="appbar-mobile-brand" aria-label="School Attendance App">
-      <img src="zahira-logo.jpg" alt="Zahira College Matale"/>
-      <div><strong>School Attendance App</strong><small>{title}</small></div>
-     </div>
      <strong className="appbar-page-title">{title}</strong>
      <button className="appbar-icon bell-button" aria-label="Notifications" onClick={toggleNotifications}><Bell size={21}/>{notices.some(n=>n.tone==='warn')&&<span className="notification-badge">{notices.filter(n=>n.tone==='warn').length}</span>}</button>
     </header>
+    <section className="mobile-brand-strip" aria-label="School Attendance App">
+     <img src="zahira-logo.jpg" alt="Zahira College Matale"/>
+     <strong>School Attendance App</strong>
+    </section>
     {notificationsOpen&&<section className="notification-panel">
       <div className="notification-head"><div><strong>Notifications</strong><small>Today</small></div><button onClick={()=>setNotificationsOpen(false)} aria-label="Close notifications"><X/></button></div>
       {noticeLoading?<div className="notification-loading">Checking today’s status…</div>:<div className="notification-list">{notices.map(n=><button className={`notification-item ${n.tone} ${n.read?'read':''}`} key={n.id} onClick={()=>markNotice(n)}><span/><div><strong>{n.title}</strong><small>{n.text}</small></div></button>)}</div>}
