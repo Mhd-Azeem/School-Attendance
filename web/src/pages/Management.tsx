@@ -8,11 +8,11 @@ type T={id:string;full_name:string;username:string;is_active:number;classes:Scho
 type Period={period_no:number;subject:string;teacher_id:string}
 
 export function Students(){
- const [students,setStudents]=useState<S[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[search,setSearch]=useState(''),[form,setForm]=useState({admission_number:'',full_name:'',class_id:''}),[error,setError]=useState(''),[expandedClass,setExpandedClass]=useState<string|null>(null)
+ const [students,setStudents]=useState<S[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[search,setSearch]=useState(''),[form,setForm]=useState({admission_number:'',full_name:'',class_id:''}),[error,setError]=useState(''),[msg,setMsg]=useState(''),[expandedClass,setExpandedClass]=useState<string|null>(null),[bulkOpen,setBulkOpen]=useState(false),[bulkClass,setBulkClass]=useState(''),[bulkText,setBulkText]=useState(''),[bulkBusy,setBulkBusy]=useState(false)
  async function load(){
   try{
    const [s,c]=await Promise.all([api<{students:S[]}>('/api/students'),api<{classes:SchoolClass[]}>('/api/classes')])
-   setStudents(s.students);setClasses(c.classes);setForm(x=>({...x,class_id:x.class_id||c.classes[0]?.id||''}));setExpandedClass(x=>x??c.classes[0]?.id??null);setError('')
+   setStudents(s.students);setClasses(c.classes);setForm(x=>({...x,class_id:x.class_id||c.classes[0]?.id||''}));setBulkClass(x=>x||c.classes[0]?.id||'');setExpandedClass(x=>x??c.classes[0]?.id??null);setError('')
   }catch{setError('Could not load students.')}
  }
  useEffect(()=>{load()},[])
@@ -33,6 +33,14 @@ export function Students(){
   }catch(e){setError(e instanceof Error&&e.message==='admission_number_exists'?'Admission number already exists.':'Could not add student.')}
  }
 
+ async function bulkImport(){
+  const lines=bulkText.split(/\r?\n/).map(x=>x.trim()).filter(Boolean), parsed=lines.map(line=>{const m=line.match(/^(\S+)\s+(.+)$/);return m?{admission_number:m[1],full_name:m[2].trim()}:null})
+  if(!bulkClass){setError('Select a class.');return}if(!lines.length||parsed.some(x=>!x)){setError('Each line must start with admission number followed by student name.');return}
+  setBulkBusy(true);setError('');setMsg('');let added=0,duplicates=0,failed=0
+  for(const s of parsed){try{await api('/api/students',{method:'POST',body:JSON.stringify({...s,class_id:bulkClass})});added++}catch(e){if(e instanceof Error&&e.message==='admission_number_exists')duplicates++;else failed++}}
+  setBulkBusy(false);await load();setMsg(`Bulk import complete: ${added} added${duplicates?`, ${duplicates} duplicate(s) skipped`:''}${failed?`, ${failed} failed`:''}.`);if(!failed){setBulkText('');setBulkOpen(false)}
+ }
+
  return <>
   <div className="screen-title-row"><div><h1>Classes & Students</h1><p>Students are separated by class and ordered by admission number.</p></div></div>
 
@@ -45,7 +53,10 @@ export function Students(){
    <button className="primary">Add Student</button>
   </form>
 
+  <button type="button" className="secondary" onClick={()=>setBulkOpen(x=>!x)}>{bulkOpen?'Close Bulk Import':'Bulk Import Students'}</button>
+  {bulkOpen&&<section className="settings-form"><h3>Bulk Import Students</h3><p>One student per line: admission number followed by full name.</p><select value={bulkClass} onChange={e=>setBulkClass(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select><textarea rows={10} placeholder={"13310 F M Muaadh\n13323 M N Akmal"} value={bulkText} onChange={e=>setBulkText(e.target.value)}/><button type="button" className="primary" disabled={bulkBusy} onClick={bulkImport}>{bulkBusy?'Importing…':'Import Students'}</button></section>}
   {error&&<div className="error">{error}</div>}
+  {msg&&<div className="notice">{msg}</div>}
 
   <section className="class-student-groups">
    {grouped.map(({cls,students:list,total})=><section className="class-student-card" key={cls.id}>
