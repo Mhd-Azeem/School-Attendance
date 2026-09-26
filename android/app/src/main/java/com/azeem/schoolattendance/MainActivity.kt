@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                             val values=ContentValues().apply {
                                 put(MediaStore.Downloads.DISPLAY_NAME,safe)
-                                put(MediaStore.Downloads.MIME_TYPE,if(safe.endsWith(".doc",true)) "application/msword" else "application/octet-stream")
+                                put(MediaStore.Downloads.MIME_TYPE,when { safe.endsWith(".doc",true) -> "application/msword"; safe.endsWith(".pdf",true) -> "application/pdf"; else -> "application/octet-stream" })
                                 put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS)
                                 put(MediaStore.Downloads.IS_PENDING,1)
                             }
