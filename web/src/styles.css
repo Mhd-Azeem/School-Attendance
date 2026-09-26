@@ -362,3 +362,31 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 .temp-head-list article>div{display:flex;flex-direction:column;gap:3px}
 .temp-head-list small{opacity:.65}
 @media(max-width:700px){.temp-head-form{grid-template-columns:1fr}.temp-head-list article{align-items:flex-start;flex-direction:column}.temp-head-list .permanent-delete{width:100%;justify-content:center}}
+
+/* Teacher report grouped tables */
+.teacher-report-groups{display:grid;gap:18px}
+.teacher-report-group{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;box-shadow:0 5px 18px #19583c08}
+.teacher-report-caption{display:grid;gap:3px;margin-bottom:9px;text-align:left;color:var(--ink)}
+.teacher-report-caption strong{font-size:11px}
+.teacher-report-group table{width:100%;border-collapse:collapse;background:#fff}
+.teacher-report-group th,.teacher-report-group td{border:1px solid #d8e3de;padding:9px 10px;text-align:center;font-size:11px}
+.teacher-report-group th{background:#f2f7f4;font-weight:800}
+
+/* Expandable settings */
+.settings-accordion{display:block}
+.settings-summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;min-height:28px}
+.settings-summary::-webkit-details-marker{display:none}
+.settings-summary:after{content:"›";grid-column:2;grid-row:1/3;font-size:24px;line-height:1;opacity:.55;transition:transform .2s ease}
+.settings-accordion[open]>.settings-summary:after{transform:rotate(90deg)}
+.settings-summary>strong{font-size:13px}
+.settings-summary>span{grid-column:1;font-size:10px;color:var(--muted);font-weight:500}
+.settings-accordion-content{display:grid;gap:12px;padding-top:14px;margin-top:12px;border-top:1px solid #edf3ef}
+.danger-settings-summary>strong{color:#9d2832}
+.student-delete-settings.settings-accordion{margin-top:0;margin-bottom:15px}
+.about-section.settings-accordion{margin-top:0}
+@media(max-width:700px){
+ .teacher-report-group{padding:11px;border-radius:13px}
+ .teacher-report-group th,.teacher-report-group td{padding:8px 7px;font-size:10px}
+ .settings-summary{gap:8px}
+ .settings-summary>span{font-size:9px}
+}
