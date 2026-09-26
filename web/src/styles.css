@@ -341,3 +341,14 @@ input,select{border:1px solid #ceded6;border-radius:10px;background:#fff;color:v
 .creator-credit strong{font-size:16px}
 .creator-credit span{font-size:12px;opacity:.65}
 @media(max-width:700px){.about-feature-grid{grid-template-columns:1fr}}
+
+.about-summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 0}
+.about-summary::-webkit-details-marker{display:none}
+.about-summary:after{content:"›";font-size:22px;opacity:.55;transition:transform .2s ease}
+.about-section[open] .about-summary:after{transform:rotate(90deg)}
+.about-summary span{margin-left:auto;font-size:11px;opacity:.58;font-weight:400}
+.about-content{padding-top:14px}
+.creator-credit{padding:14px 10px;margin-top:16px;gap:3px}
+.creator-credit small{font-size:9px}
+.creator-credit strong{font-size:12px;font-weight:600}
+.creator-credit span{font-size:10px}
