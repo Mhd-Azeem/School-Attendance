@@ -1,0 +1,8 @@
+.success-modal-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(0,35,24,.48);display:grid;place-items:center;padding:22px;backdrop-filter:blur(2px)}
+.success-modal{width:min(390px,100%);background:#fff;color:#1a2f29;border-radius:20px;padding:30px 26px 24px;text-align:center;box-shadow:0 24px 80px rgba(0,40,27,.3);animation:success-pop .18s ease-out}
+.success-modal-icon{color:#079455;margin-bottom:12px}
+.success-modal h2{font-size:20px;margin:0 0 8px}
+.success-modal p{font-size:13px;color:#71827b;margin:0 0 22px}
+.success-modal button{width:100%;border:0;border-radius:11px;padding:12px 18px;background:linear-gradient(135deg,#0caf65,#008c55);color:#fff;font-weight:800}
+@keyframes success-pop{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:none}}
+@media(max-width:700px){.success-modal{padding:26px 20px 20px}}
