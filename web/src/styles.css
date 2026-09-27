@@ -590,3 +590,33 @@ button:disabled,.primary:disabled,.submit:disabled{
 .font-size-option:active{transform:scale(.98)}
 .font-size-note{margin:0!important;color:var(--muted);font-size:calc(10px * var(--font-scale));line-height:1.5}
 @media(max-width:520px){.font-size-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Reliable mobile drawer interaction */
+@media(max-width:700px){
+ .drawer-backdrop{
+  z-index:998!important;
+  pointer-events:auto!important;
+  touch-action:manipulation;
+ }
+ .mobile-drawer{
+  z-index:999!important;
+  visibility:hidden;
+  pointer-events:none;
+  opacity:.98;
+  transition:transform .24s cubic-bezier(.22,1,.36,1),visibility 0s linear .24s!important;
+  will-change:transform;
+ }
+ .mobile-drawer.open,
+ .mobile-drawer[data-open="true"]{
+  visibility:visible;
+  pointer-events:auto;
+  transform:translateX(0)!important;
+  transition:transform .24s cubic-bezier(.22,1,.36,1),visibility 0s!important;
+ }
+ .appbar-icon.mobile-only{
+  position:relative;
+  z-index:1000;
+  touch-action:manipulation;
+  pointer-events:auto;
+ }
+}
