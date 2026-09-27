@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root{
  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
- color:#18332a;background:#f4faf7;font-synthesis:none;
+ color:#18332a;background:#d9f3e8;font-synthesis:none;
  --green-950:#00452f;--green-900:#005d3d;--green-800:#006f49;--green-700:#078e59;--green-600:#0aa260;
  --green-100:#ddf7e8;--green-50:#effaf4;--red:#e23f49;--red-bg:#ffeded;--amber:#f59e0b;--amber-bg:#fff3d8;
  --blue:#246fd6;--violet:#7957d5;--ink:#1a2f29;--muted:#71827b;--line:#dce9e2;--card:#fff;--font-scale:1;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
@@ -11,7 +11,7 @@ html[data-font-size="default"]{--font-scale:1}
 html[data-font-size="large"]{--font-scale:1.12}
 html[data-font-size="extra-large"]{--font-scale:1.25}
 *{box-sizing:border-box}
-html,body,#root{margin:0;min-width:320px;min-height:100%;background:#f4faf7}
+html,body,#root{margin:0;min-width:320px;min-height:100%;background:#d9f3e8}
 body{margin:0}
 button,input,select{font:inherit}button{cursor:pointer}
 a{color:inherit}
