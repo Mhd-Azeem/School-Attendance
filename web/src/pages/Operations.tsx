@@ -143,12 +143,12 @@ export function Settings(){
   </div>
   </div>
  </details>
- <div className="creator-credit settings-credit"><small>CREATOR &amp; DEVELOPER</small><strong>Created and developed by Mohammed Azeem ©</strong><span>School Attendance Management System</span></div>
  <section className="copyright-legal">
   <strong>Copyright © 2026 Mohammed Azeem. All rights reserved.</strong>
   <p>This School Attendance Management System is proprietary software. Except as permitted by applicable law or with written permission from the copyright owner, unauthorized copying, modification, redistribution, resale, republication, or distribution of this software or its source code is prohibited.</p>
   <p>Third-party libraries and components remain subject to their respective licenses. School names, logos, trademarks, and other institutional branding remain the property of their respective owners.</p>
  </section>
+ <div className="creator-credit settings-credit"><small>CREATOR &amp; DEVELOPER</small><strong>Created and developed by Mohammed Azeem ©</strong><span>School Attendance Management System</span></div>
  </>}
 
 export function IndividualAttendance(){
