@@ -77,10 +77,63 @@ export function Reports(){
   }finally{URL.revokeObjectURL(objectUrl)}
  }
  async function makePdf(){
-  const logo=await fetch(`${import.meta.env.BASE_URL}zahira-logo.jpg`).then(r=>r.arrayBuffer()).then(b=>new Uint8Array(b));const dim=jpegSize(logo),enc=new TextEncoder(),objects:(Uint8Array|null)[]=[null];const add=(v:string|Uint8Array)=>{objects.push(typeof v==='string'?enc.encode(v):v);return objects.length-1};const font=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'),bold=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');const imgHead=enc.encode(`<< /Type /XObject /Subtype /Image /Width ${dim.w} /Height ${dim.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logo.length} >>\nstream\n`),imgTail=enc.encode('\nendstream'),img=new Uint8Array(imgHead.length+logo.length+imgTail.length);img.set(imgHead);img.set(logo,imgHead.length);img.set(imgTail,imgHead.length+logo.length);const image=add(img),pageIds:number[]=[];const rows=kind==='individual'?[]:matrix;
-  const pageChunks:string[]=[];let y=735,cmd='q 1 1 1 rg 0 0 612 792 re f Q\nq 70 0 0 70 271 700 cm /Im0 Do Q\n';const line=(text:any,x:number,size=10,isBold=false)=>{cmd+=`BT /${isBold?'F2':'F1'} ${size} Tf 0 0 0 rg ${x} ${y} Td (${pdfText(text)}) Tj ET\n`};y=680;const centered=(text:any,size=10,isBold=false)=>{const t=pdfText(text),approx=t.length*size*0.5;line(t,Math.max(35,(612-approx)/2),size,isBold)};centered(title,18,true);y-=20;centered(`From ${from} to ${to}`,10);y-=30;
-  if(kind==='individual'){const r=visible[0];centered(r.full_name,16,true);y-=18;centered(`Admission No: ${r.admission_number}    Class: ${r.display_name}`,10);y-=28;[['Total Days',r.total],['Present Days',r.present],['Absent Days',r.absent],['Attendance',`${r.attendance_percentage??'--'}%`]].forEach(([label,val],i)=>{const x=54+i*125;cmd+=`0.75 G ${x} ${y-32} 115 48 re S\n`;cmd+=`BT /F2 15 Tf 0 0 0 rg ${x+8} ${y-13} Td (${pdfText(val)}) Tj ET\nBT /F1 8 Tf 0 0 0 rg ${x+8} ${y-27} Td (${pdfText(label)}) Tj ET\n`})}else if(kind==='teacher'){const widths=[180,360],start=36;const drawRow=(vals:any[],header=false)=>{let x=start;vals.forEach((v:any,i:number)=>{cmd+=`${header?'0.92 0.92 0.92 rg':'1 1 1 rg'} ${x} ${y-15} ${widths[i]} 20 re f 0.7 G ${x} ${y-15} ${widths[i]} 20 re S\nBT /${header?'F2':'F1'} 8 Tf 0 0 0 rg ${x+Math.max(4,(widths[i]-pdfText(v).slice(0,40).length*4)/2)} ${y-8} Td (${pdfText(v).slice(0,40)}) Tj ET\n`;x+=widths[i]});y-=20};for(const group of teacherGroups as any[]){if(y<150){pageChunks.push(cmd);cmd='q 1 1 1 rg 0 0 612 792 re f Q\n';y=750}line(`Class: ${group.className}`,36,10,true);y-=15;line(`Date: ${group.date}`,36,10,true);y-=20;drawRow(['Period','Status'],true);for(const p of group.periods){if(y<55){pageChunks.push(cmd);cmd='q 1 1 1 rg 0 0 612 792 re f Q\n';y=750;line(`Class: ${group.className}`,36,10,true);y-=15;line(`Date: ${group.date}`,36,10,true);y-=20;drawRow(['Period','Status'],true)}drawRow([p.period,p.status])}y-=14}}else{const widths=[65,100,55,60,55,55,70],start=35;const drawRow=(vals:any[],header=false)=>{let x=start;vals.forEach((v:any,i:number)=>{cmd+=`${header?'0.92 0.92 0.92 rg':'1 1 1 rg'} ${x} ${y-15} ${widths[i]} 20 re f 0.7 G ${x} ${y-15} ${widths[i]} 20 re S\nBT /${header?'F2':'F1'} 7 Tf 0 0 0 rg ${x+Math.max(3,(widths[i]-pdfText(v).slice(0,28).length*3.5)/2)} ${y-8} Td (${pdfText(v).slice(0,28)}) Tj ET\n`;x+=widths[i]});y-=20};drawRow(headers,true);for(const row of rows){if(y<55){pageChunks.push(cmd);cmd='q 1 1 1 rg 0 0 612 792 re f Q\n';y=750;drawRow(headers,true)}drawRow(row)}}pageChunks.push(cmd);
-  const pagesPlaceholder=add('');for(const content of pageChunks){const cb=enc.encode(content),stream=add(`<< /Length ${cb.length} >>\nstream\n${content}endstream`),pid=add(`<< /Type /Page /Parent ${pagesPlaceholder} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${font} 0 R /F2 ${bold} 0 R >> /XObject << /Im0 ${image} 0 R >> >> /Contents ${stream} 0 R >>`);pageIds.push(pid)}objects[pagesPlaceholder]=enc.encode(`<< /Type /Pages /Kids [${pageIds.map(p=>p+' 0 R').join(' ')}] /Count ${pageIds.length} >>`);const catalog=add(`<< /Type /Catalog /Pages ${pagesPlaceholder} 0 R >>`),parts:Uint8Array[]=[enc.encode('%PDF-1.4\n%PDFGEN\n')],offsets=[0];let pos=parts[0].length;for(let i=1;i<objects.length;i++){offsets[i]=pos;const h=enc.encode(`${i} 0 obj\n`),t=enc.encode('\nendobj\n'),o=objects[i]!;parts.push(h,o,t);pos+=h.length+o.length+t.length}const xref=pos;let xt=`xref\n0 ${objects.length}\n0000000000 65535 f \n`;for(let i=1;i<objects.length;i++)xt+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';xt+=`trailer\n<< /Size ${objects.length} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF`;parts.push(enc.encode(xt));const total=parts.reduce((n,p)=>n+p.length,0),pdf=new Uint8Array(total);let at=0;for(const p of parts){pdf.set(p,at);at+=p.length}saveBytes(`${kind}-attendance-${from}-to-${to}.pdf`,pdf,'application/pdf')
+  if(!visible.length)return
+  const reportLogo=await getReportLogo(),logo=reportLogo.bytes,dim=jpegSize(logo),enc=new TextEncoder(),objects:(Uint8Array|null)[]=[null]
+  const add=(v:string|Uint8Array)=>{objects.push(typeof v==='string'?enc.encode(v):v);return objects.length-1}
+  const font=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'),bold=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>')
+  const imgHead=enc.encode('<< /Type /XObject /Subtype /Image /Width '+dim.w+' /Height '+dim.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+logo.length+' >>\nstream\n'),imgTail=enc.encode('\nendstream'),img=new Uint8Array(imgHead.length+logo.length+imgTail.length)
+  img.set(imgHead);img.set(logo,imgHead.length);img.set(imgTail,imgHead.length+logo.length)
+  const image=add(img),pageIds:number[]=[],pageChunks:string[]=[]
+  let y=735,cmd='q 1 1 1 rg 0 0 612 792 re f Q\nq 70 0 0 70 271 700 cm /Im0 Do Q\n'
+  const line=(value:any,x:number,size=10,isBold=false)=>{cmd+='BT /'+(isBold?'F2':'F1')+' '+size+' Tf 0 0 0 rg '+x+' '+y+' Td ('+pdfText(value)+') Tj ET\n'}
+  const centered=(value:any,size=10,isBold=false)=>{const t=pdfText(value),approx=t.length*size*.5;line(t,Math.max(35,(612-approx)/2),size,isBold)}
+  const newPage=()=>{pageChunks.push(cmd);cmd='q 1 1 1 rg 0 0 612 792 re f Q\n';y=750}
+  const caption=(group:any)=>{
+   line('Grade: '+group.grade,36,10,true);y-=14
+   line('Class: '+group.className,36,10,true);y-=14
+   line('Date: '+group.date,36,10,true);y-=19
+  }
+  y=680;centered(title,18,true);y-=20;centered('From '+from+' to '+to,10);y-=30
+  if(kind==='individual'){
+   const r=visible[0]
+   centered(r.full_name,16,true);y-=18
+   centered('Admission No: '+r.admission_number+'    Grade: '+gradeOf(r.display_name)+'    Class: '+r.display_name,10);y-=28
+   ;[['Total Days',r.total],['Present Days',r.present],['Absent Days',r.absent],['Attendance',(r.attendance_percentage??'--')+'%']].forEach(([label,val],i)=>{const x=54+i*125;cmd+='0.75 G '+x+' '+(y-32)+' 115 48 re S\n';cmd+='BT /F2 15 Tf 0 0 0 rg '+(x+8)+' '+(y-13)+' Td ('+pdfText(val)+') Tj ET\nBT /F1 8 Tf 0 0 0 rg '+(x+8)+' '+(y-27)+' Td ('+pdfText(label)+') Tj ET\n'})
+   y-=58
+  }
+  if(kind==='teacher'){
+   const widths=[180,360],startX=36
+   const drawRow=(vals:any[],header=false)=>{let x=startX;vals.forEach((v:any,i:number)=>{cmd+=(header?'0.92 0.92 0.92 rg':'1 1 1 rg')+' '+x+' '+(y-15)+' '+widths[i]+' 20 re f 0.7 G '+x+' '+(y-15)+' '+widths[i]+' 20 re S\nBT /'+(header?'F2':'F1')+' 8 Tf 0 0 0 rg '+(x+Math.max(4,(widths[i]-pdfText(v).slice(0,40).length*4)/2))+' '+(y-8)+' Td ('+pdfText(v).slice(0,40)+') Tj ET\n';x+=widths[i]});y-=20}
+   for(const group of teacherGroups as any[]){
+    if(y<150)newPage()
+    caption(group);drawRow(['Period','Status'],true)
+    for(const p of group.periods){if(y<60){newPage();caption(group);drawRow(['Period','Status'],true)}drawRow([p.period,p.status])}
+    y-=16
+   }
+  }else{
+   const widths=[92,298,150],startX=36
+   const drawRow=(vals:any[],header=false)=>{let x=startX;vals.forEach((v:any,i:number)=>{cmd+=(header?'0.92 0.92 0.92 rg':'1 1 1 rg')+' '+x+' '+(y-15)+' '+widths[i]+' 20 re f 0.7 G '+x+' '+(y-15)+' '+widths[i]+' 20 re S\nBT /'+(header?'F2':'F1')+' 8 Tf 0 0 0 rg '+(x+5)+' '+(y-8)+' Td ('+pdfText(v).slice(0,55)+') Tj ET\n';x+=widths[i]});y-=20}
+   for(const group of studentGroups as any[]){
+    if(y<150)newPage()
+    caption(group);drawRow(['Admission','Name','Status'],true)
+    for(const r of group.records){if(y<60){newPage();caption(group);drawRow(['Admission','Name','Status'],true)}drawRow([r.admission_number,r.full_name,statusLabel(r.status)])}
+    y-=16
+   }
+  }
+  pageChunks.push(cmd)
+  const pagesPlaceholder=add('')
+  for(const content of pageChunks){const cb=enc.encode(content),stream=add('<< /Length '+cb.length+' >>\nstream\n'+content+'endstream'),pid=add('<< /Type /Page /Parent '+pagesPlaceholder+' 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 '+font+' 0 R /F2 '+bold+' 0 R >> /XObject << /Im0 '+image+' 0 R >> >> /Contents '+stream+' 0 R >>');pageIds.push(pid)}
+  objects[pagesPlaceholder]=enc.encode('<< /Type /Pages /Kids ['+pageIds.map(p=>p+' 0 R').join(' ')+'] /Count '+pageIds.length+' >>')
+  const catalog=add('<< /Type /Catalog /Pages '+pagesPlaceholder+' 0 R >>'),parts:Uint8Array[]=[enc.encode('%PDF-1.4\n%PDFGEN\n')],offsets=[0]
+  let pos=parts[0].length
+  for(let i=1;i<objects.length;i++){offsets[i]=pos;const h=enc.encode(i+' 0 obj\n'),t=enc.encode('\nendobj\n'),o=objects[i]!;parts.push(h,o,t);pos+=h.length+o.length+t.length}
+  const xref=pos;let xt='xref\n0 '+objects.length+'\n0000000000 65535 f \n'
+  for(let i=1;i<objects.length;i++)xt+=String(offsets[i]).padStart(10,'0')+' 00000 n \n'
+  xt+='trailer\n<< /Size '+objects.length+' /Root '+catalog+' 0 R >>\nstartxref\n'+xref+'\n%%EOF'
+  parts.push(enc.encode(xt))
+  const total=parts.reduce((n,p)=>n+p.length,0),pdf=new Uint8Array(total);let at=0
+  for(const p of parts){pdf.set(p,at);at+=p.length}
+  saveBytes(kind+'-attendance-'+from+'-to-'+to+'.pdf',pdf,'application/pdf')
  }
   async function exportFile(format:'doc'){
    if(!visible.length)return
