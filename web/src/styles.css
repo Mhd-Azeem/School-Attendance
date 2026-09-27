@@ -620,3 +620,34 @@ button:disabled,.primary:disabled,.submit:disabled{
   pointer-events:auto;
  }
 }
+
+
+/* Pull down to refresh */
+.pull-refresh-indicator{
+ position:fixed;
+ z-index:72;
+ left:50%;
+ top:calc(64px + var(--safe-top));
+ display:flex;
+ align-items:center;
+ gap:7px;
+ min-height:34px;
+ padding:7px 12px;
+ border-radius:999px;
+ background:#ffffff;
+ color:#08784f;
+ border:1px solid #cfe3d9;
+ box-shadow:0 8px 22px #174c3622;
+ font-size:10px;
+ font-weight:800;
+ pointer-events:none;
+ transition:transform .16s ease,opacity .14s ease,background .16s ease,color .16s ease;
+ opacity:0;
+}
+.pull-refresh-indicator svg{width:15px;height:15px;transition:transform .18s ease}
+.pull-refresh-indicator.visible{opacity:1}
+.pull-refresh-indicator.ready{background:#0a965e;color:#fff;border-color:#0a965e}
+.pull-refresh-indicator.ready svg{transform:rotate(180deg)}
+.pull-refresh-indicator.refreshing svg{animation:pull-refresh-spin .8s linear infinite}
+@keyframes pull-refresh-spin{to{transform:rotate(360deg)}}
+@media(min-width:701px){.pull-refresh-indicator{display:none}}
