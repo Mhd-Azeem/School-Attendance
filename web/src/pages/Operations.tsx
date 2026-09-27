@@ -7,7 +7,7 @@ import {AlertTriangle,Search,Trash2} from 'lucide-react'
 export function History(){const [mode,setMode]=useState<'student'|'period'>('student'),[classes,setClasses]=useState<SchoolClass[]>([]),[classId,setClassId]=useState(''),[rows,setRows]=useState<any[]>([]);useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(x=>{setClasses(x.classes);setClassId(x.classes[0]?.id||'')})},[]);useEffect(()=>{if(!classId)return;if(mode==='student')api<{sessions:any[]}>(`/api/history?class_id=${classId}`).then(x=>setRows(x.sessions)).catch(()=>setRows([]));else api<{history:any[]}>(`/api/period-history?class_id=${classId}`).then(x=>setRows(x.history)).catch(()=>setRows([]))},[classId,mode]);return <><div className="screen-title-row"><div><h1>Teacher History</h1><p>Review previously submitted registers.</p></div><select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></div><div className="segmented"><button className={mode==='student'?'active':''} onClick={()=>setMode('student')}>Student</button><button className={mode==='period'?'active':''} onClick={()=>setMode('period')}>Teacher Period</button></div><section className="history-list">{rows.map((r,i)=><article key={r.session_id||r.attendance_date||i}><div><strong>{r.attendance_date}</strong><small>{r.display_name}</small></div>{mode==='student'?<><span className="status-pill submitted">✓ Submitted</span><small>P {r.present} · A {r.absent}</small></>:<><span className={Number(r.completed)===Number(r.total)?'status-pill submitted':'status-pill progress'}>{r.completed}/{r.total} Completed</span><small>{r.updated_at||''}</small></>}</article>)}</section></>}
 export function Reports(){
  type Kind='student'|'individual'|'teacher'
- const [classes,setClasses]=useState<SchoolClass[]>([]),[cid,setCid]=useState('ALL_GRADES'),[rows,setRows]=useState<any[]>([]),[studentOptions,setStudentOptions]=useState<any[]>([]),[periodRows,setPeriodRows]=useState<any[]>([]),[kind,setKind]=useState<Kind>('student'),[studentId,setStudentId]=useState(''),[msg,setMsg]=useState(''),[from,setFrom]=useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10)),[to,setTo]=useState(new Date().toISOString().slice(0,10))
+ const [classes,setClasses]=useState<SchoolClass[]>([]),[cid,setCid]=useState('ALL_GRADES'),[rows,setRows]=useState<any[]>([]),[studentOptions,setStudentOptions]=useState<any[]>([]),[periodRows,setPeriodRows]=useState<any[]>([]),[dailyRows,setDailyRows]=useState<any[]>([]),[kind,setKind]=useState<Kind>('student'),[studentId,setStudentId]=useState(''),[msg,setMsg]=useState(''),[from,setFrom]=useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10)),[to,setTo]=useState(new Date().toISOString().slice(0,10))
  useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(x=>setClasses(x.classes))},[])
  useEffect(()=>{if(kind!=='individual')return;let active=true;setStudentOptions([]);setStudentId('');setMsg('');const actualClass=cid&&cid!=='ALL_GRADES'&&!cid.startsWith('GRADE:')?cid:'';api<{report:any[]}>(`/api/reports?${actualClass?`class_id=${encodeURIComponent(actualClass)}`:''}`).then(x=>{if(!active)return;const filtered=cid.startsWith('GRADE:')?x.report.filter(r=>String(r.display_name||'').split('-')[0].trim()===cid.slice(6)):x.report;setStudentOptions(filtered);if(filtered.length)setStudentId(String(filtered[0].student_id))}).catch(()=>{if(active)setMsg('Could not load students.')});return()=>{active=false}},[kind,cid])
  async function load(){
@@ -22,12 +22,23 @@ export function Reports(){
     const batches=await Promise.all(targets.map(c=>api<{history:any[]}>(`/api/period-history?from=${from}&to=${to}&class_id=${encodeURIComponent(c.id)}`).then(x=>x.history.map(r=>({...r,display_name:r.display_name||c.display_name,class_id:r.class_id||c.id}))).catch(()=>[])))
     setPeriodRows(batches.flat())
     setRows([])
+    setDailyRows([])
    }else{
     const x=await api<{report:any[]}>(`/api/reports?from=${from}&to=${to}${isSpecific?`&class_id=${encodeURIComponent(cid)}`:''}`)
     const filtered=gradeFilter?x.report.filter(r=>String(r.display_name||'').split('-')[0].trim()===gradeFilter):x.report
     setRows(filtered)
     setPeriodRows([])
-    if(kind==='individual'&&!studentId){setMsg('Select a student.');return}
+    if(kind==='individual'&&!studentId){setDailyRows([]);setMsg('Select a student.');return}
+    let targets=isSpecific?classes.filter(c=>c.id===cid):gradeFilter?classes.filter(c=>String(c.display_name).split('-')[0].trim()===gradeFilter):classes
+    if(kind==='individual'){
+     const selected=filtered.find(r=>String(r.student_id)===String(studentId))
+     if(selected)targets=classes.filter(c=>String(c.display_name)===String(selected.display_name))
+    }
+    const histories=await Promise.all(targets.map(c=>api<{sessions:any[]}>(`/api/history?from=${from}&to=${to}&class_id=${encodeURIComponent(c.id)}`).then(x=>x.sessions.map(session=>({...session,class_id:session.class_id||c.id,display_name:session.display_name||c.display_name}))).catch(()=>[])))
+    const sessions=histories.flat()
+    const detail=await Promise.all(sessions.map(session=>api<{session:any,records:any[]}>(`/api/attendance/${encodeURIComponent(session.session_id)}`).then(x=>x.records.map(r=>({...r,class_id:session.class_id,display_name:session.display_name,attendance_date:session.attendance_date}))).catch(()=>[])))
+    const flat=detail.flat()
+    setDailyRows(kind==='individual'?flat.filter(r=>String(r.student_id)===String(studentId)):flat)
    }
   }catch{setMsg('Could not generate report.')}
  }
@@ -68,8 +79,8 @@ export function Reports(){
   <div className="report-form-grid">
    <label><span>Start Date</span><input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label>
    <label><span>End Date</span><input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
-   <label className="report-wide"><span>What to Export</span><select value={kind} onChange={e=>{const next=e.target.value as Kind;setKind(next);setCid('ALL_GRADES');setRows([]);setPeriodRows([]);setStudentId('');setMsg('')}}><option value="student">Student Attendance</option><option value="individual">Individual Student Attendance</option><option value="teacher">Teacher Attendance</option></select></label>
-   <label className="report-wide"><span>Class / Grade</span><select value={cid} onChange={e=>{setCid(e.target.value);setRows([]);setPeriodRows([]);setStudentId('')}}><option value="ALL_GRADES">All Grades</option><option value="GRADE:6">Grade 6 — All</option><option value="GRADE:7">Grade 7 — All</option>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
+   <label className="report-wide"><span>What to Export</span><select value={kind} onChange={e=>{const next=e.target.value as Kind;setKind(next);setCid('ALL_GRADES');setRows([]);setPeriodRows([]);setDailyRows([]);setStudentId('');setMsg('')}}><option value="student">Student Attendance</option><option value="individual">Individual Student Attendance</option><option value="teacher">Teacher Attendance</option></select></label>
+   <label className="report-wide"><span>Class / Grade</span><select value={cid} onChange={e=>{setCid(e.target.value);setRows([]);setPeriodRows([]);setDailyRows([]);setStudentId('')}}><option value="ALL_GRADES">All Grades</option><option value="GRADE:6">Grade 6 — All</option><option value="GRADE:7">Grade 7 — All</option>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
    {kind==='individual'&&<label className="report-wide"><span>Student</span><select value={studentId} onChange={e=>setStudentId(e.target.value)} disabled={!studentOptions.length}><option value="">{studentOptions.length?'Select student':'Loading students...'}</option>{studentOptions.map(r=><option key={r.student_id} value={r.student_id}>{r.admission_number} · {r.full_name} · {r.display_name}</option>)}</select></label>}
   </div>
   <button className="primary report-generate" onClick={load}>Generate Report</button>
