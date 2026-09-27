@@ -89,6 +89,8 @@ export function Settings(){
  const [s,setS]=useState<any>({attendance_threshold:'80',school_timezone:'Asia/Colombo',teacher_correction_allowed:'false'}),[msg,setMsg]=useState(''),[error,setError]=useState('')
  const [teachers,setTeachers]=useState<any[]>([]),[teacherSearch,setTeacherSearch]=useState(''),[deletingTeacher,setDeletingTeacher]=useState<string|null>(null)
  const [tempHeads,setTempHeads]=useState<any[]>([]),[tempName,setTempName]=useState(''),[tempUsername,setTempUsername]=useState(''),[tempPassword,setTempPassword]=useState(''),[tempAllowed,setTempAllowed]=useState(true),[tempBackendReady,setTempBackendReady]=useState(true),[creatingTemp,setCreatingTemp]=useState(false)
+ const [fontSize,setFontSize]=useState<'small'|'default'|'large'|'extra-large'>(()=>{const v=localStorage.getItem('school-attendance-font-size');return v==='small'||v==='large'||v==='extra-large'?v:'default'})
+ function changeFontSize(value:'small'|'default'|'large'|'extra-large'){setFontSize(value);localStorage.setItem('school-attendance-font-size',value);document.documentElement.dataset.fontSize=value}
  useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true);setTempBackendReady(true)}).catch((e:any)=>{if(e?.message==='primary_section_head_only'||e?.message==='forbidden')setTempAllowed(false);else{setTempAllowed(true);setTempBackendReady(false)}})}},[admin])
  const filteredTeachers=useMemo(()=>teachers.filter(t=>`${t.full_name} ${t.username}`.toLowerCase().includes(teacherSearch.toLowerCase())),[teachers,teacherSearch])
  async function deleteTeacher(t:any){const typed=prompt(`Permanently delete teacher ${t.full_name}?\n\nType the username "${t.username}" to confirm.`);if(typed===null)return;if(typed.trim().toLowerCase()!==String(t.username).toLowerCase()){setError('Username did not match.');return}setDeletingTeacher(t.id);try{await api(`/api/teachers/${encodeURIComponent(t.id)}`,{method:'DELETE'});setTeachers(xs=>xs.filter(x=>x.id!==t.id));setMsg(`${t.full_name} was permanently deleted ✓`)}catch{setError('Could not permanently delete this teacher.')}finally{setDeletingTeacher(null)}}
@@ -104,6 +106,16 @@ export function Settings(){
    <button className="primary" onClick={async()=>{try{await api('/api/settings',{method:'PUT',body:JSON.stringify(s)});setMsg('Settings saved ✓');setError('')}catch{setError('Could not save settings.')}}}>Save Settings</button>
   </div>
  </details>}
+
+ <details className="settings-form settings-accordion">
+  <summary className="settings-summary"><strong>Font Size</strong><span>Adjust text size across the app</span></summary>
+  <div className="settings-accordion-content">
+   <div className="font-size-options" role="group" aria-label="Font size">
+    {(['small','default','large','extra-large'] as const).map(value=><button key={value} type="button" className={fontSize===value?'font-size-option active':'font-size-option'} onClick={()=>changeFontSize(value)}>{value==='small'?'Small':value==='default'?'Default':value==='large'?'Large':'Extra Large'}</button>)}
+   </div>
+   <p className="font-size-note">This preference is saved on this device and applies to both Section Head and Teacher screens.</p>
+  </div>
+ </details>
 
  {admin&&tempAllowed&&<details className="settings-form temporary-head-settings settings-accordion">
   <summary className="settings-summary"><strong>Temporary Section Head Login</strong><span>Create and revoke temporary administrator access</span></summary>
