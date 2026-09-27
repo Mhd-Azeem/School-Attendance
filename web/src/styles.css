@@ -651,3 +651,28 @@ button:disabled,.primary:disabled,.submit:disabled{
 .pull-refresh-indicator.refreshing svg{animation:pull-refresh-spin .8s linear infinite}
 @keyframes pull-refresh-spin{to{transform:rotate(360deg)}}
 @media(min-width:701px){.pull-refresh-indicator{display:none}}
+
+
+/* Login password visibility toggle */
+.password-input{padding-right:6px}
+.password-input input{min-width:0}
+.password-toggle{
+ flex:none;
+ width:38px;
+ height:38px;
+ display:grid;
+ place-items:center;
+ border:0!important;
+ border-radius:9px!important;
+ background:transparent!important;
+ color:#5f746a!important;
+ padding:0!important;
+ box-shadow:none!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+ transform:none!important;
+}
+.password-toggle::before,.password-toggle::after{content:none!important;display:none!important}
+.password-toggle:hover{background:#edf6f1!important;color:#08784f!important}
+.password-toggle:active{background:#e3f1ea!important;transform:scale(.96)!important}
+.password-toggle:focus-visible{outline:2px solid #56bd8c;outline-offset:2px}
