@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState,type CSSProperties} from 'react'
 import {NavLink,Outlet,useLocation,useNavigate} from 'react-router-dom'
-import {BarChart3,Bell,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
+import {BarChart3,Bell,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,History,Home,LogOut,Menu,RotateCw,Settings,ShieldCheck,UserRound,Users,X} from 'lucide-react'
 import {useAuth} from '../AuthContext'
 import {api} from '../lib/api'
 import {schoolDate} from '../lib/date'
@@ -16,6 +16,8 @@ type SuccessPopup={title:string;message:string}|null
 export function Layout(){
  const {profile,signOut}=useAuth(),loc=useLocation(),navigate=useNavigate()
  const [menuOpen,setMenuOpen]=useState(false),[notificationsOpen,setNotificationsOpen]=useState(false),[notices,setNotices]=useState<Notice[]>([]),[noticeLoading,setNoticeLoading]=useState(false),[successPopup,setSuccessPopup]=useState<SuccessPopup>(null)
+ const [pullDistance,setPullDistance]=useState(0),[pullRefreshing,setPullRefreshing]=useState(false)
+ const pullRef=useRef({tracking:false,startY:0,startX:0})
  const links=profile?.role==='SECTION_HEAD'?adminLinks:teacherLinks
  const isNativeApp=window.location.hostname==='appassets.androidplatform.net'
  const showBranding=!isNativeApp||loc.pathname==='/'
@@ -61,6 +63,51 @@ export function Layout(){
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
 
  useEffect(()=>{setMenuOpen(false);setNotificationsOpen(false)},[loc.pathname])
+ useEffect(()=>{
+  if(window.innerWidth>700)return
+  const ignored=(target:EventTarget|null)=>{
+   const el=target as HTMLElement|null
+   return !!el?.closest('input,select,textarea,[contenteditable="true"],.primary-nav,.mobile-drawer,.notification-panel')
+  }
+  const atTop=()=>window.scrollY<=0&&document.documentElement.scrollTop<=0
+  const start=(e:TouchEvent)=>{
+   if(pullRefreshing||menuOpen||notificationsOpen||!atTop()||ignored(e.target)||e.touches.length!==1)return
+   const t=e.touches[0]
+   pullRef.current={tracking:true,startY:t.clientY,startX:t.clientX}
+  }
+  const move=(e:TouchEvent)=>{
+   const p=pullRef.current
+   if(!p.tracking||e.touches.length!==1)return
+   const t=e.touches[0],dy=t.clientY-p.startY,dx=Math.abs(t.clientX-p.startX)
+   if(dy<=0||dx>dy){if(dy<0)p.tracking=false;return}
+   if(!atTop()){p.tracking=false;setPullDistance(0);return}
+   const resisted=Math.min(104,dy*.52)
+   if(resisted>4&&e.cancelable)e.preventDefault()
+   setPullDistance(resisted)
+  }
+  const end=()=>{
+   const p=pullRef.current
+   if(!p.tracking)return
+   p.tracking=false
+   if(pullDistance>=72){
+    setPullRefreshing(true)
+    setPullDistance(78)
+    window.setTimeout(()=>window.location.reload(),260)
+   }else setPullDistance(0)
+  }
+  const cancel=()=>{pullRef.current.tracking=false;if(!pullRefreshing)setPullDistance(0)}
+  window.addEventListener('touchstart',start,{passive:true})
+  window.addEventListener('touchmove',move,{passive:false})
+  window.addEventListener('touchend',end,{passive:true})
+  window.addEventListener('touchcancel',cancel,{passive:true})
+  return()=>{
+   window.removeEventListener('touchstart',start)
+   window.removeEventListener('touchmove',move)
+   window.removeEventListener('touchend',end)
+   window.removeEventListener('touchcancel',cancel)
+  }
+ },[menuOpen,notificationsOpen,pullDistance,pullRefreshing])
+
  useEffect(()=>{
   if(!menuOpen)return
   const previous=document.body.style.overflow
@@ -130,6 +177,7 @@ export function Layout(){
    </aside>
 
    <div className="workspace">
+    <div className={`pull-refresh-indicator ${pullDistance>0||pullRefreshing?'visible':''} ${pullDistance>=72?'ready':''} ${pullRefreshing?'refreshing':''}`} style={{transform:`translate(-50%, ${Math.max(-54,Math.min(18,pullDistance*.72-54))}px)`,opacity:pullRefreshing?1:Math.min(1,pullDistance/28)}} aria-hidden="true"><RotateCw/><span>{pullRefreshing?'Refreshing…':pullDistance>=72?'Release to refresh':'Pull to refresh'}</span></div>
     <header className="appbar">
      <button type="button" className="appbar-icon mobile-only" aria-label={menuOpen?'Close menu':'Open menu'} aria-expanded={menuOpen} onClick={e=>{e.preventDefault();e.stopPropagation();setNotificationsOpen(false);setMenuOpen(v=>!v)}}><Menu size={24}/></button>
      <strong className="appbar-page-title">{title}</strong>
