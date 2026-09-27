@@ -61,6 +61,14 @@ export function Layout(){
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
 
  useEffect(()=>{setMenuOpen(false);setNotificationsOpen(false)},[loc.pathname])
+ useEffect(()=>{
+  if(!menuOpen)return
+  const previous=document.body.style.overflow
+  document.body.style.overflow='hidden'
+  const close=(e:KeyboardEvent)=>{if(e.key==='Escape')setMenuOpen(false)}
+  window.addEventListener('keydown',close)
+  return()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',close)}
+ },[menuOpen])
  useEffect(()=>{loadNotifications()},[profile?.role])
  useEffect(()=>{const show=(e:Event)=>{const d=(e as CustomEvent<{title?:string;message?:string}>).detail||{};setSuccessPopup({title:d.title||'Submitted Successfully',message:d.message||'Your changes have been saved.'})};window.addEventListener('app-success',show);return()=>window.removeEventListener('app-success',show)},[])
 
@@ -114,16 +122,16 @@ export function Layout(){
     <button className="logout" onClick={signOut}><LogOut size={19}/>Logout</button>
    </aside>
 
-   {menuOpen&&<button className="drawer-backdrop" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}
-   <aside className={`mobile-drawer ${menuOpen?'open':''}`} aria-hidden={!menuOpen}>
-    <div className="drawer-head"><div><strong>{profile?.full_name}</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head':'Teacher'}</small></div><button onClick={()=>setMenuOpen(false)} aria-label="Close menu"><X/></button></div>
-    <nav>{drawerLinks.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'}><Icon/><span>{label}</span></NavLink>})}</nav>
-    <button className="drawer-logout" onClick={signOut}><LogOut/> Logout</button>
+   {menuOpen&&<button type="button" className="drawer-backdrop" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}
+   <aside className={`mobile-drawer ${menuOpen?'open':''}`} aria-hidden={!menuOpen} data-open={menuOpen?'true':'false'}>
+    <div className="drawer-head"><div><strong>{profile?.full_name}</strong><small>{profile?.role==='SECTION_HEAD'?'Section Head':'Teacher'}</small></div><button type="button" onClick={()=>setMenuOpen(false)} aria-label="Close menu"><X/></button></div>
+    <nav>{drawerLinks.map(item=>{const [to,label,Icon]=item;return <NavLink key={to} to={to} end={to==='/'} onClick={()=>setMenuOpen(false)}><Icon/><span>{label}</span></NavLink>})}</nav>
+    <button type="button" className="drawer-logout" onClick={signOut}><LogOut/> Logout</button>
    </aside>
 
    <div className="workspace">
     <header className="appbar">
-     <button className="appbar-icon mobile-only" aria-label="Open menu" onClick={()=>{setMenuOpen(true);setNotificationsOpen(false)}}><Menu size={24}/></button>
+     <button type="button" className="appbar-icon mobile-only" aria-label={menuOpen?'Close menu':'Open menu'} aria-expanded={menuOpen} onClick={e=>{e.preventDefault();e.stopPropagation();setNotificationsOpen(false);setMenuOpen(v=>!v)}}><Menu size={24}/></button>
      <strong className="appbar-page-title">{title}</strong>
      <button className="appbar-icon bell-button" aria-label="Notifications" onClick={toggleNotifications}><Bell size={21}/>{notices.some(n=>n.tone==='warn')&&<span className="notification-badge">{notices.filter(n=>n.tone==='warn').length}</span>}</button>
     </header>
