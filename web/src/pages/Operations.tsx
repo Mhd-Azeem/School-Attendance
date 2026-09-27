@@ -141,9 +141,9 @@ export function Settings(){
    <div><strong>Cross-device System</strong><span>The Android app and web application use the same central attendance system so records remain consistent across supported devices.</span></div>
    <div><strong>App Updates</strong><span>The Android application can check for newer released versions to keep the installed app up to date.</span></div>
   </div>
-  <div className="creator-credit"><small>CREATOR &amp; DEVELOPER</small><strong>Created and developed by Mohammed Azeem ©</strong><span>School Attendance Management System</span></div>
   </div>
  </details>
+ <div className="creator-credit settings-credit"><small>CREATOR &amp; DEVELOPER</small><strong>Created and developed by Mohammed Azeem ©</strong><span>School Attendance Management System</span></div>
  </>}
 
 export function IndividualAttendance(){
