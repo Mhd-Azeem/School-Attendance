@@ -45,13 +45,37 @@ export function Reports(){
  const visible=kind==='teacher'?periodRows:kind==='individual'?rows.filter(r=>String(r.student_id)===String(studentId)):rows
  const title=kind==='teacher'?'Teacher Attendance Report':kind==='individual'?'Individual Student Attendance Report':'Student Attendance Report'
  const headers=kind==='teacher'?['Period','Status']:['Admission','Name','Class','Total Days','Present','Absent','Attendance %']
- const statusLabel=(v:any)=>String(v??'').replaceAll('_',' ').replace('NOT ARRIVED RELIEF','NO TEACHER PRESENTED');const ordinal=(n:any)=>{const x=Number(n);return x===1?'1st Period':x===2?'2nd Period':x===3?'3rd Period':`${x}th Period`};const matrix=kind==='teacher'?[]:visible.map(r=>[r.admission_number,r.full_name,r.display_name,r.total,r.present,r.absent,r.attendance_percentage??'']);const teacherGroups=kind==='teacher'?Object.values(visible.reduce((acc:any,r:any)=>{const date=String(r.attendance_date||''),className=String(r.display_name||''),key=className+'|'+date;if(!acc[key])acc[key]={date,className,periods:[]};acc[key].periods.push(...(r.periods||[]).map((p:any)=>({period:ordinal(p.period_no),status:statusLabel(p.status)})));return acc},{})).sort((a:any,b:any)=>String(a.date).localeCompare(String(b.date))||String(a.className).localeCompare(String(b.className),undefined,{numeric:true,sensitivity:'base'})):[]
+ const statusLabel=(v:any)=>String(v??'').replaceAll('_',' ').replace('NOT ARRIVED RELIEF','NO TEACHER PRESENTED')
+ const ordinal=(n:any)=>{const x=Number(n);return x===1?'1st Period':x===2?'2nd Period':x===3?'3rd Period':`${x}th Period`}
+ const gradeOf=(name:any)=>String(name||'').split('-')[0].trim()
+ const matrix=kind==='teacher'?[]:visible.map(r=>[r.admission_number,r.full_name,r.display_name,r.total,r.present,r.absent,r.attendance_percentage??''])
+ const dailyVisible=kind==='individual'?dailyRows.filter(r=>String(r.student_id)===String(studentId)):dailyRows
+ const studentGroups=kind==='teacher'?[]:Object.values(dailyVisible.reduce((acc:any,r:any)=>{const date=String(r.attendance_date||''),className=String(r.display_name||''),grade=gradeOf(className),key=grade+'|'+date+'|'+className;if(!acc[key])acc[key]={grade,date,className,records:[]};acc[key].records.push(r);return acc},{})).sort((a:any,b:any)=>String(a.grade).localeCompare(String(b.grade),undefined,{numeric:true})||String(a.date).localeCompare(String(b.date))||String(a.className).localeCompare(String(b.className),undefined,{numeric:true,sensitivity:'base'}))
+ const teacherGroups=kind==='teacher'?Object.values(visible.reduce((acc:any,r:any)=>{const date=String(r.attendance_date||''),className=String(r.display_name||''),grade=gradeOf(className),key=grade+'|'+date+'|'+className;if(!acc[key])acc[key]={grade,date,className,periods:[]};acc[key].periods.push(...(r.periods||[]).map((p:any)=>({period:ordinal(p.period_no),status:statusLabel(p.status)})));return acc},{})).sort((a:any,b:any)=>String(a.grade).localeCompare(String(b.grade),undefined,{numeric:true})||String(a.date).localeCompare(String(b.date))||String(a.className).localeCompare(String(b.className),undefined,{numeric:true,sensitivity:'base'})):[]
  function esc(v:any){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
  function csvCell(v:any){return `"${String(v??'').replaceAll('"','""')}"`}
  function saveBytes(name:string,bytes:Uint8Array,mime:string){let bin='';for(let i=0;i<bytes.length;i+=8192)bin+=String.fromCharCode(...bytes.subarray(i,i+8192));const b64=btoa(bin),bridge=(window as any).AndroidDownloads;if(bridge?.saveFile){bridge.saveFile(name,b64);return}const blob=new Blob([bytes as BlobPart],{type:mime});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
  function save(name:string,content:string,mime:string){const bytes=new TextEncoder().encode(content),bin=Array.from(bytes,b=>String.fromCharCode(b)).join(''),b64=btoa(bin),bridge=(window as any).AndroidDownloads;if(bridge?.saveFile){bridge.saveFile(name,b64);return}const blob=new Blob([content],{type:mime});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
  function pdfText(v:any){return String(v??'').replace(/[^\x20-\x7E]/g,' ').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')}
  function jpegSize(bytes:Uint8Array){let i=2;while(i+9<bytes.length){if(bytes[i]!==0xff){i++;continue}const m=bytes[i+1];if(m>=0xc0&&m<=0xc3)return{h:(bytes[i+5]<<8)|bytes[i+6],w:(bytes[i+7]<<8)|bytes[i+8]};const len=(bytes[i+2]<<8)|bytes[i+3];if(!len)break;i+=2+len}return{w:100,h:100}}
+ async function getReportLogo(){
+  const visibleLogo=document.querySelector('.brand img,.mobile-brand-strip img') as HTMLImageElement|null
+  const src=visibleLogo?.src||new URL('zahira-logo.jpg',document.baseURI).href
+  const blob=await fetch(src,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('logo_load_failed');return r.blob()})
+  const objectUrl=URL.createObjectURL(blob)
+  try{
+   const image=await new Promise<HTMLImageElement>((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('logo_decode_failed'));img.src=objectUrl})
+   const canvas=document.createElement('canvas'),size=Math.max(256,Math.min(1024,Math.max(image.naturalWidth||256,image.naturalHeight||256)))
+   canvas.width=size;canvas.height=size
+   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas_unavailable')
+   ctx.fillStyle='#ffffff';ctx.fillRect(0,0,size,size)
+   const scale=Math.min(size/(image.naturalWidth||size),size/(image.naturalHeight||size)),w=(image.naturalWidth||size)*scale,h=(image.naturalHeight||size)*scale
+   ctx.drawImage(image,(size-w)/2,(size-h)/2,w,h)
+   const dataUrl=canvas.toDataURL('image/jpeg',.94),raw=atob(dataUrl.split(',')[1]),bytes=new Uint8Array(raw.length)
+   for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i)
+   return{dataUrl,bytes}
+  }finally{URL.revokeObjectURL(objectUrl)}
+ }
  async function makePdf(){
   const logo=await fetch(`${import.meta.env.BASE_URL}zahira-logo.jpg`).then(r=>r.arrayBuffer()).then(b=>new Uint8Array(b));const dim=jpegSize(logo),enc=new TextEncoder(),objects:(Uint8Array|null)[]=[null];const add=(v:string|Uint8Array)=>{objects.push(typeof v==='string'?enc.encode(v):v);return objects.length-1};const font=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'),bold=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');const imgHead=enc.encode(`<< /Type /XObject /Subtype /Image /Width ${dim.w} /Height ${dim.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logo.length} >>\nstream\n`),imgTail=enc.encode('\nendstream'),img=new Uint8Array(imgHead.length+logo.length+imgTail.length);img.set(imgHead);img.set(logo,imgHead.length);img.set(imgTail,imgHead.length+logo.length);const image=add(img),pageIds:number[]=[];const rows=kind==='individual'?[]:matrix;
   const pageChunks:string[]=[];let y=735,cmd='q 1 1 1 rg 0 0 612 792 re f Q\nq 70 0 0 70 271 700 cm /Im0 Do Q\n';const line=(text:any,x:number,size=10,isBold=false)=>{cmd+=`BT /${isBold?'F2':'F1'} ${size} Tf 0 0 0 rg ${x} ${y} Td (${pdfText(text)}) Tj ET\n`};y=680;const centered=(text:any,size=10,isBold=false)=>{const t=pdfText(text),approx=t.length*size*0.5;line(t,Math.max(35,(612-approx)/2),size,isBold)};centered(title,18,true);y-=20;centered(`From ${from} to ${to}`,10);y-=30;
