@@ -50,6 +50,11 @@ export function Reports(){
  const gradeOf=(name:any)=>String(name||'').split('-')[0].trim()
  const matrix=kind==='teacher'?[]:visible.map(r=>[r.admission_number,r.full_name,r.display_name,r.total,r.present,r.absent,r.attendance_percentage??''])
  const dailyVisible=kind==='individual'?dailyRows.filter(r=>String(r.student_id)===String(studentId)):dailyRows
+ const individualStudent=kind==='individual'?visible[0]:null
+ const individualClass=String(individualStudent?.display_name||'')
+ const individualGrade=gradeOf(individualClass)
+ const individualGradeClass=individualClass.replaceAll('-','').replaceAll(' ','')
+ const individualAttendance=kind==='individual'?dailyVisible.map(r=>({date:String(r.attendance_date||''),status:statusLabel(r.status)})).sort((a,b)=>a.date.localeCompare(b.date)):[]
  const studentGroups=kind==='teacher'?[]:Object.values(dailyVisible.reduce((acc:any,r:any)=>{const date=String(r.attendance_date||''),className=String(r.display_name||''),grade=gradeOf(className),key=grade+'|'+date+'|'+className;if(!acc[key])acc[key]={grade,date,className,records:[]};acc[key].records.push(r);return acc},{})).sort((a:any,b:any)=>String(a.grade).localeCompare(String(b.grade),undefined,{numeric:true})||String(a.date).localeCompare(String(b.date))||String(a.className).localeCompare(String(b.className),undefined,{numeric:true,sensitivity:'base'}))
  const teacherGroups=kind==='teacher'?Object.values(visible.reduce((acc:any,r:any)=>{const date=String(r.attendance_date||''),className=String(r.display_name||''),grade=gradeOf(className),key=grade+'|'+date+'|'+className;if(!acc[key])acc[key]={grade,date,className,periods:[]};acc[key].periods.push(...(r.periods||[]).map((p:any)=>({period:ordinal(p.period_no),status:statusLabel(p.status)})));return acc},{})).sort((a:any,b:any)=>String(a.grade).localeCompare(String(b.grade),undefined,{numeric:true})||String(a.date).localeCompare(String(b.date))||String(a.className).localeCompare(String(b.className),undefined,{numeric:true,sensitivity:'base'})):[]
  function esc(v:any){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
@@ -95,13 +100,19 @@ export function Reports(){
   }
   y=680;centered(title,18,true);y-=20;centered('From '+from+' to '+to,10);y-=30
   if(kind==='individual'){
-   const r=visible[0]
+   const r=individualStudent
+   if(!r)return
    centered(r.full_name,16,true);y-=18
-   centered('Admission No: '+r.admission_number+'    Grade: '+gradeOf(r.display_name)+'    Class: '+r.display_name,10);y-=28
-   ;[['Total Days',r.total],['Present Days',r.present],['Absent Days',r.absent],['Attendance',(r.attendance_percentage??'--')+'%']].forEach(([label,val],i)=>{const x=54+i*125;cmd+='0.75 G '+x+' '+(y-32)+' 115 48 re S\n';cmd+='BT /F2 15 Tf 0 0 0 rg '+(x+8)+' '+(y-13)+' Td ('+pdfText(val)+') Tj ET\nBT /F1 8 Tf 0 0 0 rg '+(x+8)+' '+(y-27)+' Td ('+pdfText(label)+') Tj ET\n'})
-   y-=58
-  }
-  if(kind==='teacher'){
+   centered('Index Number: '+r.admission_number,10);y-=15
+   centered('Grade: '+individualGrade+'    Grade Class: '+individualGradeClass,10);y-=28
+   const widths=[250,286],startX=38
+   const drawIndividualRow=(vals:any[],header=false)=>{let x=startX;vals.forEach((v:any,i:number)=>{cmd+=(header?'0.92 0.92 0.92 rg':'1 1 1 rg')+' '+x+' '+(y-15)+' '+widths[i]+' 20 re f 0.7 G '+x+' '+(y-15)+' '+widths[i]+' 20 re S\nBT /'+(header?'F2':'F1')+' 8 Tf 0 0 0 rg '+(x+5)+' '+(y-8)+' Td ('+pdfText(v).slice(0,60)+') Tj ET\n';x+=widths[i]});y-=20}
+   drawIndividualRow(['Date','Status'],true)
+   for(const row of individualAttendance){
+    if(y<60){newPage();line('Name: '+r.full_name,36,10,true);y-=14;line('Index Number: '+r.admission_number,36,9);y-=14;line('Grade: '+individualGrade+'    Grade Class: '+individualGradeClass,36,9);y-=20;drawIndividualRow(['Date','Status'],true)}
+    drawIndividualRow([row.date,row.status])
+   }
+  }else if(kind==='teacher'){
    const widths=[180,360],startX=36
    const drawRow=(vals:any[],header=false)=>{let x=startX;vals.forEach((v:any,i:number)=>{cmd+=(header?'0.92 0.92 0.92 rg':'1 1 1 rg')+' '+x+' '+(y-15)+' '+widths[i]+' 20 re f 0.7 G '+x+' '+(y-15)+' '+widths[i]+' 20 re S\nBT /'+(header?'F2':'F1')+' 8 Tf 0 0 0 rg '+(x+Math.max(4,(widths[i]-pdfText(v).slice(0,40).length*4)/2))+' '+(y-8)+' Td ('+pdfText(v).slice(0,40)+') Tj ET\n';x+=widths[i]});y-=20}
    for(const group of teacherGroups as any[]){
