@@ -4,7 +4,44 @@ import type {SchoolClass} from '../types'
 import {useAuth} from '../AuthContext'
 import {Link} from 'react-router-dom'
 import {AlertTriangle,ChevronDown,Search,Trash2} from 'lucide-react'
-export function History(){const [mode,setMode]=useState<'student'|'period'>('student'),[classes,setClasses]=useState<SchoolClass[]>([]),[classId,setClassId]=useState(''),[rows,setRows]=useState<any[]>([]);useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(x=>{setClasses(x.classes);setClassId(x.classes[0]?.id||'')})},[]);useEffect(()=>{if(!classId)return;if(mode==='student')api<{sessions:any[]}>(`/api/history?class_id=${classId}`).then(x=>setRows(x.sessions)).catch(()=>setRows([]));else api<{history:any[]}>(`/api/period-history?class_id=${classId}`).then(x=>setRows(x.history)).catch(()=>setRows([]))},[classId,mode]);return <><div className="screen-title-row"><div><h1>Teacher History</h1><p>Review previously submitted registers.</p></div><select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></div><div className="segmented"><button className={mode==='student'?'active':''} onClick={()=>setMode('student')}>Student</button><button className={mode==='period'?'active':''} onClick={()=>setMode('period')}>Teacher Period</button></div><section className="history-list">{rows.map((r,i)=><article key={r.session_id||r.attendance_date||i}><div><strong>{r.attendance_date}</strong><small>{r.display_name}</small></div>{mode==='student'?<><span className="status-pill submitted">✓ Submitted</span><small>P {r.present} · A {r.absent}</small></>:<><span className={Number(r.completed)===Number(r.total)?'status-pill submitted':'status-pill progress'}>{r.completed}/{r.total} Completed</span><small>{r.updated_at||''}</small></>}</article>)}</section></>}
+export function History(){
+ const [mode,setMode]=useState<'student'|'period'>('student'),[classes,setClasses]=useState<SchoolClass[]>([]),[classId,setClassId]=useState(''),[rows,setRows]=useState<any[]>([]),[expanded,setExpanded]=useState<string|null>(null),[studentDetails,setStudentDetails]=useState<Record<string,any[]>>({}),[loadingDetail,setLoadingDetail]=useState<string|null>(null)
+ useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(x=>{setClasses(x.classes);setClassId(x.classes[0]?.id||'')})},[])
+ useEffect(()=>{setExpanded(null);if(!classId)return;if(mode==='student')api<{sessions:any[]}>(`/api/history?class_id=${classId}`).then(x=>setRows(x.sessions)).catch(()=>setRows([]));else api<{history:any[]}>(`/api/period-history?class_id=${classId}`).then(x=>setRows(x.history)).catch(()=>setRows([]))},[classId,mode])
+ const ordinal=(n:any)=>{const x=Number(n);return x===1?'1st':x===2?'2nd':x===3?'3rd':`${x}th`}
+ const statusLabel=(v:any)=>String(v||'').replaceAll('_',' ').replace('NOT ARRIVED RELIEF','NO TEACHER PRESENTED')
+ async function toggleRow(r:any,i:number){
+  const key=String(r.session_id||r.attendance_date||i)
+  if(expanded===key){setExpanded(null);return}
+  setExpanded(key)
+  if(mode==='student'&&r.session_id&&!studentDetails[key]){
+   setLoadingDetail(key)
+   try{const x=await api<{records:any[]}>(`/api/attendance/${encodeURIComponent(r.session_id)}`);setStudentDetails(v=>({...v,[key]:x.records}))}
+   catch{setStudentDetails(v=>({...v,[key]:[]}))}
+   finally{setLoadingDetail(null)}
+  }
+ }
+ return <><div className="screen-title-row"><div><h1>Teacher History</h1><p>Review previously submitted registers.</p></div><select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></div><div className="segmented"><button className={mode==='student'?'active':''} onClick={()=>setMode('student')}>Student</button><button className={mode==='period'?'active':''} onClick={()=>setMode('period')}>Teacher Period</button></div><section className="history-list expandable-history">{rows.map((r,i)=>{
+  const key=String(r.session_id||r.attendance_date||i),open=expanded===key
+  return <article key={key} className={open?'history-entry expanded':'history-entry'}>
+   <button type="button" className="history-summary-row" onClick={()=>toggleRow(r,i)}>
+    <div><strong>{r.attendance_date}</strong><small>{r.display_name}</small></div>
+    {mode==='student'?<><span className="status-pill submitted">✓ Submitted</span><small>P {r.present} · A {r.absent}</small></>:<><span className={Number(r.completed)===Number(r.total)?'status-pill submitted':'status-pill progress'}>{r.completed}/{r.total} Completed</span><small>{r.updated_at||''}</small></>}
+    <ChevronDown className={open?'history-chevron rotated':'history-chevron'}/>
+   </button>
+   {open&&<div className="history-detail-panel">
+    {mode==='period'?<>
+     <div className="history-detail-meta"><span><strong>Class</strong>{r.display_name}</span><span><strong>Date</strong>{r.attendance_date}</span><span><strong>Completed</strong>{r.completed}/{r.total}</span></div>
+     <div className="history-detail-table-wrap"><table className="history-detail-table"><thead><tr><th>Period</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead><tbody>{(r.periods||[]).map((p:any,j:number)=><tr key={j}><td>{ordinal(p.period_no)} Period</td><td>{p.subject||'—'}</td><td>{p.teacher_name||'—'}</td><td><span className="history-status-text">{statusLabel(p.status)}</span></td></tr>)}</tbody></table></div>
+     {!(r.periods||[]).length&&<div className="empty-mini">No period details available.</div>}
+    </>:<>
+     <div className="history-detail-meta"><span><strong>Class</strong>{r.display_name}</span><span><strong>Date</strong>{r.attendance_date}</span><span><strong>Submitted by</strong>{r.submitted_by||'—'}</span></div>
+     {loadingDetail===key?<div className="empty-mini">Loading student details…</div>:<div className="history-detail-table-wrap"><table className="history-detail-table"><thead><tr><th>Admission</th><th>Student</th><th>Status</th></tr></thead><tbody>{(studentDetails[key]||[]).map((st:any)=><tr key={st.record_id}><td>{st.admission_number}</td><td>{st.full_name}</td><td><span className="history-status-text">{statusLabel(st.status)}</span></td></tr>)}</tbody></table></div>}
+    </>}
+   </div>}
+  </article>
+ })}</section></>
+}
 export function Reports(){
  type Kind='student'|'individual'|'teacher'
  const [classes,setClasses]=useState<SchoolClass[]>([]),[cid,setCid]=useState('ALL_GRADES'),[rows,setRows]=useState<any[]>([]),[studentOptions,setStudentOptions]=useState<any[]>([]),[periodRows,setPeriodRows]=useState<any[]>([]),[dailyRows,setDailyRows]=useState<any[]>([]),[kind,setKind]=useState<Kind>('student'),[studentId,setStudentId]=useState(''),[msg,setMsg]=useState(''),[from,setFrom]=useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10)),[to,setTo]=useState(new Date().toISOString().slice(0,10))
