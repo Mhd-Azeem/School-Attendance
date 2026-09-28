@@ -66,7 +66,7 @@ export function Profile(){
  }
 
  function cancelCrop(){if(crop)URL.revokeObjectURL(crop.src);setCrop(null)}
- async function removePhoto(){if(!photo)return;if(!confirm('Remove your profile picture?'))return;if(!profile?.id)return;setMsg('');try{await api('/api/profile/photo',{method:'DELETE'});removeProfilePhoto(profile.id);setPhoto('');window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}));setMsg('Profile picture removed ✓')}catch{setMsg('Could not remove the profile picture. Please try again.')}}
+ async function removePhoto(){if(!photo)return;if(!confirm('Remove your profile picture?'))return;if(!profile?.id)return;setMsg('');removeProfilePhoto(profile.id);setPhoto('');window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}));try{await api('/api/profile/photo',{method:'DELETE',silentSuccess:true});setMsg('Profile picture removed ✓')}catch{setMsg('Profile picture removed from this device. Server sync is unavailable until the backend is updated.')}}
  async function save(e:React.FormEvent){e.preventDefault();setMsg('');try{const d=await api<{user:any}>('/api/profile',{method:'PUT',body:JSON.stringify({full_name:name})});auth.setProfile(d.user);setMsg('Profile updated ✓')}catch(err){setMsg(err instanceof Error?err.message:'Could not update profile.')}}
 
  return <>
