@@ -13,7 +13,7 @@ export function Profile(){
  const inputRef=useRef<HTMLInputElement>(null)
 
  useEffect(()=>setName(profile?.full_name||''),[profile?.full_name])
- useEffect(()=>{clearLegacyProfilePhoto();const local=getProfilePhoto(profile?.id);setPhoto(local);if(!profile?.id)return;let active=true;api<{profile_photo:string|null}>('/api/profile/photo').then(x=>{if(!active)return;const remote=x.profile_photo||'';setPhoto(remote);if(remote)setProfilePhoto(profile.id,remote);else if(local)removeProfilePhoto(profile.id)}).catch(()=>{});return()=>{active=false}},[profile?.id])
+ useEffect(()=>{clearLegacyProfilePhoto();const local=getProfilePhoto(profile?.id);setPhoto(local);if(!profile?.id)return;let active=true;api<{profile_photo:string|null}>('/api/profile/photo').then(async x=>{if(!active)return;const remote=x.profile_photo||'';if(remote){setPhoto(remote);setProfilePhoto(profile.id,remote);return}if(local){try{await api('/api/profile/photo',{method:'PUT',body:JSON.stringify({profile_photo:local})});if(active)setPhoto(local)}catch{}}}).catch(()=>{});return()=>{active=false}},[profile?.id])
 
  const cropMetrics=useMemo(()=>{
   if(!crop)return null
