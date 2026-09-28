@@ -33,20 +33,36 @@ export function Profile(){
 
  async function saveCrop(){
   if(!crop||!cropMetrics)return
-  setSavingCrop(true)
+  setSavingCrop(true);setMsg('')
+  let objectUrlToRelease=''
   try{
    const img=new Image()
-   await new Promise<void>((resolve,reject)=>{img.onload=()=>resolve();img.onerror=()=>reject(new Error('image'));img.src=crop.src})
+   await new Promise<void>((resolve,reject)=>{img.onload=()=>resolve();img.onerror=()=>reject(new Error('image_decode_failed'));img.src=crop.src})
    const {size,scale,w,h,maxX,maxY}=cropMetrics,x=panX*maxX,y=panY*maxY,left=(size-w)/2+x,top=(size-h)/2+y
    const sx=Math.max(0,-left/scale),sy=Math.max(0,-top/scale),sw=Math.min(crop.width-sx,size/scale),sh=Math.min(crop.height-sy,size/scale)
-   const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512
-   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas')
-   ctx.fillStyle='#fff';ctx.fillRect(0,0,512,512);ctx.drawImage(img,sx,sy,sw,sh,0,0,512,512)
-   const v=canvas.toDataURL('image/jpeg',0.86)
-   if(!profile?.id)throw new Error('profile_missing');await api('/api/profile/photo',{method:'PUT',body:JSON.stringify({profile_photo:v})});setProfilePhoto(profile.id,v);setPhoto(v);window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}))
-   URL.revokeObjectURL(crop.src);setCrop(null);setMsg('Profile picture updated ✓')
-  }catch{setMsg('Could not crop this image. Please try another photo.')}
-  finally{setSavingCrop(false)}
+   const canvas=document.createElement('canvas');canvas.width=384;canvas.height=384
+   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas_unavailable')
+   ctx.fillStyle='#fff';ctx.fillRect(0,0,384,384);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(img,sx,sy,sw,sh,0,0,384,384)
+   const v=canvas.toDataURL('image/jpeg',0.74)
+   if(!profile?.id)throw new Error('profile_missing')
+   setProfilePhoto(profile.id,v);setPhoto(v);window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}))
+   objectUrlToRelease=crop.src;setCrop(null)
+   try{
+    await api('/api/profile/photo',{method:'PUT',body:JSON.stringify({profile_photo:v}),silentSuccess:true})
+    setMsg('Profile picture updated ✓')
+   }catch(err){
+    const reason=err instanceof Error?err.message:'sync_failed'
+    setMsg(reason==='profile_photo_too_large'?'Profile picture saved on this device, but it is still too large to sync.':'Profile picture saved on this device. Server sync is unavailable until the backend is updated.')
+   }
+  }catch(err){
+   const reason=err instanceof Error?err.message:'crop_failed'
+   if(reason==='image_decode_failed')setMsg('Could not open this image. Please try another photo.')
+   else if(reason==='canvas_unavailable')setMsg('Image editing is not supported on this device.')
+   else setMsg('Could not prepare this profile picture. Please try another photo.')
+  }finally{
+   if(objectUrlToRelease)URL.revokeObjectURL(objectUrlToRelease)
+   setSavingCrop(false)
+  }
  }
 
  function cancelCrop(){if(crop)URL.revokeObjectURL(crop.src);setCrop(null)}
