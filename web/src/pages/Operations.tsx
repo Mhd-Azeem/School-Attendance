@@ -3,7 +3,7 @@ import {api} from '../lib/api'
 import type {SchoolClass} from '../types'
 import {useAuth} from '../AuthContext'
 import {Link} from 'react-router-dom'
-import {AlertTriangle,Search,Trash2} from 'lucide-react'
+import {AlertTriangle,ChevronDown,Search,Trash2} from 'lucide-react'
 export function History(){const [mode,setMode]=useState<'student'|'period'>('student'),[classes,setClasses]=useState<SchoolClass[]>([]),[classId,setClassId]=useState(''),[rows,setRows]=useState<any[]>([]);useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(x=>{setClasses(x.classes);setClassId(x.classes[0]?.id||'')})},[]);useEffect(()=>{if(!classId)return;if(mode==='student')api<{sessions:any[]}>(`/api/history?class_id=${classId}`).then(x=>setRows(x.sessions)).catch(()=>setRows([]));else api<{history:any[]}>(`/api/period-history?class_id=${classId}`).then(x=>setRows(x.history)).catch(()=>setRows([]))},[classId,mode]);return <><div className="screen-title-row"><div><h1>Teacher History</h1><p>Review previously submitted registers.</p></div><select value={classId} onChange={e=>setClassId(e.target.value)}>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></div><div className="segmented"><button className={mode==='student'?'active':''} onClick={()=>setMode('student')}>Student</button><button className={mode==='period'?'active':''} onClick={()=>setMode('period')}>Teacher Period</button></div><section className="history-list">{rows.map((r,i)=><article key={r.session_id||r.attendance_date||i}><div><strong>{r.attendance_date}</strong><small>{r.display_name}</small></div>{mode==='student'?<><span className="status-pill submitted">✓ Submitted</span><small>P {r.present} · A {r.absent}</small></>:<><span className={Number(r.completed)===Number(r.total)?'status-pill submitted':'status-pill progress'}>{r.completed}/{r.total} Completed</span><small>{r.updated_at||''}</small></>}</article>)}</section></>}
 export function Reports(){
  type Kind='student'|'individual'|'teacher'
@@ -285,14 +285,33 @@ export function IndividualAttendance(){
 }
 
 export function StudentDeletion(){
- const [students,setStudents]=useState<any[]>([]),[search,setSearch]=useState(''),[deleting,setDeleting]=useState<string|null>(null),[bulkDeleting,setBulkDeleting]=useState(false),[selected,setSelected]=useState<Set<string>>(()=>new Set()),[error,setError]=useState(''),[msg,setMsg]=useState(''),[swipe,setSwipe]=useState(0)
+ const [students,setStudents]=useState<any[]>([]),[search,setSearch]=useState(''),[deleting,setDeleting]=useState<string|null>(null),[bulkDeleting,setBulkDeleting]=useState(false),[selected,setSelected]=useState<Set<string>>(()=>new Set()),[expandedGrades,setExpandedGrades]=useState<Set<string>>(()=>new Set()),[expandedClasses,setExpandedClasses]=useState<Set<string>>(()=>new Set()),[error,setError]=useState(''),[msg,setMsg]=useState(''),[swipe,setSwipe]=useState(0)
  const swipeRef=useRef({active:false,startX:0,width:1,pointerId:-1})
  useEffect(()=>{api<{students:any[]}>('/api/student-records').then(x=>setStudents(x.students)).catch(()=>setError('Could not load student records.'))},[])
  const filtered=useMemo(()=>students.filter(st=>`${st.full_name} ${st.admission_number} ${st.display_name}`.toLowerCase().includes(search.toLowerCase())),[students,search])
+ const grouped=useMemo(()=>{
+  const grades=new Map<string,Map<string,any[]>>()
+  for(const st of filtered){
+   const className=String(st.display_name||'Other')
+   const grade=className.includes('-')?className.split('-')[0].trim():className.trim()||'Other'
+   if(!grades.has(grade))grades.set(grade,new Map())
+   const classes=grades.get(grade)!
+   if(!classes.has(className))classes.set(className,[])
+   classes.get(className)!.push(st)
+  }
+  return [...grades.entries()].map(([grade,classes])=>({
+   grade,
+   total:[...classes.values()].reduce((n,list)=>n+list.length,0),
+   classes:[...classes.entries()].map(([className,list])=>({className,students:list.sort((a,b)=>String(a.admission_number).localeCompare(String(b.admission_number),undefined,{numeric:true,sensitivity:'base'}))})).sort((a,b)=>a.className.localeCompare(b.className,undefined,{numeric:true,sensitivity:'base'}))
+  })).sort((a,b)=>a.grade.localeCompare(b.grade,undefined,{numeric:true,sensitivity:'base'}))
+ },[filtered])
  const visibleIds=useMemo(()=>filtered.map(st=>String(st.id)),[filtered])
  const allVisibleSelected=visibleIds.length>0&&visibleIds.every(id=>selected.has(id))
  function toggle(id:string){setSelected(prev=>{const next=new Set(prev);next.has(id)?next.delete(id):next.add(id);return next})}
  function toggleVisible(){setSelected(prev=>{const next=new Set(prev);if(allVisibleSelected)visibleIds.forEach(id=>next.delete(id));else visibleIds.forEach(id=>next.add(id));return next})}
+ function toggleGrade(grade:string){setExpandedGrades(prev=>{const next=new Set(prev);next.has(grade)?next.delete(grade):next.add(grade);return next})}
+ function toggleClass(className:string){setExpandedClasses(prev=>{const next=new Set(prev);next.has(className)?next.delete(className):next.add(className);return next})}
+ function selectClass(list:any[]){const ids=list.map(st=>String(st.id)),all=ids.every(id=>selected.has(id));setSelected(prev=>{const next=new Set(prev);ids.forEach(id=>all?next.delete(id):next.add(id));return next})}
  async function remove(st:any){
   const typed=prompt(`Permanently delete ${st.full_name}?\n\nType the admission number "${st.admission_number}" to confirm.`)
   if(typed===null)return
@@ -316,7 +335,7 @@ export function StudentDeletion(){
  function swipeMove(e:any){const p=swipeRef.current;if(!p.active||p.pointerId!==e.pointerId)return;const distance=Math.max(0,Math.min(p.width,e.clientX-p.startX));setSwipe(distance/p.width)}
  function swipeEnd(e:any){const p=swipeRef.current;if(!p.active||p.pointerId!==e.pointerId)return;swipeRef.current.active=false;if(swipe>=.82){setSwipe(1);void bulkDelete()}else setSwipe(0)}
  return <>
-  <div className="screen-title-row"><div><h1>Student Deletion</h1><p>Search, select and permanently delete student records.</p></div></div>
+  <div className="screen-title-row"><div><h1>Student Deletion</h1><p>Students are separated by expandable grade and grade class.</p></div></div>
   <section className="student-delete-settings">
    <div className="danger-heading"><AlertTriangle/><div><h3>Permanent Student Deletion</h3><p>Deleting students removes their records, class history and attendance records.</p></div></div>
    <label className="search modern-search"><Search/><input placeholder="Search name, admission number or class…" value={search} onChange={e=>setSearch(e.target.value)}/></label>
@@ -324,12 +343,39 @@ export function StudentDeletion(){
     <label className="bulk-select-all"><input type="checkbox" checked={allVisibleSelected} onChange={toggleVisible}/><span>{allVisibleSelected?'Deselect visible':'Select all visible'}</span></label>
     <strong>{selected.size} selected</strong>
    </div>
-   <div className="danger-note"><strong>Permanent action</strong><span>Individual deletion uses admission-number confirmation. Bulk deletion requires a full swipe to confirm.</span></div>
-   <div className="student-delete-list bulk-student-delete-list">{filtered.map(st=><article key={st.id} className={selected.has(String(st.id))?'selected':''}>
-    <label className="bulk-student-checkbox" aria-label={`Select ${st.full_name}`}><input type="checkbox" checked={selected.has(String(st.id))} onChange={()=>toggle(String(st.id))}/><span/></label>
-    <div><strong>{st.full_name}</strong><small>{st.admission_number} · {st.display_name}</small></div>
-    <button className="permanent-delete" disabled={deleting===st.id||bulkDeleting} onClick={()=>remove(st)}><Trash2/>{deleting===st.id?'Deleting…':'Delete'}</button>
-   </article>)}{!filtered.length&&<div className="empty-mini">No matching students.</div>}</div>
+   <div className="danger-note"><strong>Permanent action</strong><span>Expand a grade, then a grade class. Bulk deletion requires a full swipe to confirm.</span></div>
+   <div className="student-delete-grade-groups">
+    {grouped.map(group=>{
+     const gradeOpen=search.trim()?true:expandedGrades.has(group.grade)
+     return <section className="student-delete-grade" key={group.grade}>
+      <button type="button" className="student-delete-grade-head" onClick={()=>toggleGrade(group.grade)}>
+       <div><strong>Grade {group.grade}</strong><small>{group.total} student{group.total===1?'':'s'} · {group.classes.length} class{group.classes.length===1?'':'es'}</small></div>
+       <ChevronDown className={gradeOpen?'rotated':''}/>
+      </button>
+      {gradeOpen&&<div className="student-delete-class-groups">
+       {group.classes.map(cls=>{
+        const classOpen=search.trim()?true:expandedClasses.has(cls.className)
+        const ids=cls.students.map(st=>String(st.id)),allClassSelected=ids.length>0&&ids.every(id=>selected.has(id))
+        return <section className="student-delete-class" key={cls.className}>
+         <div className="student-delete-class-head">
+          <button type="button" className="student-delete-class-toggle" onClick={()=>toggleClass(cls.className)}>
+           <div><strong>{cls.className}</strong><small>{cls.students.length} student{cls.students.length===1?'':'s'}</small></div>
+           <ChevronDown className={classOpen?'rotated':''}/>
+          </button>
+          <label className="class-select-all"><input type="checkbox" checked={allClassSelected} onChange={()=>selectClass(cls.students)}/><span>{allClassSelected?'Deselect class':'Select class'}</span></label>
+         </div>
+         {classOpen&&<div className="student-delete-list bulk-student-delete-list">{cls.students.map(st=><article key={st.id} className={selected.has(String(st.id))?'selected':''}>
+          <label className="bulk-student-checkbox" aria-label={`Select ${st.full_name}`}><input type="checkbox" checked={selected.has(String(st.id))} onChange={()=>toggle(String(st.id))}/><span/></label>
+          <div><strong>{st.full_name}</strong><small>{st.admission_number}</small></div>
+          <button className="permanent-delete" disabled={deleting===st.id||bulkDeleting} onClick={()=>remove(st)}><Trash2/>{deleting===st.id?'Deleting…':'Delete'}</button>
+         </article>)}</div>}
+        </section>
+       })}
+      </div>}
+     </section>
+    })}
+    {!grouped.length&&<div className="empty-mini">No matching students.</div>}
+   </div>
    <div className={`bulk-swipe-wrap ${selected.size?'enabled':''}`}>
     <div className="bulk-swipe-label"><strong>{bulkDeleting?'Deleting selected students…':selected.size?`Swipe to delete ${selected.size} selected`:'Select students to enable bulk delete'}</strong><small>{selected.size?'This cannot be undone.':''}</small></div>
     <div className="bulk-swipe-track" onPointerDown={swipeStart} onPointerMove={swipeMove} onPointerUp={swipeEnd} onPointerCancel={()=>{swipeRef.current.active=false;setSwipe(0)}} style={{'--swipe-progress':swipe} as any}>
