@@ -197,10 +197,10 @@ export function Settings(){
  const {profile}=useAuth(),admin=profile?.role==='SECTION_HEAD'
  const [s,setS]=useState<any>({attendance_threshold:'80',school_timezone:'Asia/Colombo',teacher_correction_allowed:'false'}),[msg,setMsg]=useState(''),[error,setError]=useState('')
  const [teachers,setTeachers]=useState<any[]>([]),[teacherSearch,setTeacherSearch]=useState(''),[deletingTeacher,setDeletingTeacher]=useState<string|null>(null)
- const [tempHeads,setTempHeads]=useState<any[]>([]),[tempName,setTempName]=useState(''),[tempUsername,setTempUsername]=useState(''),[tempPassword,setTempPassword]=useState(''),[tempAllowed,setTempAllowed]=useState(true),[tempBackendReady,setTempBackendReady]=useState(true),[creatingTemp,setCreatingTemp]=useState(false)
+ const [tempHeads,setTempHeads]=useState<any[]>([]),[tempName,setTempName]=useState(''),[tempUsername,setTempUsername]=useState(''),[tempPassword,setTempPassword]=useState(''),[tempAllowed,setTempAllowed]=useState(false),[tempBackendReady,setTempBackendReady]=useState(true),[creatingTemp,setCreatingTemp]=useState(false)
  const [fontSize,setFontSize]=useState<'small'|'default'|'large'|'extra-large'>(()=>{const v=localStorage.getItem('school-attendance-font-size');return v==='small'||v==='large'||v==='extra-large'?v:'default'})
  function changeFontSize(value:'small'|'default'|'large'|'extra-large'){setFontSize(value);localStorage.setItem('school-attendance-font-size',value);document.documentElement.dataset.fontSize=value}
- useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true);setTempBackendReady(true)}).catch((e:any)=>{if(e?.message==='primary_section_head_only'||e?.message==='forbidden')setTempAllowed(false);else{setTempAllowed(true);setTempBackendReady(false)}})}},[admin])
+ useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true);setTempBackendReady(true)}).catch((e:any)=>{if(e?.message==='primary_section_head_only'||e?.message==='forbidden')setTempAllowed(false);else{setTempAllowed(false);setTempBackendReady(false)}})}},[admin])
  const filteredTeachers=useMemo(()=>teachers.filter(t=>`${t.full_name} ${t.username}`.toLowerCase().includes(teacherSearch.toLowerCase())),[teachers,teacherSearch])
  async function deleteTeacher(t:any){const typed=prompt(`Permanently delete teacher ${t.full_name}?\n\nType the username "${t.username}" to confirm.`);if(typed===null)return;if(typed.trim().toLowerCase()!==String(t.username).toLowerCase()){setError('Username did not match.');return}setDeletingTeacher(t.id);try{await api(`/api/teachers/${encodeURIComponent(t.id)}`,{method:'DELETE'});setTeachers(xs=>xs.filter(x=>x.id!==t.id));setMsg(`${t.full_name} was permanently deleted ✓`)}catch{setError('Could not permanently delete this teacher.')}finally{setDeletingTeacher(null)}}
 
@@ -241,9 +241,9 @@ export function Settings(){
   </div>
  </details>}
 
- <details className="settings-form settings-accordion"><summary className="settings-summary"><strong>Student Deletion</strong><span>Individual or bulk permanent student removal</span></summary><div className="settings-accordion-content"><p>Search students, delete one record at a time, or select multiple students and use swipe-to-confirm bulk deletion.</p><Link className="primary" to="/student-deletion">Open Student Deletion</Link></div></details>
+ {(!admin||tempAllowed)&&<details className="settings-form settings-accordion"><summary className="settings-summary"><strong>Student Deletion</strong><span>Individual or bulk permanent student removal</span></summary><div className="settings-accordion-content"><p>Search students, delete one record at a time, or select multiple students and use swipe-to-confirm bulk deletion.</p><Link className="primary" to="/student-deletion">Open Student Deletion</Link></div></details>}
 
- {admin&&<details className="student-delete-settings settings-accordion"><summary className="settings-summary danger-settings-summary"><strong>Permanent Teacher Deletion</strong><span>Section Head only · destructive action</span></summary><div className="settings-accordion-content"><div className="danger-heading"><AlertTriangle/><div><p>Permanently removes the teacher account, class assignments, sessions and teacher attendance records.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search teacher name or username…" value={teacherSearch} onChange={e=>setTeacherSearch(e.target.value)}/></label><div className="danger-note"><strong>Permanent action</strong><span>You must type the teacher's username to confirm deletion.</span></div><div className="student-delete-list">{filteredTeachers.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username}{t.class_teacher_of?.display_name?` · Class Teacher ${t.class_teacher_of.display_name}`:''}</small></div><button className="permanent-delete" disabled={deletingTeacher===t.id} onClick={()=>deleteTeacher(t)}><Trash2/>{deletingTeacher===t.id?'Deleting…':'Delete Permanently'}</button></article>)}{!filteredTeachers.length&&<div className="empty-mini">No matching teachers.</div>}</div></div></details>}
+ {admin&&tempAllowed&&<details className="student-delete-settings settings-accordion"><summary className="settings-summary danger-settings-summary"><strong>Permanent Teacher Deletion</strong><span>Section Head only · destructive action</span></summary><div className="settings-accordion-content"><div className="danger-heading"><AlertTriangle/><div><p>Permanently removes the teacher account, class assignments, sessions and teacher attendance records.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search teacher name or username…" value={teacherSearch} onChange={e=>setTeacherSearch(e.target.value)}/></label><div className="danger-note"><strong>Permanent action</strong><span>You must type the teacher's username to confirm deletion.</span></div><div className="student-delete-list">{filteredTeachers.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username}{t.class_teacher_of?.display_name?` · Class Teacher ${t.class_teacher_of.display_name}`:''}</small></div><button className="permanent-delete" disabled={deletingTeacher===t.id} onClick={()=>deleteTeacher(t)}><Trash2/>{deletingTeacher===t.id?'Deleting…':'Delete Permanently'}</button></article>)}{!filteredTeachers.length&&<div className="empty-mini">No matching teachers.</div>}</div></div></details>}
  {error&&<div className="error">{error}</div>}{msg&&<div className="notice">{msg}</div>}
 
  <details className="settings-form about-section settings-accordion">
@@ -285,9 +285,21 @@ export function IndividualAttendance(){
 }
 
 export function StudentDeletion(){
- const [students,setStudents]=useState<any[]>([]),[search,setSearch]=useState(''),[deleting,setDeleting]=useState<string|null>(null),[bulkDeleting,setBulkDeleting]=useState(false),[selected,setSelected]=useState<Set<string>>(()=>new Set()),[expandedGrades,setExpandedGrades]=useState<Set<string>>(()=>new Set()),[expandedClasses,setExpandedClasses]=useState<Set<string>>(()=>new Set()),[error,setError]=useState(''),[msg,setMsg]=useState(''),[swipe,setSwipe]=useState(0)
+ const {profile}=useAuth()
+ const [students,setStudents]=useState<any[]>([]),[search,setSearch]=useState(''),[deleting,setDeleting]=useState<string|null>(null),[bulkDeleting,setBulkDeleting]=useState(false),[selected,setSelected]=useState<Set<string>>(()=>new Set()),[expandedGrades,setExpandedGrades]=useState<Set<string>>(()=>new Set()),[expandedClasses,setExpandedClasses]=useState<Set<string>>(()=>new Set()),[deleteAllowed,setDeleteAllowed]=useState(profile?.role!=='SECTION_HEAD'),[accessChecked,setAccessChecked]=useState(profile?.role!=='SECTION_HEAD'),[error,setError]=useState(''),[msg,setMsg]=useState(''),[swipe,setSwipe]=useState(0)
  const swipeRef=useRef({active:false,startX:0,width:1,pointerId:-1})
- useEffect(()=>{api<{students:any[]}>('/api/student-records').then(x=>setStudents(x.students)).catch(()=>setError('Could not load student records.'))},[])
+ useEffect(()=>{
+  let active=true
+  async function load(){
+   if(profile?.role==='SECTION_HEAD'){
+    try{await api('/api/temporary-section-heads');if(!active)return;setDeleteAllowed(true)}
+    catch{if(!active)return;setDeleteAllowed(false);setAccessChecked(true);return}
+   }else setDeleteAllowed(true)
+   try{const x=await api<{students:any[]}>('/api/student-records');if(active)setStudents(x.students)}catch{if(active)setError('Could not load student records.')}
+   if(active)setAccessChecked(true)
+  }
+  load();return()=>{active=false}
+ },[profile?.role])
  const filtered=useMemo(()=>students.filter(st=>`${st.full_name} ${st.admission_number} ${st.display_name}`.toLowerCase().includes(search.toLowerCase())),[students,search])
  const grouped=useMemo(()=>{
   const grades=new Map<string,Map<string,any[]>>()
@@ -334,6 +346,8 @@ export function StudentDeletion(){
  function swipeStart(e:any){if(!selected.size||bulkDeleting)return;const rect=e.currentTarget.getBoundingClientRect();swipeRef.current={active:true,startX:e.clientX,width:Math.max(1,rect.width-58),pointerId:e.pointerId};e.currentTarget.setPointerCapture?.(e.pointerId)}
  function swipeMove(e:any){const p=swipeRef.current;if(!p.active||p.pointerId!==e.pointerId)return;const distance=Math.max(0,Math.min(p.width,e.clientX-p.startX));setSwipe(distance/p.width)}
  function swipeEnd(e:any){const p=swipeRef.current;if(!p.active||p.pointerId!==e.pointerId)return;swipeRef.current.active=false;if(swipe>=.82){setSwipe(1);void bulkDelete()}else setSwipe(0)}
+ if(!accessChecked)return <div className="loading">Checking deletion permission…</div>
+ if(!deleteAllowed)return <><div className="screen-title-row"><div><h1>Student Deletion</h1><p>Permanent deletion is restricted.</p></div></div><div className="error">Temporary Section Head accounts cannot delete students or teachers. Only the primary Section Head can perform permanent deletion.</div></>
  return <>
   <div className="screen-title-row"><div><h1>Student Deletion</h1><p>Students are separated by expandable grade and grade class.</p></div></div>
   <section className="student-delete-settings">
