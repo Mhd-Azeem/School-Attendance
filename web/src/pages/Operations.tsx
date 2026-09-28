@@ -308,7 +308,6 @@ export function StudentDeletion(){
   setBulkDeleting(true);setError('');setMsg('')
   let deleted=0,failed=0
   for(const st of targets){try{await api(`/api/students/${encodeURIComponent(st.id)}`,{method:'DELETE',silentSuccess:true});deleted++}catch{failed++}}
-  const deletedIds=new Set(targets.slice(0,deleted).map(st=>String(st.id)))
   if(failed===0){setStudents(xs=>xs.filter(st=>!selected.has(String(st.id))));setSelected(new Set());setMsg(`${deleted} student${deleted===1?'':'s'} permanently deleted ✓`)}
   else{try{const fresh=await api<{students:any[]}>('/api/student-records');setStudents(fresh.students);const existing=new Set(fresh.students.map(st=>String(st.id)));setSelected(prev=>new Set([...prev].filter(id=>existing.has(id))))}catch{}setError(`${deleted} deleted, ${failed} could not be deleted.`)}
   setBulkDeleting(false);setSwipe(0)
