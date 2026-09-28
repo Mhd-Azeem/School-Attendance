@@ -14,7 +14,7 @@ export async function api<T=any>(path:string,options:ApiOptions={}):Promise<T>{
  let data:any={};try{data=await res.json()}catch{}
  if(!res.ok){if(res.status===401)setToken(null);throw new Error(data.error||`request_failed_${res.status}`)}
  const method=String(requestOptions.method||'GET').toUpperCase()
- const silent=silentSuccess||path==='/api/auth/login'||path==='/api/auth/logout'||/\/api\/notifications\/[^/]+\/read$/.test(path)
+ const silent=silentSuccess||(path==='/api/students'&&method==='POST')||path==='/api/auth/login'||path==='/api/auth/logout'||/\/api\/notifications\/[^/]+\/read$/.test(path)
  if(method!=='GET'&&!silent&&typeof window!=='undefined')window.dispatchEvent(new CustomEvent('app-success',{detail:{title:successMessage(method),message:'Your changes have been saved.'}}))
  return data as T
 }
