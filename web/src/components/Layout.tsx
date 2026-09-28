@@ -133,7 +133,7 @@ export function Layout(){
    try{
     const server=await api<{notifications:any[]}>('/api/notifications')
     for(const n of server.notifications){
-     const notice={id:'server-'+n.id,backendId:n.id,read:!!n.is_read,title:n.title,text:n.message,tone:n.is_read?'info':'warn' as const}
+     const notice:Notice={id:'server-'+n.id,backendId:n.id,read:!!n.is_read,title:n.title,text:n.message,tone:n.is_read?'info':'warn'}
      next.push(notice)
      if(!n.is_read){
       try{(window as any).AndroidNotifications?.show?.(notice.id,notice.title,notice.text)}catch{}
