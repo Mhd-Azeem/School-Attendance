@@ -376,14 +376,16 @@ export function StudentDeletion(){
     })}
     {!grouped.length&&<div className="empty-mini">No matching students.</div>}
    </div>
-   <div className={`bulk-swipe-wrap ${selected.size?'enabled':''}`}>
-    <div className="bulk-swipe-label"><strong>{bulkDeleting?'Deleting selected students…':selected.size?`Swipe to delete ${selected.size} selected`:'Select students to enable bulk delete'}</strong><small>{selected.size?'This cannot be undone.':''}</small></div>
+  </section>
+  {selected.size>0&&<div className="bulk-swipe-floating-shell">
+   <div className="bulk-swipe-floating">
+    <div className="bulk-swipe-label"><strong>{bulkDeleting?'Deleting selected students…':`${selected.size} student${selected.size===1?'':'s'} selected`}</strong><small>{bulkDeleting?'Please wait…':'Swipe to permanently delete · This cannot be undone'}</small></div>
     <div className="bulk-swipe-track" onPointerDown={swipeStart} onPointerMove={swipeMove} onPointerUp={swipeEnd} onPointerCancel={()=>{swipeRef.current.active=false;setSwipe(0)}} style={{'--swipe-progress':swipe} as any}>
      <div className="bulk-swipe-fill"/>
      <div className="bulk-swipe-thumb"><Trash2 size={18}/></div>
-     <span>Swipe to confirm</span>
+     <span>{bulkDeleting?'Deleting…':'Swipe to confirm'}</span>
     </div>
    </div>
-  </section>
+  </div>}
   {error&&<div className="error">{error}</div>}{msg&&<div className="notice">{msg}</div>}
  </>}
