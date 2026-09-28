@@ -1,6 +1,7 @@
 package com.azeem.schoolattendance
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.ContentValues
@@ -8,6 +9,7 @@ import android.provider.MediaStore
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.os.Environment
 import android.webkit.JavascriptInterface
 import android.widget.Toast
@@ -23,6 +25,8 @@ import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -33,6 +37,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
     private lateinit var appUpdater: AppUpdater
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+
 
     private val fileChooserLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -95,6 +104,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }, "AndroidDownloads")
+            addJavascriptInterface(object {
+                @JavascriptInterface fun setAuthToken(token: String) {
+                    getSharedPreferences("school_native_auth", MODE_PRIVATE)
+                        .edit().putString("auth_token", token).apply()
+                    NotificationSyncWorker.schedule(this@MainActivity)
+                    NotificationSyncWorker.runNow(this@MainActivity)
+                }
+
+                @JavascriptInterface fun clearAuthToken() {
+                    getSharedPreferences("school_native_auth", MODE_PRIVATE)
+                        .edit().remove("auth_token").apply()
+                }
+
+                @JavascriptInterface fun show(id: String, title: String, message: String) {
+                    SchoolNotificationManager.show(this@MainActivity, id, title, message)
+                }
+            }, "AndroidNotifications")
             setBackgroundColor(Color.parseColor("#F4FAF7"))
             webChromeClient = object : WebChromeClient() {
                 override fun onShowFileChooser(
@@ -145,6 +171,14 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = false
         }
 
+        SchoolNotificationManager.createChannel(this)
+        NotificationSyncWorker.schedule(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
         appUpdater = AppUpdater(this)
 
         if (savedInstanceState == null) {
@@ -152,6 +186,12 @@ class MainActivity : ComponentActivity() {
             appUpdater.checkForUpdates()
         } else {
             webView.restoreState(savedInstanceState)
+        }
+
+        if (intent?.getBooleanExtra("open_notifications", false) == true) {
+            webView.postDelayed({
+                webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('open-notifications'))", null)
+            }, 900)
         }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -164,6 +204,14 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (::appUpdater.isInitialized) appUpdater.onResume()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra("open_notifications", false) && ::webView.isInitialized) {
+            webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('open-notifications'))", null)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
