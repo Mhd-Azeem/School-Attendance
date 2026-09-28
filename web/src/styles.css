@@ -697,3 +697,68 @@ button:disabled,.primary:disabled,.submit:disabled{
  .individual-report-official h2{font-size:14px}
  .individual-report-profile h3{font-size:13px}
 }
+
+
+/* Bulk student deletion */
+.bulk-delete-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:10px 12px;border:1px solid #ecd7d9;border-radius:12px;background:#fffafa}
+.bulk-delete-toolbar>strong{font-size:11px;color:#a92834}
+.bulk-select-all{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:#6d2a31}
+.bulk-select-all input{width:17px;height:17px;accent-color:#b92e39}
+.bulk-student-delete-list article{display:flex;align-items:center;gap:10px}
+.bulk-student-delete-list article.selected{background:#fff4f5}
+.bulk-student-checkbox{display:grid;place-items:center;flex:none}
+.bulk-student-checkbox input{width:18px;height:18px;accent-color:#b92e39}
+.bulk-swipe-wrap{margin-top:16px;padding-top:14px;border-top:1px solid #f0dfe1;opacity:.55}
+.bulk-swipe-wrap.enabled{opacity:1}
+.bulk-swipe-label{display:grid;gap:3px;margin-bottom:9px}
+.bulk-swipe-label strong{font-size:12px;color:#9f2731}
+.bulk-swipe-label small{font-size:10px;color:#8a686c}
+.bulk-swipe-track{
+ --swipe-progress:0;
+ position:relative;
+ height:54px;
+ border-radius:999px;
+ border:1px solid #e0aeb3;
+ background:#fff2f3;
+ overflow:hidden;
+ touch-action:none;
+ user-select:none;
+ -webkit-user-select:none;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ color:#9d3b43;
+ font-size:11px;
+ font-weight:800;
+ letter-spacing:.01em;
+}
+.bulk-swipe-wrap:not(.enabled) .bulk-swipe-track{pointer-events:none}
+.bulk-swipe-fill{
+ position:absolute;
+ inset:0 auto 0 0;
+ width:calc(var(--swipe-progress) * 100%);
+ background:#f1c6ca;
+ transition:width .08s linear;
+}
+.bulk-swipe-thumb{
+ position:absolute;
+ z-index:2;
+ left:4px;
+ top:4px;
+ width:46px;
+ height:46px;
+ border-radius:50%;
+ display:grid;
+ place-items:center;
+ background:#b92e39;
+ color:#fff;
+ transform:translateX(calc(var(--swipe-progress) * (100% - 54px)));
+ transition:transform .08s linear;
+ box-shadow:none;
+}
+.bulk-swipe-track span{position:relative;z-index:1;pointer-events:none}
+@media(max-width:520px){
+ .bulk-delete-toolbar{align-items:flex-start;flex-direction:column}
+ .bulk-student-delete-list article{align-items:flex-start}
+ .bulk-student-delete-list .permanent-delete{padding:7px 9px}
+}
