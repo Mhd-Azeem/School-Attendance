@@ -10,5 +10,11 @@ if(savedFontSize&&['small','default','large','extra-large'].includes(savedFontSi
 else document.documentElement.dataset.fontSize='default'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><HashRouter><AuthProvider><App/></AuthProvider></HashRouter></React.StrictMode>)
-if(location.protocol.startsWith('http')&&'serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`))
+const isNativeWebView=location.hostname==='appassets.androidplatform.net'
+if('serviceWorker'in navigator&&isNativeWebView){
+ navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{})
+ if('caches'in window)caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{})
+}else if(location.protocol.startsWith('http')&&'serviceWorker'in navigator&&import.meta.env.PROD){
+ window.addEventListener('load',()=>navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`))
+}
 
