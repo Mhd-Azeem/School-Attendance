@@ -787,3 +787,43 @@ button:disabled,.primary:disabled,.submit:disabled{
  .student-delete-class-head{align-items:stretch;flex-direction:column;padding:0}
  .class-select-all{padding:0 12px 10px}
 }
+
+
+/* Floating bulk-delete confirmation */
+.bulk-swipe-floating-shell{
+ position:fixed;
+ left:0;
+ right:0;
+ bottom:calc(78px + var(--safe-bottom));
+ z-index:78;
+ display:flex;
+ justify-content:center;
+ pointer-events:none;
+ padding:0 12px;
+}
+.bulk-swipe-floating{
+ width:min(560px,100%);
+ padding:10px;
+ border:1px solid #e4bcc0;
+ border-radius:16px;
+ background:#fffafa;
+ box-shadow:0 14px 34px #5a101a2c;
+ pointer-events:auto;
+}
+.bulk-swipe-floating .bulk-swipe-label{
+ margin-bottom:8px;
+}
+.bulk-swipe-floating .bulk-swipe-track{
+ height:52px;
+}
+.student-delete-settings{
+ padding-bottom:120px;
+}
+@media(min-width:701px){
+ .bulk-swipe-floating-shell{
+  bottom:20px;
+ }
+ .student-delete-settings{
+  padding-bottom:90px;
+ }
+}
