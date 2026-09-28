@@ -3,16 +3,18 @@ export type ApiUser={id:string;full_name:string;username:string;role:'SECTION_HE
 export function getToken(){return localStorage.getItem('school_attendance_token')}
 export function setToken(token:string|null){if(token)localStorage.setItem('school_attendance_token',token);else localStorage.removeItem('school_attendance_token')}
 function successMessage(method:string){if(method==='DELETE')return 'Deleted Successfully';if(method==='POST')return 'Submitted Successfully';return 'Updated Successfully'}
-export async function api<T=any>(path:string,options:RequestInit={}):Promise<T>{
+type ApiOptions=RequestInit&{silentSuccess?:boolean}
+export async function api<T=any>(path:string,options:ApiOptions={}):Promise<T>{
+ const {silentSuccess=false,...requestOptions}=options
  const token=getToken()
- const headers=new Headers(options.headers)
- if(options.body&&!headers.has('content-type'))headers.set('content-type','application/json')
+ const headers=new Headers(requestOptions.headers)
+ if(requestOptions.body&&!headers.has('content-type'))headers.set('content-type','application/json')
  if(token)headers.set('authorization',`Bearer ${token}`)
- const res=await fetch(`${API_BASE}${path}`,{...options,headers})
+ const res=await fetch(`${API_BASE}${path}`,{...requestOptions,headers})
  let data:any={};try{data=await res.json()}catch{}
  if(!res.ok){if(res.status===401)setToken(null);throw new Error(data.error||`request_failed_${res.status}`)}
- const method=String(options.method||'GET').toUpperCase()
- const silent=path==='/api/auth/login'||path==='/api/auth/logout'||/\/api\/notifications\/[^/]+\/read$/.test(path)
+ const method=String(requestOptions.method||'GET').toUpperCase()
+ const silent=silentSuccess||path==='/api/auth/login'||path==='/api/auth/logout'||/\/api\/notifications\/[^/]+\/read$/.test(path)
  if(method!=='GET'&&!silent&&typeof window!=='undefined')window.dispatchEvent(new CustomEvent('app-success',{detail:{title:successMessage(method),message:'Your changes have been saved.'}}))
  return data as T
 }
