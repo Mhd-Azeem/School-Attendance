@@ -117,6 +117,11 @@ export function Layout(){
   return()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',close)}
  },[menuOpen])
  useEffect(()=>{loadNotifications()},[profile?.role])
+ useEffect(()=>{
+  const open=()=>{setNotificationsOpen(true);setMenuOpen(false);void loadNotifications()}
+  window.addEventListener('open-notifications',open)
+  return()=>window.removeEventListener('open-notifications',open)
+ },[profile?.role])
  useEffect(()=>{const show=(e:Event)=>{const d=(e as CustomEvent<{title?:string;message?:string}>).detail||{};setSuccessPopup({title:d.title||'Submitted Successfully',message:d.message||'Your changes have been saved.'})};window.addEventListener('app-success',show);return()=>window.removeEventListener('app-success',show)},[])
 
  async function loadNotifications(){
@@ -125,7 +130,16 @@ export function Layout(){
   try{
    const today=schoolDate()
    const next:Notice[]=[]
-   try{const server=await api<{notifications:any[]}>('/api/notifications');for(const n of server.notifications){next.push({id:'server-'+n.id,backendId:n.id,read:!!n.is_read,title:n.title,text:n.message,tone:n.is_read?'info':'warn'})}}catch{}
+   try{
+    const server=await api<{notifications:any[]}>('/api/notifications')
+    for(const n of server.notifications){
+     const notice={id:'server-'+n.id,backendId:n.id,read:!!n.is_read,title:n.title,text:n.message,tone:n.is_read?'info':'warn' as const}
+     next.push(notice)
+     if(!n.is_read){
+      try{(window as any).AndroidNotifications?.show?.(notice.id,notice.title,notice.text)}catch{}
+     }
+    }
+   }catch{}
    if(profile.role==='SECTION_HEAD'){
     const d=await api<{classes:any[]}>(`/api/dashboard/today?date=${today}`)
     for(const c of d.classes){
