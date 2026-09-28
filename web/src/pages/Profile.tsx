@@ -13,7 +13,7 @@ export function Profile(){
  const inputRef=useRef<HTMLInputElement>(null)
 
  useEffect(()=>setName(profile?.full_name||''),[profile?.full_name])
- useEffect(()=>{clearLegacyProfilePhoto();setPhoto(getProfilePhoto(profile?.id))},[profile?.id])
+ useEffect(()=>{clearLegacyProfilePhoto();const local=getProfilePhoto(profile?.id);setPhoto(local);if(!profile?.id)return;let active=true;api<{profile_photo:string|null}>('/api/profile/photo').then(x=>{if(!active)return;const remote=x.profile_photo||'';setPhoto(remote);if(remote)setProfilePhoto(profile.id,remote);else if(local)removeProfilePhoto(profile.id)}).catch(()=>{});return()=>{active=false}},[profile?.id])
 
  const cropMetrics=useMemo(()=>{
   if(!crop)return null
@@ -43,14 +43,14 @@ export function Profile(){
    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas')
    ctx.fillStyle='#fff';ctx.fillRect(0,0,512,512);ctx.drawImage(img,sx,sy,sw,sh,0,0,512,512)
    const v=canvas.toDataURL('image/jpeg',0.86)
-   if(!profile?.id)throw new Error('profile_missing');setProfilePhoto(profile.id,v);setPhoto(v);window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}))
+   if(!profile?.id)throw new Error('profile_missing');await api('/api/profile/photo',{method:'PUT',body:JSON.stringify({profile_photo:v})});setProfilePhoto(profile.id,v);setPhoto(v);window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}))
    URL.revokeObjectURL(crop.src);setCrop(null);setMsg('Profile picture updated ✓')
   }catch{setMsg('Could not crop this image. Please try another photo.')}
   finally{setSavingCrop(false)}
  }
 
  function cancelCrop(){if(crop)URL.revokeObjectURL(crop.src);setCrop(null)}
- function removePhoto(){if(!photo)return;if(!confirm('Remove your profile picture?'))return;if(!profile?.id)return;removeProfilePhoto(profile.id);setPhoto('');window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}));setMsg('Profile picture removed ✓')}
+ async function removePhoto(){if(!photo)return;if(!confirm('Remove your profile picture?'))return;if(!profile?.id)return;setMsg('');try{await api('/api/profile/photo',{method:'DELETE'});removeProfilePhoto(profile.id);setPhoto('');window.dispatchEvent(new CustomEvent('profile-photo-changed',{detail:{userId:profile.id}}));setMsg('Profile picture removed ✓')}catch{setMsg('Could not remove the profile picture. Please try again.')}}
  async function save(e:React.FormEvent){e.preventDefault();setMsg('');try{const d=await api<{user:any}>('/api/profile',{method:'PUT',body:JSON.stringify({full_name:name})});auth.setProfile(d.user);setMsg('Profile updated ✓')}catch(err){setMsg(err instanceof Error?err.message:'Could not update profile.')}}
 
  return <>
