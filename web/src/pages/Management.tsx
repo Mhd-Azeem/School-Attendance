@@ -27,6 +27,7 @@ export function Students(){
   e.preventDefault();setError('')
   try{
    await api('/api/students',{method:'POST',body:JSON.stringify(form)})
+   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('app-success',{detail:{title:'Student Added',message:`${form.full_name} was added successfully.`}}))
    setForm(x=>({...x,admission_number:'',full_name:''}));await load()
   }catch(e){setError(e instanceof Error&&e.message==='admission_number_exists'?'Admission number already exists.':'Could not add student.')}
  }
