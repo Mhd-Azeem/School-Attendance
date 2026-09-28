@@ -1,9 +1,10 @@
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {ChevronDown,KeyRound,Pencil,Save,Search,UserRound,X} from 'lucide-react'
 import {api} from '../lib/api'
+import {getProfilePhoto} from '../lib/profilePhoto'
 import type {SchoolClass,Student} from '../types'
 type S=Student&{display_name:string}
-type T={id:string;full_name:string;username:string;is_active:number;classes:SchoolClass[];class_teacher_of?:SchoolClass|null}
+type T={id:string;full_name:string;username:string;is_active:number;profile_photo?:string|null;classes:SchoolClass[];class_teacher_of?:SchoolClass|null}
 
 export function Students(){
  const [students,setStudents]=useState<S[]>([]),[classes,setClasses]=useState<SchoolClass[]>([]),[search,setSearch]=useState(''),[form,setForm]=useState({admission_number:'',full_name:'',class_id:''}),[error,setError]=useState(''),[msg,setMsg]=useState(''),[expandedClass,setExpandedClass]=useState<string|null>(null),[bulkOpen,setBulkOpen]=useState(false),[bulkClass,setBulkClass]=useState(''),[bulkText,setBulkText]=useState(''),[bulkBusy,setBulkBusy]=useState(false)
@@ -160,7 +161,7 @@ export function Teachers(){
 
   <section className="teacher-list">{rows.map(t=><div className="teacher-management-item" key={t.id}>
    <article>
-    <span className="teacher-avatar"><UserRound/></span>
+    <span className="teacher-avatar">{(t.profile_photo||getProfilePhoto(t.id))?<img src={t.profile_photo||getProfilePhoto(t.id)} alt={`${t.full_name} profile`}/>:<UserRound/>}</span>
     <div><strong>{t.full_name}</strong><small>@{t.username}</small><small>{t.class_teacher_of?`Class Teacher · ${t.class_teacher_of.display_name}`:'Not assigned as class teacher'}</small><small>Access: {t.classes.length?t.classes.map(c=>c.display_name).join(', '):'No classes'}</small></div>
     <span className={t.is_active?'status-pill active':'status-pill waiting'}>{t.is_active?'Active':'Disabled'}</span>
     <button className="teacher-edit-button" type="button" onClick={()=>editId===t.id?setEditId(null):beginEdit(t)}>{editId===t.id?<X/>:<Pencil/>}<span>{editId===t.id?'Close':'Edit'}</span></button>
