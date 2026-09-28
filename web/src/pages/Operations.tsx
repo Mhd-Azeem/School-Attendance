@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useEffect,useMemo,useRef,useState} from 'react'
 import {api} from '../lib/api'
 import type {SchoolClass} from '../types'
 import {useAuth} from '../AuthContext'
@@ -241,7 +241,7 @@ export function Settings(){
   </div>
  </details>}
 
- <details className="settings-form settings-accordion"><summary className="settings-summary"><strong>Student Deletion</strong><span>Search and permanently remove student records</span></summary><div className="settings-accordion-content"><p>Open the permanent student deletion page to search and remove student records.</p><Link className="primary" to="/student-deletion">Open Student Deletion</Link></div></details>
+ <details className="settings-form settings-accordion"><summary className="settings-summary"><strong>Student Deletion</strong><span>Individual or bulk permanent student removal</span></summary><div className="settings-accordion-content"><p>Search students, delete one record at a time, or select multiple students and use swipe-to-confirm bulk deletion.</p><Link className="primary" to="/student-deletion">Open Student Deletion</Link></div></details>
 
  {admin&&<details className="student-delete-settings settings-accordion"><summary className="settings-summary danger-settings-summary"><strong>Permanent Teacher Deletion</strong><span>Section Head only · destructive action</span></summary><div className="settings-accordion-content"><div className="danger-heading"><AlertTriangle/><div><p>Permanently removes the teacher account, class assignments, sessions and teacher attendance records.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search teacher name or username…" value={teacherSearch} onChange={e=>setTeacherSearch(e.target.value)}/></label><div className="danger-note"><strong>Permanent action</strong><span>You must type the teacher's username to confirm deletion.</span></div><div className="student-delete-list">{filteredTeachers.map(t=><article key={t.id}><div><strong>{t.full_name}</strong><small>@{t.username}{t.class_teacher_of?.display_name?` · Class Teacher ${t.class_teacher_of.display_name}`:''}</small></div><button className="permanent-delete" disabled={deletingTeacher===t.id} onClick={()=>deleteTeacher(t)}><Trash2/>{deletingTeacher===t.id?'Deleting…':'Delete Permanently'}</button></article>)}{!filteredTeachers.length&&<div className="empty-mini">No matching teachers.</div>}</div></div></details>}
  {error&&<div className="error">{error}</div>}{msg&&<div className="notice">{msg}</div>}
@@ -284,4 +284,61 @@ export function IndividualAttendance(){
  {!loading&&!error&&!filtered.length&&<div className="empty-card">No matching students.</div>}</>
 }
 
-export function StudentDeletion(){const [students,setStudents]=useState<any[]>([]),[search,setSearch]=useState(''),[deleting,setDeleting]=useState<string|null>(null),[error,setError]=useState(''),[msg,setMsg]=useState('');useEffect(()=>{api<{students:any[]}>('/api/student-records').then(x=>setStudents(x.students)).catch(()=>setError('Could not load student records.'))},[]);const filtered=useMemo(()=>students.filter(st=>`${st.full_name} ${st.admission_number} ${st.display_name}`.toLowerCase().includes(search.toLowerCase())),[students,search]);async function remove(st:any){const typed=prompt(`Permanently delete ${st.full_name}?\n\nType the admission number "${st.admission_number}" to confirm.`);if(typed===null)return;if(typed.trim()!==String(st.admission_number)){setError('Admission number did not match.');return}setDeleting(st.id);try{await api(`/api/students/${encodeURIComponent(st.id)}`,{method:'DELETE'});setStudents(xs=>xs.filter(x=>x.id!==st.id));setMsg(`${st.full_name} was permanently deleted ✓`);setError('')}catch{setError('Could not permanently delete this student.')}finally{setDeleting(null)}}return <><div className="screen-title-row"><div><h1>Student Deletion</h1><p>Search and permanently delete student records.</p></div></div><section className="student-delete-settings"><div className="danger-heading"><AlertTriangle/><div><h3>Permanent Student Deletion</h3><p>Deleting a student removes their record, class history and attendance records.</p></div></div><label className="search modern-search"><Search/><input placeholder="Search name, admission number or class…" value={search} onChange={e=>setSearch(e.target.value)}/></label><div className="danger-note"><strong>Permanent action</strong><span>Type the student's admission number to confirm.</span></div><div className="student-delete-list">{filtered.map(st=><article key={st.id}><div><strong>{st.full_name}</strong><small>{st.admission_number} · {st.display_name}</small></div><button className="permanent-delete" disabled={deleting===st.id} onClick={()=>remove(st)}><Trash2/>{deleting===st.id?'Deleting…':'Delete Permanently'}</button></article>)}</div></section>{error&&<div className="error">{error}</div>}{msg&&<div className="notice">{msg}</div>}</>}
+export function StudentDeletion(){
+ const [students,setStudents]=useState<any[]>([]),[search,setSearch]=useState(''),[deleting,setDeleting]=useState<string|null>(null),[bulkDeleting,setBulkDeleting]=useState(false),[selected,setSelected]=useState<Set<string>>(()=>new Set()),[error,setError]=useState(''),[msg,setMsg]=useState(''),[swipe,setSwipe]=useState(0)
+ const swipeRef=useRef({active:false,startX:0,width:1,pointerId:-1})
+ useEffect(()=>{api<{students:any[]}>('/api/student-records').then(x=>setStudents(x.students)).catch(()=>setError('Could not load student records.'))},[])
+ const filtered=useMemo(()=>students.filter(st=>`${st.full_name} ${st.admission_number} ${st.display_name}`.toLowerCase().includes(search.toLowerCase())),[students,search])
+ const visibleIds=useMemo(()=>filtered.map(st=>String(st.id)),[filtered])
+ const allVisibleSelected=visibleIds.length>0&&visibleIds.every(id=>selected.has(id))
+ function toggle(id:string){setSelected(prev=>{const next=new Set(prev);next.has(id)?next.delete(id):next.add(id);return next})}
+ function toggleVisible(){setSelected(prev=>{const next=new Set(prev);if(allVisibleSelected)visibleIds.forEach(id=>next.delete(id));else visibleIds.forEach(id=>next.add(id));return next})}
+ async function remove(st:any){
+  const typed=prompt(`Permanently delete ${st.full_name}?\n\nType the admission number "${st.admission_number}" to confirm.`)
+  if(typed===null)return
+  if(typed.trim()!==String(st.admission_number)){setError('Admission number did not match.');return}
+  setDeleting(st.id);setError('');setMsg('')
+  try{await api(`/api/students/${encodeURIComponent(st.id)}`,{method:'DELETE'});setStudents(xs=>xs.filter(x=>x.id!==st.id));setSelected(prev=>{const next=new Set(prev);next.delete(String(st.id));return next});setMsg(`${st.full_name} was permanently deleted ✓`)}
+  catch{setError('Could not permanently delete this student.')}
+  finally{setDeleting(null)}
+ }
+ async function bulkDelete(){
+  if(!selected.size||bulkDeleting)return
+  const targets=students.filter(st=>selected.has(String(st.id)))
+  setBulkDeleting(true);setError('');setMsg('')
+  let deleted=0,failed=0
+  for(const st of targets){try{await api(`/api/students/${encodeURIComponent(st.id)}`,{method:'DELETE',silentSuccess:true});deleted++}catch{failed++}}
+  const deletedIds=new Set(targets.slice(0,deleted).map(st=>String(st.id)))
+  if(failed===0){setStudents(xs=>xs.filter(st=>!selected.has(String(st.id))));setSelected(new Set());setMsg(`${deleted} student${deleted===1?'':'s'} permanently deleted ✓`)}
+  else{try{const fresh=await api<{students:any[]}>('/api/student-records');setStudents(fresh.students);const existing=new Set(fresh.students.map(st=>String(st.id)));setSelected(prev=>new Set([...prev].filter(id=>existing.has(id))))}catch{}setError(`${deleted} deleted, ${failed} could not be deleted.`)}
+  setBulkDeleting(false);setSwipe(0)
+ }
+ function swipeStart(e:any){if(!selected.size||bulkDeleting)return;const rect=e.currentTarget.getBoundingClientRect();swipeRef.current={active:true,startX:e.clientX,width:Math.max(1,rect.width-58),pointerId:e.pointerId};e.currentTarget.setPointerCapture?.(e.pointerId)}
+ function swipeMove(e:any){const p=swipeRef.current;if(!p.active||p.pointerId!==e.pointerId)return;const distance=Math.max(0,Math.min(p.width,e.clientX-p.startX));setSwipe(distance/p.width)}
+ function swipeEnd(e:any){const p=swipeRef.current;if(!p.active||p.pointerId!==e.pointerId)return;swipeRef.current.active=false;if(swipe>=.82){setSwipe(1);void bulkDelete()}else setSwipe(0)}
+ return <>
+  <div className="screen-title-row"><div><h1>Student Deletion</h1><p>Search, select and permanently delete student records.</p></div></div>
+  <section className="student-delete-settings">
+   <div className="danger-heading"><AlertTriangle/><div><h3>Permanent Student Deletion</h3><p>Deleting students removes their records, class history and attendance records.</p></div></div>
+   <label className="search modern-search"><Search/><input placeholder="Search name, admission number or class…" value={search} onChange={e=>setSearch(e.target.value)}/></label>
+   <div className="bulk-delete-toolbar">
+    <label className="bulk-select-all"><input type="checkbox" checked={allVisibleSelected} onChange={toggleVisible}/><span>{allVisibleSelected?'Deselect visible':'Select all visible'}</span></label>
+    <strong>{selected.size} selected</strong>
+   </div>
+   <div className="danger-note"><strong>Permanent action</strong><span>Individual deletion uses admission-number confirmation. Bulk deletion requires a full swipe to confirm.</span></div>
+   <div className="student-delete-list bulk-student-delete-list">{filtered.map(st=><article key={st.id} className={selected.has(String(st.id))?'selected':''}>
+    <label className="bulk-student-checkbox" aria-label={`Select ${st.full_name}`}><input type="checkbox" checked={selected.has(String(st.id))} onChange={()=>toggle(String(st.id))}/><span/></label>
+    <div><strong>{st.full_name}</strong><small>{st.admission_number} · {st.display_name}</small></div>
+    <button className="permanent-delete" disabled={deleting===st.id||bulkDeleting} onClick={()=>remove(st)}><Trash2/>{deleting===st.id?'Deleting…':'Delete'}</button>
+   </article>)}{!filtered.length&&<div className="empty-mini">No matching students.</div>}</div>
+   <div className={`bulk-swipe-wrap ${selected.size?'enabled':''}`}>
+    <div className="bulk-swipe-label"><strong>{bulkDeleting?'Deleting selected students…':selected.size?`Swipe to delete ${selected.size} selected`:'Select students to enable bulk delete'}</strong><small>{selected.size?'This cannot be undone.':''}</small></div>
+    <div className="bulk-swipe-track" onPointerDown={swipeStart} onPointerMove={swipeMove} onPointerUp={swipeEnd} onPointerCancel={()=>{swipeRef.current.active=false;setSwipe(0)}} style={{'--swipe-progress':swipe} as any}>
+     <div className="bulk-swipe-fill"/>
+     <div className="bulk-swipe-thumb"><Trash2 size={18}/></div>
+     <span>Swipe to confirm</span>
+    </div>
+   </div>
+  </section>
+  {error&&<div className="error">{error}</div>}{msg&&<div className="notice">{msg}</div>}
+ </>}
