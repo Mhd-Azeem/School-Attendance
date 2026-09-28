@@ -118,6 +118,11 @@ export function Layout(){
  },[menuOpen])
  useEffect(()=>{loadNotifications()},[profile?.role])
  useEffect(()=>{
+  if(!profile)return
+  const timer=window.setInterval(()=>{void loadNotifications()},60000)
+  return()=>window.clearInterval(timer)
+ },[profile?.role])
+ useEffect(()=>{
   const open=()=>{setNotificationsOpen(true);setMenuOpen(false);void loadNotifications()}
   window.addEventListener('open-notifications',open)
   return()=>window.removeEventListener('open-notifications',open)
