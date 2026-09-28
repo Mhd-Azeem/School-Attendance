@@ -35,8 +35,12 @@ export function Students(){
   const lines=bulkText.split(/\r?\n/).map(x=>x.trim()).filter(Boolean), parsed=lines.map(line=>{const m=line.match(/^(\S+)\s+(.+)$/);return m?{admission_number:m[1],full_name:m[2].trim()}:null})
   if(!bulkClass){setError('Select a class.');return}if(!lines.length||parsed.some(x=>!x)){setError('Each line must start with admission number followed by student name.');return}
   setBulkBusy(true);setError('');setMsg('');let added=0,duplicates=0,failed=0
-  for(const s of parsed){try{await api('/api/students',{method:'POST',body:JSON.stringify({...s,class_id:bulkClass})});added++}catch(e){if(e instanceof Error&&e.message==='admission_number_exists')duplicates++;else failed++}}
-  setBulkBusy(false);await load();setMsg(`Bulk import complete: ${added} added${duplicates?`, ${duplicates} duplicate(s) skipped`:''}${failed?`, ${failed} failed`:''}.`);if(!failed){setBulkText('');setBulkOpen(false)}
+  for(const s of parsed){try{await api('/api/students',{method:'POST',body:JSON.stringify({...s,class_id:bulkClass}),silentSuccess:true});added++}catch(e){if(e instanceof Error&&e.message==='admission_number_exists')duplicates++;else failed++}}
+  setBulkBusy(false);await load()
+  const summary=`Bulk import complete: ${added} added${duplicates?`, ${duplicates} duplicate(s) skipped`:''}${failed?`, ${failed} failed`:''}.`
+  setMsg(summary)
+  if(added>0&&typeof window!=='undefined')window.dispatchEvent(new CustomEvent('app-success',{detail:{title:'Bulk Import Complete',message:summary}}))
+  if(!failed){setBulkText('');setBulkOpen(false)}
  }
 
  return <>
