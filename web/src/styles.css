@@ -762,3 +762,28 @@ button:disabled,.primary:disabled,.submit:disabled{
  .bulk-student-delete-list article{align-items:flex-start}
  .bulk-student-delete-list .permanent-delete{padding:7px 9px}
 }
+
+
+/* Student deletion grouped by grade and class */
+.student-delete-grade-groups{display:grid;gap:12px;margin-top:12px}
+.student-delete-grade{border:1px solid #e6d4d6;border-radius:14px;background:#fff;overflow:hidden}
+.student-delete-grade-head,.student-delete-class-toggle{width:100%;border:0;background:transparent;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left}
+.student-delete-grade-head{padding:13px 14px;background:#fff8f8;color:#7f2830}
+.student-delete-grade-head>div,.student-delete-class-toggle>div{display:grid;gap:2px}
+.student-delete-grade-head strong{font-size:13px}
+.student-delete-grade-head small,.student-delete-class-toggle small{font-size:10px;color:#8f6a6e}
+.student-delete-grade-head svg,.student-delete-class-toggle svg{width:18px;height:18px;transition:transform .2s ease}
+.student-delete-grade-head svg.rotated,.student-delete-class-toggle svg.rotated{transform:rotate(180deg)}
+.student-delete-class-groups{display:grid;gap:8px;padding:10px;background:#fff}
+.student-delete-class{border:1px solid #eadfe0;border-radius:12px;overflow:hidden;background:#fff}
+.student-delete-class-head{display:flex;align-items:center;gap:8px;padding:0 10px 0 0;background:#fcfbfb}
+.student-delete-class-toggle{padding:11px 12px;flex:1;color:#563b3e}
+.student-delete-class-toggle strong{font-size:12px}
+.class-select-all{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;color:#9e323c;white-space:nowrap}
+.class-select-all input{width:15px;height:15px;accent-color:#b92e39}
+.student-delete-class .student-delete-list{border-top:1px solid #eee3e4}
+.student-delete-class .student-delete-list article{padding-left:12px;padding-right:12px}
+@media(max-width:520px){
+ .student-delete-class-head{align-items:stretch;flex-direction:column;padding:0}
+ .class-select-all{padding:0 12px 10px}
+}
