@@ -119,9 +119,14 @@ export function Layout(){
  useEffect(()=>{loadNotifications()},[profile?.role])
  useEffect(()=>{
   if(!profile)return
-  const timer=window.setInterval(()=>{void loadNotifications()},60000)
-  return()=>window.clearInterval(timer)
- },[profile?.role])
+  const intervalMs=isNativeApp?10000:60000
+  const refresh=()=>{if(document.visibilityState==='visible')void loadNotifications()}
+  const timer=window.setInterval(refresh,intervalMs)
+  const onVisibility=()=>{if(document.visibilityState==='visible')void loadNotifications()}
+  window.addEventListener('focus',refresh)
+  document.addEventListener('visibilitychange',onVisibility)
+  return()=>{window.clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',onVisibility)}
+ },[profile?.role,isNativeApp])
  useEffect(()=>{
   const open=()=>{setNotificationsOpen(true);setMenuOpen(false);void loadNotifications()}
   window.addEventListener('open-notifications',open)
