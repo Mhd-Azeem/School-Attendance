@@ -204,6 +204,11 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (::appUpdater.isInitialized) appUpdater.onResume()
+        val token = getSharedPreferences("school_native_auth", MODE_PRIVATE)
+            .getString("auth_token", null)
+        if (!token.isNullOrBlank()) {
+            NotificationSyncWorker.runNow(this)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
