@@ -57,7 +57,7 @@ object SchoolNotificationManager {
             val next = shown.toMutableSet()
             next.add(id)
             if (next.size > 250) {
-                val keep = next.takeLast(200).toSet()
+                val keep = next.toList().takeLast(200).toSet()
                 prefs.edit().putStringSet(SHOWN_IDS, keep).apply()
             } else {
                 prefs.edit().putStringSet(SHOWN_IDS, next).apply()
