@@ -816,14 +816,14 @@ button:disabled,.primary:disabled,.submit:disabled{
 .bulk-swipe-floating .bulk-swipe-track{
  height:52px;
 }
-.student-delete-settings{
+section.student-delete-settings{
  padding-bottom:120px;
 }
 @media(min-width:701px){
  .bulk-swipe-floating-shell{
   bottom:20px;
  }
- .student-delete-settings{
+ section.student-delete-settings{
   padding-bottom:90px;
  }
 }
