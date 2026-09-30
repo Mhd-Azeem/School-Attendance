@@ -39,7 +39,7 @@ function TeacherDashboard(){
  return <>
   <section className="welcome-card">
    <div className="avatar">{photo?<img src={photo} alt="Profile"/>:<UserRound/>}</div>
-   <div><p>Welcome, <strong>{profile?.full_name.split(' ')[0]}</strong></p><small>Class Teacher · {classLabel}</small><span className="date-chip">{prettyDate(today)}</span></div>
+   <div><p>Welcome, <strong>{profile?.full_name}</strong></p><small>Class Teacher · {classLabel}</small><span className="date-chip">{prettyDate(today)}</span></div>
   </section>
   <div className="teacher-module-grid">
    <Link className="teacher-module student-module" to={classes[0]?'/attendance?class='+classes[0].id:'/attendance'}><span className="module-icon"><ClipboardCheck/></span><div><strong>Student Attendance</strong><small>Mark today's student attendance</small></div><b>›</b></Link>
