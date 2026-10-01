@@ -874,3 +874,26 @@ section.student-delete-settings{
  .student-notes-modal>header,.student-note-editor,.student-note-history{padding-left:14px;padding-right:14px}
  .student-table article>div:nth-child(2) .student-note-button{margin-top:5px}
 }
+
+
+/* Section Head student directory: keep Notes in the right-side action space */
+.simple-student-head,
+.student-directory-row{
+ grid-template-columns:38px 120px minmax(180px,1fr) auto!important;
+}
+.simple-student-head>span:last-child{text-align:right}
+.student-directory-row .student-note-action{justify-self:end;display:flex;align-items:center}
+.student-directory-row .student-note-button{margin-top:0}
+@media(max-width:700px){
+ .student-directory-row{
+  grid-template-columns:28px 84px minmax(0,1fr) auto!important;
+  gap:8px!important;
+  align-items:center!important;
+ }
+ .student-directory-row .student-index{grid-row:auto!important}
+ .student-directory-row .student-admission{grid-column:auto!important}
+ .student-directory-row .student-main-name{grid-column:auto!important;min-width:0}
+ .student-directory-row .student-main-name>strong{overflow-wrap:anywhere}
+ .student-directory-row .student-note-action{grid-column:auto!important;justify-self:end}
+ .student-directory-row .student-note-button{padding:6px 9px}
+}
