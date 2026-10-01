@@ -49,7 +49,7 @@ export function StudentNotesButton({student}:{student:StudentLike}){
   try{
    await api(`/api/students/${encodeURIComponent(student.id)}/notes/${encodeURIComponent(note.id)}`,{method:'DELETE',silentSuccess:true})
    setNotes(rows=>rows.filter(x=>x.id!==note.id))
-  }catch(e){const m=e instanceof Error?e.message:'';setError(m==='note_owner_only'?'Teachers can only delete notes they added themselves.':m==='forbidden'?'You do not have permission to delete this note.':'Could not delete the note.')}
+  }catch(e){const m=e instanceof Error?e.message:'';setError(m==='note_owner_only'?'Teachers can only delete notes they added themselves.':m==='forbidden'?'You do not have permission to delete this note.':(m==='request_failed_404'||m==='not_found')?'Note deletion is not available on the live backend yet. Deploy the latest backend once to enable Delete.':'Could not delete the note.')}
   finally{setDeleting(null)}
  }
 
