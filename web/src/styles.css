@@ -945,3 +945,14 @@ section.student-delete-settings{
   padding:6px 7px;
  }
 }
+
+
+/* Individual student note deletion */
+.student-note-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.student-note-item>div{min-width:0;flex:1}
+.student-note-delete{flex:none;border:1px solid #efc6ca;background:#fff;color:#b7313a;border-radius:9px;padding:6px 8px;display:inline-flex;align-items:center;gap:5px;font-size:calc(8.5px * var(--font-scale));font-weight:800}
+.student-note-delete:disabled{opacity:.55}
+@media(max-width:520px){
+ .student-note-item{gap:8px}
+ .student-note-delete{padding:6px 7px}
+}
