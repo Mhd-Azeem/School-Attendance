@@ -23,7 +23,7 @@ export function StudentNotesButton({student}:{student:StudentLike}){
   try{
    const x=await api<{notes:NoteRow[]}>(`/api/students/${encodeURIComponent(student.id)}/notes`)
    setNotes(x.notes)
-  }catch{setError('Could not load this student’s notes.')}
+  }catch(e){const m=e instanceof Error?e.message:'';setError(m==='request_failed_404'?'Student Notes is not available on the live backend yet. Deploy the latest backend once to enable shared notes.':m==='forbidden'?'You do not have access to this student’s notes.':'Could not load this student’s notes.')}
   finally{setLoading(false)}
  }
 
@@ -36,7 +36,7 @@ export function StudentNotesButton({student}:{student:StudentLike}){
   try{
    const x=await api<{note:NoteRow}>(`/api/students/${encodeURIComponent(student.id)}/notes`,{method:'POST',body:JSON.stringify({note}),silentSuccess:true})
    setNotes(rows=>[x.note,...rows]);setText('')
-  }catch(e){setError(e instanceof Error&&e.message==='note_too_long'?'Keep the note within 1,000 characters.':'Could not save the note.')}
+  }catch(e){const m=e instanceof Error?e.message:'';setError(m==='note_too_long'?'Keep the note within 1,000 characters.':m==='request_failed_404'?'Student Notes is not available on the live backend yet. Deploy the latest backend once, then notes will save across devices.':m==='forbidden'?'You do not have permission to add a note for this student.':'Could not save the note.')}
   finally{setSaving(false)}
  }
 
