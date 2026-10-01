@@ -3,6 +3,7 @@ import {ChevronDown,KeyRound,Pencil,Save,Search,UserRound,X} from 'lucide-react'
 import {api} from '../lib/api'
 import {getProfilePhoto} from '../lib/profilePhoto'
 import type {SchoolClass,Student} from '../types'
+import {StudentNotesButton} from '../components/StudentNotes'
 type S=Student&{display_name:string}
 type T={id:string;full_name:string;username:string;is_active:number;profile_photo?:string|null;classes:SchoolClass[];class_teacher_of?:SchoolClass|null}
 
@@ -70,7 +71,7 @@ export function Students(){
      {list.map((s,i)=><article key={s.id}>
       <span className="student-index">{i+1}</span>
       <strong className="student-admission">{s.admission_number}</strong>
-      <div className="student-main-name"><strong>{s.full_name}</strong></div>
+      <div className="student-main-name"><strong>{s.full_name}</strong><StudentNotesButton student={s}/></div>
      </article>)}
      {!list.length&&<div className="class-empty-students">{search?'No matching students in this class.':'No students added to this class yet.'}</div>}
     </div></>}
