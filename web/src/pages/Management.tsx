@@ -66,12 +66,13 @@ export function Students(){
   <section className="class-student-groups">
    {grouped.map(({cls,students:list,total})=><section className="class-student-card" key={cls.id}>
     <header className="expandable-class-header" role="button" tabIndex={0} onClick={()=>setExpandedClass(x=>x===cls.id?null:cls.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setExpandedClass(x=>x===cls.id?null:cls.id)}}}><div><strong>{cls.display_name}</strong><small>{total} student{total===1?'':'s'}</small></div><div className="class-header-actions"><span>Admission order</span><ChevronDown className={expandedClass===cls.id?'rotated':''}/></div></header>
-    {expandedClass===cls.id&&<><div className="class-student-head simple-student-head"><span>#</span><span>Admission No.</span><span>Student Name</span></div>
+    {expandedClass===cls.id&&<><div className="class-student-head simple-student-head"><span>#</span><span>Admission No.</span><span>Student Name</span><span>Notes</span></div>
     <div className="class-student-body">
-     {list.map((s,i)=><article key={s.id}>
+     {list.map((s,i)=><article className="student-directory-row" key={s.id}>
       <span className="student-index">{i+1}</span>
       <strong className="student-admission">{s.admission_number}</strong>
-      <div className="student-main-name"><strong>{s.full_name}</strong><StudentNotesButton student={s}/></div>
+      <div className="student-main-name"><strong>{s.full_name}</strong></div>
+      <div className="student-note-action"><StudentNotesButton student={s}/></div>
      </article>)}
      {!list.length&&<div className="class-empty-students">{search?'No matching students in this class.':'No students added to this class yet.'}</div>}
     </div></>}
