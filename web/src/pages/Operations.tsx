@@ -43,17 +43,22 @@ export function History(){
  })}</section></>
 }
 export function Reports(){
- type Kind='student'|'individual'|'teacher'
- const [classes,setClasses]=useState<SchoolClass[]>([]),[cid,setCid]=useState('ALL_GRADES'),[rows,setRows]=useState<any[]>([]),[studentOptions,setStudentOptions]=useState<any[]>([]),[periodRows,setPeriodRows]=useState<any[]>([]),[dailyRows,setDailyRows]=useState<any[]>([]),[kind,setKind]=useState<Kind>('student'),[studentId,setStudentId]=useState(''),[msg,setMsg]=useState(''),[from,setFrom]=useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10)),[to,setTo]=useState(new Date().toISOString().slice(0,10))
+ type Kind='student'|'individual'|'notes'|'teacher'
+ const [classes,setClasses]=useState<SchoolClass[]>([]),[cid,setCid]=useState('ALL_GRADES'),[rows,setRows]=useState<any[]>([]),[studentOptions,setStudentOptions]=useState<any[]>([]),[periodRows,setPeriodRows]=useState<any[]>([]),[dailyRows,setDailyRows]=useState<any[]>([]),[noteRows,setNoteRows]=useState<any[]>([]),[kind,setKind]=useState<Kind>('student'),[studentId,setStudentId]=useState(''),[msg,setMsg]=useState(''),[from,setFrom]=useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10)),[to,setTo]=useState(new Date().toISOString().slice(0,10))
  useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(x=>setClasses(x.classes))},[])
- useEffect(()=>{if(kind!=='individual')return;let active=true;setStudentOptions([]);setStudentId('');setMsg('');const actualClass=cid&&cid!=='ALL_GRADES'&&!cid.startsWith('GRADE:')?cid:'';api<{report:any[]}>(`/api/reports?${actualClass?`class_id=${encodeURIComponent(actualClass)}`:''}`).then(x=>{if(!active)return;const filtered=cid.startsWith('GRADE:')?x.report.filter(r=>String(r.display_name||'').split('-')[0].trim()===cid.slice(6)):x.report;setStudentOptions(filtered);if(filtered.length)setStudentId(String(filtered[0].student_id))}).catch(()=>{if(active)setMsg('Could not load students.')});return()=>{active=false}},[kind,cid])
+ useEffect(()=>{if(kind!=='individual'&&kind!=='notes')return;let active=true;setStudentOptions([]);setStudentId('');setMsg('');const actualClass=cid&&cid!=='ALL_GRADES'&&!cid.startsWith('GRADE:')?cid:'';const request=kind==='notes'?api<{students:any[]}>('/api/students').then(x=>({report:x.students.map(st=>({student_id:st.id,admission_number:st.admission_number,full_name:st.full_name,display_name:st.display_name,class_id:st.class_id}))})):api<{report:any[]}>(`/api/reports?${actualClass?`class_id=${encodeURIComponent(actualClass)}`:''}`);request.then(x=>{if(!active)return;let filtered=x.report;if(actualClass)filtered=filtered.filter(r=>String(r.class_id||'')===actualClass||String(r.display_name||'')===String(classes.find(c=>c.id===actualClass)?.display_name||''));if(cid.startsWith('GRADE:'))filtered=filtered.filter(r=>String(r.display_name||'').split('-')[0].trim()===cid.slice(6));setStudentOptions(filtered);if(filtered.length)setStudentId(String(filtered[0].student_id))}).catch(()=>{if(active)setMsg('Could not load students.')});return()=>{active=false}},[kind,cid,classes])
  async function load(){
   setMsg('')
   if(from>to){setMsg('Start date must be before the end date.');return}
   try{
    const gradeFilter=cid.startsWith('GRADE:')?cid.slice(6):''
    const isSpecific=cid&&cid!=='ALL_GRADES'&&!cid.startsWith('GRADE:')
-   if(kind==='teacher'){
+   if(kind==='notes'){
+    if(!studentId){setNoteRows([]);setMsg('Select a student.');return}
+    const x=await api<{notes:any[]}>(`/api/students/${encodeURIComponent(studentId)}/notes`)
+    const filtered=x.notes.filter(n=>{const d=String(n.created_at||'').slice(0,10);return (!from||d>=from)&&(!to||d<=to)})
+    setNoteRows(filtered);setRows([]);setPeriodRows([]);setDailyRows([])
+   }else if(kind==='teacher'){
     const targets=isSpecific?classes.filter(c=>c.id===cid):gradeFilter?classes.filter(c=>String(c.display_name).split('-')[0].trim()===gradeFilter):classes
     if(!targets.length){setMsg('No classes match this selection.');return}
     const batches=await Promise.all(targets.map(c=>api<{history:any[]}>(`/api/period-history?from=${from}&to=${to}&class_id=${encodeURIComponent(c.id)}`).then(x=>x.history.map(r=>({...r,display_name:r.display_name||c.display_name,class_id:r.class_id||c.id}))).catch(()=>[])))
@@ -67,7 +72,21 @@ export function Reports(){
     setPeriodRows([])
     if(kind==='individual'&&!studentId){setDailyRows([]);setMsg('Select a student.');return}
     let targets=isSpecific?classes.filter(c=>c.id===cid):gradeFilter?classes.filter(c=>String(c.display_name).split('-')[0].trim()===gradeFilter):classes
-    if(kind==='individual'){
+    if(kind==='notes'){
+   const r=noteStudent
+   if(!r)return
+   line('Name: '+r.full_name,36,12,true);y-=18
+   line('Index Number: '+r.admission_number,36,10);y-=15
+   line('Grade: '+noteGrade,36,10);y-=15
+   line('Grade Class: '+noteGradeClass,36,10);y-=24
+   const widths=[96,105,335],startX=38
+   const drawNoteRow=(vals:any[],header=false)=>{let x=startX;vals.forEach((v:any,i:number)=>{cmd+=(header?'0.92 0.92 0.92 rg':'1 1 1 rg')+' '+x+' '+(y-15)+' '+widths[i]+' 20 re f 0.7 G '+x+' '+(y-15)+' '+widths[i]+' 20 re S\nBT /'+(header?'F2':'F1')+' 7 Tf 0 0 0 rg '+(x+4)+' '+(y-8)+' Td ('+pdfText(v).slice(0,i===2?78:32)+') Tj ET\n';x+=widths[i]});y-=20}
+   drawNoteRow(['Date','Added By','Note'],true)
+   for(const n of noteRows){
+    if(y<60){newPage();line('Name: '+r.full_name,36,10,true);y-=16;drawNoteRow(['Date','Added By','Note'],true)}
+    drawNoteRow([String(n.created_at||'').slice(0,10),String(n.created_by_name||'')+' ('+(n.created_by_role==='SECTION_HEAD'?'Section Head':'Teacher')+')',n.note])
+   }
+  }else if(kind==='individual'){
      const selected=filtered.find(r=>String(r.student_id)===String(studentId))
      if(selected)targets=classes.filter(c=>String(c.display_name)===String(selected.display_name))
     }
@@ -79,8 +98,8 @@ export function Reports(){
    }
   }catch{setMsg('Could not generate report.')}
  }
- const visible=kind==='teacher'?periodRows:kind==='individual'?rows.filter(r=>String(r.student_id)===String(studentId)):rows
- const title=kind==='teacher'?'Teacher Attendance Report':kind==='individual'?'Individual Student Attendance Report':'Student Attendance Report'
+ const visible=kind==='notes'?noteRows:kind==='teacher'?periodRows:kind==='individual'?rows.filter(r=>String(r.student_id)===String(studentId)):rows
+ const title=kind==='notes'?'Individual Student Notes Report':kind==='teacher'?'Teacher Attendance Report':kind==='individual'?'Individual Student Attendance Report':'Student Attendance Report'
  const reportScope=cid==='ALL_GRADES'?'All Grades':cid.startsWith('GRADE:')?'Grade '+cid.slice(6)+' — All Classes':classes.find(c=>c.id===cid)?.display_name||'Selected Class'
  const headers=kind==='teacher'?['Period','Status']:['Admission','Name','Class','Total Days','Present','Absent','Attendance %']
  const statusLabel=(v:any)=>String(v??'').replaceAll('_',' ').replace('NOT ARRIVED RELIEF','NO TEACHER PRESENTED')
@@ -88,6 +107,10 @@ export function Reports(){
  const gradeOf=(name:any)=>String(name||'').split('-')[0].trim()
  const matrix=kind==='teacher'?[]:visible.map(r=>[r.admission_number,r.full_name,r.display_name,r.total,r.present,r.absent,r.attendance_percentage??''])
  const dailyVisible=kind==='individual'?dailyRows.filter(r=>String(r.student_id)===String(studentId)):dailyRows
+ const noteStudent=kind==='notes'?studentOptions.find(r=>String(r.student_id)===String(studentId)):null
+ const noteClass=String(noteStudent?.display_name||'')
+ const noteGrade=gradeOf(noteClass)
+ const noteGradeClass=noteClass.replaceAll('-','').replaceAll(' ','')
  const individualStudent=kind==='individual'?visible[0]:null
  const individualClass=String(individualStudent?.display_name||'')
  const individualGrade=gradeOf(individualClass)
@@ -189,17 +212,20 @@ export function Reports(){
   parts.push(enc.encode(xt))
   const total=parts.reduce((n,p)=>n+p.length,0),pdf=new Uint8Array(total);let at=0
   for(const p of parts){pdf.set(p,at);at+=p.length}
-  saveBytes(kind+'-attendance-'+from+'-to-'+to+'.pdf',pdf,'application/pdf')
+  saveBytes((kind==='notes'?'individual-student-notes':kind+'-attendance')+'-'+from+'-to-'+to+'.pdf',pdf,'application/pdf')
  }
   async function exportFile(format:'doc'){
    if(!visible.length)return
    const logoData=(await getReportLogo()).dataUrl
    const generatedOn=new Date().toLocaleString('en-LK',{year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'})
-   const base=kind+'-attendance-'+from+'-to-'+to
+   const base=(kind==='notes'?'individual-student-notes':kind+'-attendance')+'-'+from+'-to-'+to
    const css='<style>@page{margin:18mm 14mm 18mm}.report-doc{font-family:Arial,sans-serif}.report-header{text-align:center;margin-bottom:22px;border-bottom:2px solid #222;padding-bottom:14px}.school-logo{display:block;width:82px;height:82px;object-fit:contain;margin:0 auto 8px}.school-name{font-size:18px;font-weight:700;margin:0 0 5px}h1{font-size:24px;margin:0 0 7px}.report-meta{font-size:11px;color:#333;line-height:1.55}.student-card{border:1px solid #b8b8b8;padding:18px 20px;margin:18px 0 20px;text-align:left;page-break-inside:avoid}.student-name{font-size:22px;font-weight:700;margin-bottom:10px}.student-meta{display:grid;gap:6px;color:#222}.student-meta strong{font-weight:700}table.report{width:100%;border-collapse:collapse;background:#fff;color:#000;margin-bottom:18px}table.report thead{display:table-header-group}table.report tr{page-break-inside:avoid}table.report th,table.report td{border:1px solid #999;padding:8px;text-align:center}table.report th{background:#eee}.report-group{margin:0 0 28px;page-break-inside:auto}.report-caption{text-align:left;margin:0 0 8px;font-size:13px;page-break-after:avoid}.report-caption strong{display:block;margin:2px 0}.grade-label{font-size:15px}.doc-footer{margin-top:24px;padding-top:8px;border-top:1px solid #aaa;text-align:center;font-size:9px;color:#666}</style>'
    let content=''
    const dailyContent=()=> (studentGroups as any[]).map(group=>'<div class="report-group"><div class="report-caption"><strong class="grade-label">Grade: '+esc(group.grade)+'</strong><strong>Class: '+esc(group.className)+'</strong><strong>Date: '+esc(group.date)+'</strong></div><table class="report"><thead><tr><th>Admission</th><th>Name</th><th>Status</th></tr></thead><tbody>'+group.records.map((r:any)=>'<tr><td>'+esc(r.admission_number)+'</td><td>'+esc(r.full_name)+'</td><td>'+esc(statusLabel(r.status))+'</td></tr>').join('')+'</tbody></table></div>').join('')
-   if(kind==='individual'){
+   if(kind==='notes'){
+    const r=noteStudent
+    content='<div class="student-card"><div class="student-name">'+esc(r.full_name)+'</div><div class="student-meta"><div>Index Number: <strong>'+esc(r.admission_number)+'</strong></div><div>Grade: <strong>'+esc(noteGrade)+'</strong></div><div>Grade Class: <strong>'+esc(noteGradeClass)+'</strong></div></div></div><table class="report"><thead><tr><th>Date</th><th>Added By</th><th>Note</th></tr></thead><tbody>'+noteRows.map(n=>'<tr><td>'+esc(String(n.created_at||'').slice(0,10))+'</td><td>'+esc(n.created_by_name)+' ('+esc(n.created_by_role==='SECTION_HEAD'?'Section Head':'Teacher')+')</td><td style="text-align:left">'+esc(n.note)+'</td></tr>').join('')+'</tbody></table>'
+   }else if(kind==='individual'){
     const r=individualStudent
     content='<div class="student-card"><div class="student-name">'+esc(r.full_name)+'</div><div class="student-meta"><div>Index Number: <strong>'+esc(r.admission_number)+'</strong></div><div>Grade: <strong>'+esc(individualGrade)+'</strong></div><div>Grade Class: <strong>'+esc(individualGradeClass)+'</strong></div><div>Total Days: <strong>'+esc(r.total)+'</strong></div><div>Days Present: <strong>'+esc(r.present)+'</strong></div><div>Days Absent: <strong>'+esc(r.absent)+'</strong></div><div>Attendance %: <strong>'+esc(r.attendance_percentage??'—')+'%</strong></div></div></div><table class="report"><thead><tr><th>Date</th><th>Status</th></tr></thead><tbody>'+individualAttendance.map(row=>'<tr><td>'+esc(row.date)+'</td><td>'+esc(row.status)+'</td></tr>').join('')+'</tbody></table>'
    }else if(kind==='teacher'){
@@ -209,14 +235,14 @@ export function Reports(){
    }
    if(format==='doc')save(base+'.doc','<html style="background:#fff;color:#000"><head><meta charset="utf-8">'+css+'</head><body class="report-doc" bgcolor="#ffffff" text="#000000"><div class="report-header"><img class="school-logo" src="'+logoData+'" width="82" height="82" alt="School logo"/><div class="school-name">Zahira College Matale</div><h1>'+esc(title)+'</h1><div class="report-meta">Date Range: '+esc(from)+' to '+esc(to)+'<br/>Scope: '+esc(reportScope)+'<br/>Generated: '+esc(generatedOn)+'</div></div>'+content+'<div class="doc-footer">Zahira College Matale · Generated '+esc(generatedOn)+'</div></body></html>','application/msword')
   }
- return <div className="reports-page"><div className="screen-title-row reports-heading"><div><h1>Reports</h1><p>Generate attendance reports for a selected date range and export them as a Word document.</p></div></div>
+ return <div className="reports-page"><div className="screen-title-row reports-heading"><div><h1>Reports</h1><p>Generate attendance and individual student notes reports for a selected date range and export them as Word or PDF.</p></div></div>
  <section className="report-builder">
   <div className="report-form-grid">
    <label><span>Start Date</span><input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label>
    <label><span>End Date</span><input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
-   <label className="report-wide"><span>What to Export</span><select value={kind} onChange={e=>{const next=e.target.value as Kind;setKind(next);setCid('ALL_GRADES');setRows([]);setPeriodRows([]);setDailyRows([]);setStudentId('');setMsg('')}}><option value="student">Student Attendance</option><option value="individual">Individual Student Attendance</option><option value="teacher">Teacher Attendance</option></select></label>
-   <label className="report-wide"><span>Class / Grade</span><select value={cid} onChange={e=>{setCid(e.target.value);setRows([]);setPeriodRows([]);setDailyRows([]);setStudentId('')}}><option value="ALL_GRADES">All Grades</option><option value="GRADE:6">Grade 6 — All</option><option value="GRADE:7">Grade 7 — All</option>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
-   {kind==='individual'&&<label className="report-wide"><span>Student</span><select value={studentId} onChange={e=>setStudentId(e.target.value)} disabled={!studentOptions.length}><option value="">{studentOptions.length?'Select student':'Loading students...'}</option>{studentOptions.map(r=><option key={r.student_id} value={r.student_id}>{r.admission_number} · {r.full_name} · {r.display_name}</option>)}</select></label>}
+   <label className="report-wide"><span>What to Export</span><select value={kind} onChange={e=>{const next=e.target.value as Kind;setKind(next);setCid('ALL_GRADES');setRows([]);setPeriodRows([]);setDailyRows([]);setNoteRows([]);setStudentId('');setMsg('')}}><option value="student">Student Attendance</option><option value="individual">Individual Student Attendance</option><option value="notes">Individual Student Notes</option><option value="teacher">Teacher Attendance</option></select></label>
+   <label className="report-wide"><span>Class / Grade</span><select value={cid} onChange={e=>{setCid(e.target.value);setRows([]);setPeriodRows([]);setDailyRows([]);setNoteRows([]);setStudentId('')}}><option value="ALL_GRADES">All Grades</option><option value="GRADE:6">Grade 6 — All</option><option value="GRADE:7">Grade 7 — All</option>{classes.map(c=><option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
+   {(kind==='individual'||kind==='notes')&&<label className="report-wide"><span>Student</span><select value={studentId} onChange={e=>setStudentId(e.target.value)} disabled={!studentOptions.length}><option value="">{studentOptions.length?'Select student':'Loading students...'}</option>{studentOptions.map(r=><option key={r.student_id} value={r.student_id}>{r.admission_number} · {r.full_name} · {r.display_name}</option>)}</select></label>}
   </div>
   <button className="primary report-generate" onClick={load}>Generate Report</button>
  </section>
@@ -225,7 +251,7 @@ export function Reports(){
   <div className="report-output-head"><div><strong>{title}</strong><small>{from} → {to} · {visible.length} {visible.length===1?'record':'records'}</small></div>
    <details className="export-menu"><summary className="secondary">Export <span>▾</span></summary><div className="export-options"><button onClick={()=>exportFile('doc')}><strong>Document</strong><small>.doc</small></button><button onClick={makePdf}><strong>PDF</strong><small>.pdf</small></button></div></details>
   </div>
-  {kind==='individual'&&individualStudent?<section className="individual-report-preview"><div className="individual-report-official"><img src={import.meta.env.BASE_URL+'zahira-logo.jpg'} alt="School logo"/><strong>Zahira College Matale</strong><h2>Individual Student Attendance Report</h2><small>Date Range: {from} to {to}</small></div><div className="individual-report-profile"><div><h3>Name: {individualStudent.full_name}</h3><p><span>Index Number</span><strong>{individualStudent.admission_number}</strong></p><p><span>Grade</span><strong>{individualGrade}</strong></p><p><span>Grade Class</span><strong>{individualGradeClass}</strong></p><p><span>Total Days</span><strong>{individualStudent.total}</strong></p><p><span>Days Present</span><strong>{individualStudent.present}</strong></p><p><span>Days Absent</span><strong>{individualStudent.absent}</strong></p><p><span>Attendance %</span><strong>{individualStudent.attendance_percentage??'—'}%</strong></p></div></div><table className="teacher-period-table individual-attendance-table"><thead><tr><th>Date</th><th>Status</th></tr></thead><tbody>{individualAttendance.map((row,i)=><tr key={row.date+'-'+i}><td>{row.date}</td><td>{row.status}</td></tr>)}</tbody></table></section>:kind==='teacher'?<section className="teacher-report-groups">{(teacherGroups as any[]).map(group=><section className="teacher-report-group" key={group.grade+'-'+group.className+'-'+group.date}><div className="teacher-report-caption"><div>Grade: <strong>{group.grade}</strong></div><div>Class: <strong>{group.className}</strong></div><div>Date: <strong>{group.date}</strong></div></div><table className="teacher-period-table"><thead><tr><th>Period</th><th>Status</th></tr></thead><tbody>{group.periods.map((p:any,i:number)=><tr key={group.className+'-'+group.date+'-'+i}><td>{p.period}</td><td>{p.status}</td></tr>)}</tbody></table></section>)}</section>:<section className="teacher-report-groups">{(studentGroups as any[]).map(group=><section className="teacher-report-group" key={group.grade+'-'+group.className+'-'+group.date}><div className="teacher-report-caption"><div>Grade: <strong>{group.grade}</strong></div><div>Class: <strong>{group.className}</strong></div><div>Date: <strong>{group.date}</strong></div></div><table className="teacher-period-table"><thead><tr><th>Admission</th><th>Name</th><th>Status</th></tr></thead><tbody>{group.records.map((r:any,i:number)=><tr key={group.date+'-'+r.student_id+'-'+i}><td>{r.admission_number}</td><td>{r.full_name}</td><td>{statusLabel(r.status)}</td></tr>)}</tbody></table></section>)}</section>}
+  {kind==='notes'&&noteStudent?<section className="individual-report-preview"><div className="individual-report-official"><img src={import.meta.env.BASE_URL+'zahira-logo.jpg'} alt="School logo"/><strong>Zahira College Matale</strong><h2>Individual Student Notes Report</h2><small>Date Range: {from} to {to}</small></div><div className="individual-report-profile"><div><h3>Name: {noteStudent.full_name}</h3><p><span>Index Number</span><strong>{noteStudent.admission_number}</strong></p><p><span>Grade</span><strong>{noteGrade}</strong></p><p><span>Grade Class</span><strong>{noteGradeClass}</strong></p></div></div><table className="teacher-period-table individual-attendance-table"><thead><tr><th>Date</th><th>Added By</th><th>Note</th></tr></thead><tbody>{noteRows.map((n:any)=><tr key={n.id}><td>{String(n.created_at||'').slice(0,10)}</td><td>{n.created_by_name} · {n.created_by_role==='SECTION_HEAD'?'Section Head':'Teacher'}</td><td style={{textAlign:'left'}}>{n.note}</td></tr>)}</tbody></table></section>:kind==='individual'&&individualStudent?<section className="individual-report-preview"><div className="individual-report-official"><img src={import.meta.env.BASE_URL+'zahira-logo.jpg'} alt="School logo"/><strong>Zahira College Matale</strong><h2>Individual Student Attendance Report</h2><small>Date Range: {from} to {to}</small></div><div className="individual-report-profile"><div><h3>Name: {individualStudent.full_name}</h3><p><span>Index Number</span><strong>{individualStudent.admission_number}</strong></p><p><span>Grade</span><strong>{individualGrade}</strong></p><p><span>Grade Class</span><strong>{individualGradeClass}</strong></p><p><span>Total Days</span><strong>{individualStudent.total}</strong></p><p><span>Days Present</span><strong>{individualStudent.present}</strong></p><p><span>Days Absent</span><strong>{individualStudent.absent}</strong></p><p><span>Attendance %</span><strong>{individualStudent.attendance_percentage??'—'}%</strong></p></div></div><table className="teacher-period-table individual-attendance-table"><thead><tr><th>Date</th><th>Status</th></tr></thead><tbody>{individualAttendance.map((row,i)=><tr key={row.date+'-'+i}><td>{row.date}</td><td>{row.status}</td></tr>)}</tbody></table></section>:kind==='teacher'?<section className="teacher-report-groups">{(teacherGroups as any[]).map(group=><section className="teacher-report-group" key={group.grade+'-'+group.className+'-'+group.date}><div className="teacher-report-caption"><div>Grade: <strong>{group.grade}</strong></div><div>Class: <strong>{group.className}</strong></div><div>Date: <strong>{group.date}</strong></div></div><table className="teacher-period-table"><thead><tr><th>Period</th><th>Status</th></tr></thead><tbody>{group.periods.map((p:any,i:number)=><tr key={group.className+'-'+group.date+'-'+i}><td>{p.period}</td><td>{p.status}</td></tr>)}</tbody></table></section>)}</section>:<section className="teacher-report-groups">{(studentGroups as any[]).map(group=><section className="teacher-report-group" key={group.grade+'-'+group.className+'-'+group.date}><div className="teacher-report-caption"><div>Grade: <strong>{group.grade}</strong></div><div>Class: <strong>{group.className}</strong></div><div>Date: <strong>{group.date}</strong></div></div><table className="teacher-period-table"><thead><tr><th>Admission</th><th>Name</th><th>Status</th></tr></thead><tbody>{group.records.map((r:any,i:number)=><tr key={group.date+'-'+r.student_id+'-'+i}><td>{r.admission_number}</td><td>{r.full_name}</td><td>{statusLabel(r.status)}</td></tr>)}</tbody></table></section>)}</section>}
  </section>}
  </div>}
 export function Calendar(){const [rows,setRows]=useState<any[]>([]),[day,setDay]=useState(''),[type,setType]=useState('HOLIDAY'),[label,setLabel]=useState('');async function load(){setRows((await api<{days:any[]}>('/api/calendar')).days)}useEffect(()=>{load()},[]);return <><div className="screen-title-row"><div><h1>School Calendar</h1><p>School days, holidays and special days.</p></div></div><form className="filters" onSubmit={async e=>{e.preventDefault();await api('/api/calendar',{method:'POST',body:JSON.stringify({day,day_type:type,label})});setDay('');setLabel('');load()}}><input required type="date" value={day} onChange={e=>setDay(e.target.value)}/><select value={type} onChange={e=>setType(e.target.value)}><option>HOLIDAY</option><option>SPECIAL_HOLIDAY</option><option>SPECIAL_SCHOOL_DAY</option><option>SCHOOL_DAY</option><option>WEEKEND</option></select><input placeholder="Label / reason" value={label} onChange={e=>setLabel(e.target.value)}/><button className="primary">Save Day</button></form><section className="data-list">{rows.map(r=><article key={r.day}><div><strong>{r.day}</strong><small>{r.label||'No label'}</small></div><span>{r.day_type}</span><button className="link" onClick={async()=>{await api(`/api/calendar?day=${r.day}`,{method:'DELETE'});load()}}>Remove</button></article>)}</section></>}
