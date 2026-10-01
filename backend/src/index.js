@@ -157,6 +157,21 @@ export default {async fetch(req,env){
       return out({ok:true});
     }
 
+    if(p==="/api/student-notes/delete"&&req.method==="POST"){
+      await ensureStudentNotes(env);
+      const body=await json(req),sid=String(body?.student_id||""),nid=String(body?.note_id||"");
+      if(!sid||!nid)return out({error:"student_id_and_note_id_required"},400);
+      const student=await env.DB.prepare("SELECT id,class_id FROM students WHERE id=? AND is_active=1").bind(sid).first();
+      if(!student)return out({error:"student_not_found"},404);
+      if(!await canClass(env,u,student.class_id))return out({error:"forbidden"},403);
+      const note=await env.DB.prepare("SELECT id,created_by,note FROM student_notes WHERE id=? AND student_id=?").bind(nid,sid).first();
+      if(!note)return out({error:"note_not_found"},404);
+      if(u.role!=="SECTION_HEAD"&&String(note.created_by)!==String(u.id))return out({error:"note_owner_only"},403);
+      await env.DB.prepare("DELETE FROM student_notes WHERE id=? AND student_id=?").bind(nid,sid).run();
+      await env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,old_values) VALUES(?,?,?,?,?)").bind(u.id,"STUDENT_NOTE_DELETED","student",sid,JSON.stringify({note_id:nid,note:note.note})).run();
+      return out({ok:true});
+    }
+
     if(p==="/api/student-records"&&req.method==="GET"){let rr;if(u.role==="SECTION_HEAD")rr=await env.DB.prepare("SELECT s.id,s.admission_number,s.full_name,s.class_id,s.is_active,c.display_name FROM students s JOIN classes c ON c.id=s.class_id ORDER BY c.display_name,s.full_name").all();else rr=await env.DB.prepare("SELECT s.id,s.admission_number,s.full_name,s.class_id,s.is_active,c.display_name FROM students s JOIN classes c ON c.id=s.class_id JOIN teacher_class_assignments a ON a.class_id=s.class_id WHERE a.teacher_id=? AND a.is_active=1 ORDER BY c.display_name,s.full_name").bind(u.id).all();return out({students:rr.results})}
     const studentDelete=p.match(/^\/api\/students\/([^/]+)$/);if(studentDelete&&req.method==="DELETE"){if(u.role==="SECTION_HEAD"&&!await isPrimarySectionHead(env,u))return out({error:"primary_section_head_only"},403);const sid=decodeURIComponent(studentDelete[1]);const st=await env.DB.prepare("SELECT id,class_id FROM students WHERE id=?").bind(sid).first();if(!st)return out({error:"not_found"},404);if(!await canClass(env,u,st.class_id))return out({error:"forbidden"},403);const recs=(await env.DB.prepare("SELECT id FROM attendance_records WHERE student_id=?").bind(sid).all()).results;await ensureStudentNotes(env);const stmts=[];for(const r of recs)stmts.push(env.DB.prepare("DELETE FROM attendance_changes WHERE attendance_record_id=?").bind(r.id));stmts.push(env.DB.prepare("DELETE FROM student_notes WHERE student_id=?").bind(sid));stmts.push(env.DB.prepare("DELETE FROM attendance_records WHERE student_id=?").bind(sid));stmts.push(env.DB.prepare("DELETE FROM student_class_history WHERE student_id=?").bind(sid));stmts.push(env.DB.prepare("DELETE FROM students WHERE id=?").bind(sid));stmts.push(env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id) VALUES(?,?,?,?)").bind(u.id,"STUDENT_PERMANENTLY_DELETED","student",sid));await env.DB.batch(stmts);return out({ok:true})}
     if(u.role==="SECTION_HEAD"&&p==="/api/students"&&req.method==="GET"){const r=await env.DB.prepare("SELECT s.*,c.display_name FROM students s JOIN classes c ON c.id=s.class_id ORDER BY c.display_name,s.admission_number,s.full_name").all();return out({students:r.results})}
