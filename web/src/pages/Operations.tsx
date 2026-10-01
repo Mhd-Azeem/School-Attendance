@@ -72,21 +72,7 @@ export function Reports(){
     setPeriodRows([])
     if(kind==='individual'&&!studentId){setDailyRows([]);setMsg('Select a student.');return}
     let targets=isSpecific?classes.filter(c=>c.id===cid):gradeFilter?classes.filter(c=>String(c.display_name).split('-')[0].trim()===gradeFilter):classes
-    if(kind==='notes'){
-   const r=noteStudent
-   if(!r)return
-   line('Name: '+r.full_name,36,12,true);y-=18
-   line('Index Number: '+r.admission_number,36,10);y-=15
-   line('Grade: '+noteGrade,36,10);y-=15
-   line('Grade Class: '+noteGradeClass,36,10);y-=24
-   const widths=[96,105,335],startX=38
-   const drawNoteRow=(vals:any[],header=false)=>{let x=startX;vals.forEach((v:any,i:number)=>{cmd+=(header?'0.92 0.92 0.92 rg':'1 1 1 rg')+' '+x+' '+(y-15)+' '+widths[i]+' 20 re f 0.7 G '+x+' '+(y-15)+' '+widths[i]+' 20 re S\nBT /'+(header?'F2':'F1')+' 7 Tf 0 0 0 rg '+(x+4)+' '+(y-8)+' Td ('+pdfText(v).slice(0,i===2?78:32)+') Tj ET\n';x+=widths[i]});y-=20}
-   drawNoteRow(['Date','Added By','Note'],true)
-   for(const n of noteRows){
-    if(y<60){newPage();line('Name: '+r.full_name,36,10,true);y-=16;drawNoteRow(['Date','Added By','Note'],true)}
-    drawNoteRow([String(n.created_at||'').slice(0,10),String(n.created_by_name||'')+' ('+(n.created_by_role==='SECTION_HEAD'?'Section Head':'Teacher')+')',n.note])
-   }
-  }else if(kind==='individual'){
+    if(kind==='individual'){
      const selected=filtered.find(r=>String(r.student_id)===String(studentId))
      if(selected)targets=classes.filter(c=>String(c.display_name)===String(selected.display_name))
     }
@@ -161,7 +147,21 @@ export function Reports(){
    line('Date: '+group.date,36,10,true);y-=19
   }
   y=682;centered('Zahira College Matale',14,true);y-=20;centered(title,18,true);y-=18;centered('Date Range: '+from+' to '+to,9);y-=14;centered('Scope: '+reportScope,9);y-=14;centered('Generated: '+generatedOn,8);y-=26
-  if(kind==='individual'){
+  if(kind==='notes'){
+   const r=noteStudent
+   if(!r)return
+   line('Name: '+r.full_name,36,12,true);y-=18
+   line('Index Number: '+r.admission_number,36,10);y-=15
+   line('Grade: '+noteGrade,36,10);y-=15
+   line('Grade Class: '+noteGradeClass,36,10);y-=24
+   const widths=[96,105,335],startX=38
+   const drawNoteRow=(vals:any[],header=false)=>{let x=startX;vals.forEach((v:any,i:number)=>{cmd+=(header?'0.92 0.92 0.92 rg':'1 1 1 rg')+' '+x+' '+(y-15)+' '+widths[i]+' 20 re f 0.7 G '+x+' '+(y-15)+' '+widths[i]+' 20 re S\nBT /'+(header?'F2':'F1')+' 7 Tf 0 0 0 rg '+(x+4)+' '+(y-8)+' Td ('+pdfText(v).slice(0,i===2?78:32)+') Tj ET\n';x+=widths[i]});y-=20}
+   drawNoteRow(['Date','Added By','Note'],true)
+   for(const n of noteRows){
+    if(y<60){newPage();line('Name: '+r.full_name,36,10,true);y-=16;drawNoteRow(['Date','Added By','Note'],true)}
+    drawNoteRow([String(n.created_at||'').slice(0,10),String(n.created_by_name||'')+' ('+(n.created_by_role==='SECTION_HEAD'?'Section Head':'Teacher')+')',n.note])
+   }
+  }else if(kind==='individual'){
    const r=individualStudent
    if(!r)return
    line('Name: '+r.full_name,36,12,true);y-=18
