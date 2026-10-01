@@ -6,6 +6,7 @@ import {schoolDate,prettyDate} from '../lib/date'
 import {api} from '../lib/api'
 import {totals} from '../lib/attendance'
 import type {AttendanceStatus,SchoolClass,Student} from '../types'
+import {StudentNotesButton} from '../components/StudentNotes'
 
 export function Attendance(){
  const [params]=useSearchParams(),today=schoolDate()
@@ -98,7 +99,7 @@ export function Attendance(){
    <label className="search modern-search"><Search/><input placeholder="Search student name…" value={query} onChange={e=>setQuery(e.target.value)}/></label>
    <button className="mark-all" onClick={()=>{setStatuses(prev=>Object.fromEntries(students.map(s=>[s.id,savedIds.has(s.id)?prev[s.id]:'PRESENT'])));setMissingIds(new Set())}}>✓ Mark all unmarked students present</button>
    {message&&<div className={message.includes('✓')?'notice':'error'}>{message}</div>}
-   <section className="student-table"><div className="student-head"><span>#</span><span>Name</span><span>Status</span></div>{filtered.map((s,i)=><article id={`student-${s.id}`} className={missingIds.has(s.id)?'attendance-missing':''} key={s.id}><span>{i+1}</span><div><strong>{s.full_name}</strong><small>{s.admission_number}</small>{missingIds.has(s.id)&&<em className="missing-label">Select Present or Absent</em>}</div><div className="status-control">{(['PRESENT','ABSENT'] as const).map(status=><button key={status} className={`${statuses[s.id]===status?status.toLowerCase():''}`} onClick={()=>mark(s.id,status)} aria-pressed={statuses[s.id]===status}>{status==='PRESENT'?'● Present':'● Absent'}</button>)}</div></article>)}</section>
+   <section className="student-table"><div className="student-head"><span>#</span><span>Name</span><span>Status</span></div>{filtered.map((s,i)=><article id={`student-${s.id}`} className={missingIds.has(s.id)?'attendance-missing':''} key={s.id}><span>{i+1}</span><div><strong>{s.full_name}</strong><small>{s.admission_number}</small><StudentNotesButton student={s}/>{missingIds.has(s.id)&&<em className="missing-label">Select Present or Absent</em>}</div><div className="status-control">{(['PRESENT','ABSENT'] as const).map(status=><button key={status} className={`${statuses[s.id]===status?status.toLowerCase():''}`} onClick={()=>mark(s.id,status)} aria-pressed={statuses[s.id]===status}>{status==='PRESENT'?'● Present':'● Absent'}</button>)}</div></article>)}</section>
    <button className="submit" disabled={busy||!students.length} onClick={submit}>{busy?'Submitting…':already?'Update & Resubmit Attendance':'Save Attendance'}</button>
    {warning&&<div className="attendance-popup-backdrop" role="dialog" aria-modal="true" aria-labelledby="attendance-warning-title"><div className="attendance-popup"><span className="attendance-popup-icon"><AlertTriangle/></span><h3 id="attendance-warning-title">Attendance Incomplete</h3><p>{warning}</p><button className="primary wide" onClick={()=>setWarning('')}>OK, Check Students</button></div></div>}
   </>
