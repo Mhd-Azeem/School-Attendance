@@ -1,9 +1,10 @@
 import {useEffect,useState} from 'react'
-import {MessageSquare,Save,X} from 'lucide-react'
+import {MessageSquare,Save,Trash2,X} from 'lucide-react'
 import {api} from '../lib/api'
+import {useAuth} from '../AuthContext'
 
 type StudentLike={id:string;full_name:string;admission_number:string}
-type NoteRow={id:string;note:string;created_at:string;created_by_name:string;created_by_role:string}
+type NoteRow={id:string;note:string;created_at:string;created_by:string;created_by_name:string;created_by_role:string}
 
 function noteTime(value:string){
  const d=new Date(value.endsWith('Z')?value:value+'Z')
@@ -11,11 +12,13 @@ function noteTime(value:string){
 }
 
 export function StudentNotesButton({student}:{student:StudentLike}){
+ const {profile}=useAuth()
  const [open,setOpen]=useState(false)
  const [notes,setNotes]=useState<NoteRow[]>([])
  const [text,setText]=useState('')
  const [loading,setLoading]=useState(false)
  const [saving,setSaving]=useState(false)
+ const [deleting,setDeleting]=useState<string|null>(null)
  const [error,setError]=useState('')
 
  async function load(){
@@ -40,6 +43,16 @@ export function StudentNotesButton({student}:{student:StudentLike}){
   finally{setSaving(false)}
  }
 
+ async function deleteNote(note:NoteRow){
+  if(deleting||!confirm('Delete this note? This cannot be undone.'))return
+  setDeleting(note.id);setError('')
+  try{
+   await api(`/api/students/${encodeURIComponent(student.id)}/notes/${encodeURIComponent(note.id)}`,{method:'DELETE',silentSuccess:true})
+   setNotes(rows=>rows.filter(x=>x.id!==note.id))
+  }catch(e){const m=e instanceof Error?e.message:'';setError(m==='note_owner_only'?'Teachers can only delete notes they added themselves.':m==='forbidden'?'You do not have permission to delete this note.':'Could not delete the note.')}
+  finally{setDeleting(null)}
+ }
+
  return <>
   <button type="button" className="student-note-button" onClick={()=>setOpen(true)}><MessageSquare size={15}/> Notes</button>
   {open&&<div className="student-notes-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setOpen(false)}}>
@@ -56,7 +69,7 @@ export function StudentNotesButton({student}:{student:StudentLike}){
     {error&&<div className="error">{error}</div>}
     <div className="student-note-history">
      <h3>Note History</h3>
-     {loading?<div className="empty-mini">Loading notes…</div>:notes.length?<ul>{notes.map(n=><li key={n.id}><p>{n.note}</p><small>{n.created_by_name} · {n.created_by_role==='SECTION_HEAD'?'Section Head':'Teacher'} · {noteTime(n.created_at)}</small></li>)}</ul>:<div className="empty-mini">No notes have been added for this student yet.</div>}
+     {loading?<div className="empty-mini">Loading notes…</div>:notes.length?<ul>{notes.map(n=>{const canDelete=profile?.role==='SECTION_HEAD'||String(n.created_by)===String(profile?.id);return <li key={n.id}><div className="student-note-item"><div><p>{n.note}</p><small>{n.created_by_name} · {n.created_by_role==='SECTION_HEAD'?'Section Head':'Teacher'} · {noteTime(n.created_at)}</small></div>{canDelete&&<button type="button" className="student-note-delete" disabled={deleting===n.id} onClick={()=>deleteNote(n)}><Trash2 size={14}/>{deleting===n.id?'Deleting…':'Delete'}</button>}</div></li>})}</ul>:<div className="empty-mini">No notes have been added for this student yet.</div>}
     </div>
    </section>
   </div>}
