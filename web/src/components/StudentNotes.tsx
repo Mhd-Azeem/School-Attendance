@@ -47,9 +47,9 @@ export function StudentNotesButton({student}:{student:StudentLike}){
   if(deleting||!confirm('Delete this note? This cannot be undone.'))return
   setDeleting(note.id);setError('')
   try{
-   await api(`/api/students/${encodeURIComponent(student.id)}/notes/${encodeURIComponent(note.id)}`,{method:'DELETE',silentSuccess:true})
+   await api('/api/student-notes/delete',{method:'POST',body:JSON.stringify({student_id:student.id,note_id:note.id}),silentSuccess:true})
    setNotes(rows=>rows.filter(x=>x.id!==note.id))
-  }catch(e){const m=e instanceof Error?e.message:'';setError(m==='note_owner_only'?'Teachers can only delete notes they added themselves.':m==='forbidden'?'You do not have permission to delete this note.':(m==='request_failed_404'||m==='not_found')?'Note deletion is not available on the live backend yet. Deploy the latest backend once to enable Delete.':'Could not delete the note.')}
+  }catch(e){const m=e instanceof Error?e.message:'';setError(m==='note_owner_only'?'Teachers can only delete notes they added themselves.':m==='forbidden'?'You do not have permission to delete this note.':(m==='request_failed_404'||m==='not_found')?'The latest note-delete backend is not live yet. Deploy the newest backend once and try again.':'Could not delete the note.')}
   finally{setDeleting(null)}
  }
 
