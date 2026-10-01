@@ -61,8 +61,12 @@ function AdminDashboard(){
  const markedOf=(x:Summary)=>Number(x.marked??(Number(x.present||0)+Number(x.absent||0)+Number(x.late||0))),submitted=rows.filter(x=>!!x.session_id&&markedOf(x)>=Number(x.total||0)),pending=rows.filter(x=>!x.session_id||markedOf(x)<Number(x.total||0))
  const totals=useMemo(()=>rows.reduce((a,s)=>({present:a.present+Number(s.present||0),absent:a.absent+Number(s.absent||0),total:a.total+Number(s.total||0)}),{present:0,absent:0,total:0}),[rows])
  const pct=totals.total?Math.round(totals.present*100/totals.total):0
- async function sendReminder(c:Summary){setSending(s=>({...s,[c.id]:'Sending…'}));try{const r=await api<{teacher:{full_name:string}}>('/api/notifications/pending-class',{method:'POST',body:JSON.stringify({class_id:c.id,date:today})});setSending(s=>({...s,[c.id]:`Sent to ${r.teacher.full_name} ✓`}))}catch(e){const m=e instanceof Error?e.message:'';setSending(s=>({...s,[c.id]:m==='class_teacher_not_assigned'?'No class teacher assigned':'Could not send reminder'}))}}
- async function notifyAll(){for(const c of pending)await sendReminder(c)}
+ async function sendReminder(c:Summary,silentSuccess=false){setSending(s=>({...s,[c.id]:'Sending…'}));try{const r=await api<{teacher:{full_name:string}}>('/api/notifications/pending-class',{method:'POST',body:JSON.stringify({class_id:c.id,date:today}),silentSuccess});setSending(s=>({...s,[c.id]:`Sent to ${r.teacher.full_name} ✓`}));return true}catch(e){const m=e instanceof Error?e.message:'';setSending(s=>({...s,[c.id]:m==='class_teacher_not_assigned'?'No class teacher assigned':'Could not send reminder'}));return false}}
+ async function notifyAll(){
+  let sent=0
+  for(const c of pending)if(await sendReminder(c,true))sent++
+  if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('app-success',{detail:{title:'Reminders Sent',message:sent===pending.length?`Notifications sent successfully to all ${sent} pending class teacher${sent===1?'':'s'}.`:`Notifications sent to ${sent} of ${pending.length} pending class teachers.`}}))
+ }
  return <>
   <section className="welcome-card admin-welcome"><div className="avatar">{photo?<img src={photo} alt="Profile"/>:<UserRound/>}</div><div><p>Welcome, <strong>{profile?.full_name.split(' ')[0]}</strong></p><small>Section Head</small><span className="date-chip">{prettyDate(today)}</span></div></section>
   {error&&<div className="error">{error}</div>}
