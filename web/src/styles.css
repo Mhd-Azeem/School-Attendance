@@ -855,3 +855,22 @@ section.student-delete-settings{
  .history-summary-row .status-pill{justify-self:end}
  .history-detail-panel{padding-left:10px;padding-right:10px}
 }
+
+
+/* Shared per-student notes */
+.student-note-button{justify-self:start;width:max-content;border:1px solid #bfe0d0;background:#eef9f3;color:#08784f;border-radius:999px;padding:5px 9px;margin-top:4px;display:inline-flex;align-items:center;gap:5px;font-size:calc(9px * var(--font-scale));font-weight:800;line-height:1}
+.student-note-button svg{width:14px;height:14px}
+.student-note-button:active{transform:scale(.97)}
+.student-notes-backdrop{position:fixed;inset:0;z-index:210;background:#061a13a8;display:grid;place-items:center;padding:18px}
+.student-notes-modal{width:min(560px,100%);max-height:min(760px,88vh);overflow:auto;background:#fff;border-radius:20px;box-shadow:0 24px 70px #001d1450;border:1px solid #d9e7e0}
+.student-notes-modal>header{position:sticky;top:0;z-index:2;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 17px;border-bottom:1px solid #e5eee9}
+.student-notes-modal>header>div{display:grid;gap:3px;min-width:0}.student-notes-modal>header strong{font-size:calc(15px * var(--font-scale));color:#243b32;overflow-wrap:anywhere}.student-notes-modal>header small{font-size:calc(9px * var(--font-scale));color:var(--muted)}
+.student-notes-close{width:36px;height:36px;border:1px solid #dbe7e1;border-radius:10px;background:#f7faf8;color:#52685e;display:grid;place-items:center;flex:none}.student-notes-close svg{width:18px;height:18px}
+.student-note-editor{padding:15px 17px;background:#f7fbf9;border-bottom:1px solid #e5eee9;display:grid;gap:7px}.student-note-editor>label{font-size:calc(11px * var(--font-scale));font-weight:800;color:#28473b}.student-note-editor textarea{width:100%;resize:vertical;min-height:96px;border:1px solid #cadbd2;border-radius:12px;padding:11px 12px;background:#fff;font:inherit;line-height:1.5;box-sizing:border-box}.student-note-editor textarea:focus{outline:2px solid #9ed7bd;outline-offset:1px;border-color:#6fbd98}.student-note-editor>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.student-note-editor>div>small{font-size:calc(9px * var(--font-scale));color:var(--muted)}.student-note-save{width:auto!important;margin:0!important;display:inline-flex!important;align-items:center;gap:6px;padding:9px 13px!important}
+.student-note-history{padding:15px 17px 18px}.student-note-history h3{margin:0 0 10px;font-size:calc(12px * var(--font-scale));color:#28473b}.student-note-history ul{list-style:disc;margin:0;padding-left:23px;display:grid;gap:11px}.student-note-history li{padding:0 0 10px 2px;border-bottom:1px solid #edf3ef}.student-note-history li:last-child{border-bottom:0;padding-bottom:0}.student-note-history p{margin:0 0 5px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:calc(11px * var(--font-scale));line-height:1.5;color:#273a32}.student-note-history li small{display:block;font-size:calc(8.5px * var(--font-scale));color:#71847a}
+@media(max-width:700px){
+ .student-notes-backdrop{padding:10px;align-items:end}
+ .student-notes-modal{max-height:88vh;border-radius:20px 20px 12px 12px}
+ .student-notes-modal>header,.student-note-editor,.student-note-history{padding-left:14px;padding-right:14px}
+ .student-table article>div:nth-child(2) .student-note-button{margin-top:5px}
+}
