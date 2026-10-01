@@ -897,3 +897,51 @@ section.student-delete-settings{
  .student-directory-row .student-note-action{grid-column:auto!important;justify-self:end}
  .student-directory-row .student-note-button{padding:6px 9px}
 }
+
+
+/* Student directory action layout hardening */
+.class-student-body .student-directory-row{
+ display:grid!important;
+ grid-template-columns:32px 88px minmax(0,1fr) 82px!important;
+ align-items:center!important;
+ column-gap:8px!important;
+ row-gap:0!important;
+ padding:13px 12px!important;
+}
+.class-student-body .student-directory-row>.student-index{
+ grid-column:1!important;
+ grid-row:1!important;
+}
+.class-student-body .student-directory-row>.student-admission{
+ grid-column:2!important;
+ grid-row:1!important;
+}
+.class-student-body .student-directory-row>.student-main-name{
+ grid-column:3!important;
+ grid-row:1!important;
+ min-width:0!important;
+}
+.class-student-body .student-directory-row>.student-note-action{
+ grid-column:4!important;
+ grid-row:1!important;
+ justify-self:end!important;
+ align-self:center!important;
+ width:auto!important;
+}
+.class-student-body .student-directory-row>.student-note-action .student-note-button{
+ margin:0!important;
+ min-width:72px;
+ justify-content:center;
+}
+@media(max-width:420px){
+ .class-student-body .student-directory-row{
+  grid-template-columns:24px 72px minmax(0,1fr) 70px!important;
+  padding-left:8px!important;
+  padding-right:8px!important;
+  column-gap:6px!important;
+ }
+ .class-student-body .student-directory-row>.student-note-action .student-note-button{
+  min-width:66px;
+  padding:6px 7px;
+ }
+}
