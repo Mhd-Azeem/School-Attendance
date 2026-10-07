@@ -10,9 +10,11 @@ export function Profile(){
  const auth=useAuth(),profile=auth.profile
  const [name,setName]=useState(profile?.full_name||''),[photo,setPhoto]=useState(()=>getProfilePhoto(profile?.id)),[msg,setMsg]=useState('')
  const [crop,setCrop]=useState<CropInfo|null>(null),[zoom,setZoom]=useState(1),[panX,setPanX]=useState(0),[panY,setPanY]=useState(0),[savingCrop,setSavingCrop]=useState(false)
+ const [viewPhoto,setViewPhoto]=useState(false)
  const inputRef=useRef<HTMLInputElement>(null)
 
  useEffect(()=>setName(profile?.full_name||''),[profile?.full_name])
+ useEffect(()=>{if(!viewPhoto)return;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewPhoto(false)};document.addEventListener('keydown',onKey);const old=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{document.removeEventListener('keydown',onKey);document.body.style.overflow=old}},[viewPhoto])
  useEffect(()=>{clearLegacyProfilePhoto();const local=getProfilePhoto(profile?.id);setPhoto(local);if(!profile?.id)return;let active=true;api<{profile_photo:string|null}>('/api/profile/photo').then(async x=>{if(!active)return;const remote=x.profile_photo||'';if(remote){setPhoto(remote);setProfilePhoto(profile.id,remote);return}if(local){try{await api('/api/profile/photo',{method:'PUT',body:JSON.stringify({profile_photo:local})});if(active)setPhoto(local)}catch{}}}).catch(()=>{});return()=>{active=false}},[profile?.id])
 
  const cropMetrics=useMemo(()=>{
@@ -70,7 +72,7 @@ export function Profile(){
  async function save(e:React.FormEvent){e.preventDefault();setMsg('');try{const d=await api<{user:any}>('/api/profile',{method:'PUT',body:JSON.stringify({full_name:name})});auth.setProfile(d.user);setMsg('Profile updated ✓')}catch(err){setMsg(err instanceof Error?err.message:'Could not update profile.')}}
 
  return <>
-  <section className="profile-hero"><div className="profile-photo">{photo?<img src={photo} alt="Profile"/>:<UserRound/>}</div><h2>{profile?.full_name}</h2><p>{profile?.role==='SECTION_HEAD'?'Section Head':'Class Teacher'}</p><small>@{profile?.username}</small></section>
+  <section className="profile-hero"><button className={`profile-photo profile-photo-view-button${photo?' has-photo':''}`} type="button" onClick={()=>photo&&setViewPhoto(true)} aria-label={photo?"View profile picture":"No profile picture"} disabled={!photo}>{photo?<img src={photo} alt="Profile"/>:<UserRound/>}</button><h2>{profile?.full_name}</h2><p>{profile?.role==='SECTION_HEAD'?'Section Head':'Class Teacher'}</p><small>@{profile?.username}</small></section>
   <section className="profile-card">
    <input ref={inputRef} type="file" accept="image/*" onChange={choose} hidden/>
    <div className="profile-photo-actions">
@@ -82,6 +84,13 @@ export function Profile(){
    {msg&&<div className={msg.includes('✓')?'notice':'error'}>{msg}</div>}
   </section>
   <button className="profile-logout" type="button" onClick={()=>auth.signOut()}><LogOut size={18}/> Logout</button>
+
+  {viewPhoto&&photo&&<div className="profile-photo-viewer" role="dialog" aria-modal="true" aria-label="Profile picture viewer" onClick={()=>setViewPhoto(false)}>
+   <button className="profile-photo-viewer-close" type="button" onClick={()=>setViewPhoto(false)} aria-label="Close profile picture"><X/></button>
+   <div className="profile-photo-viewer-image-wrap" onClick={e=>e.stopPropagation()}>
+    <img src={photo} alt="Profile picture" className="profile-photo-viewer-image"/>
+   </div>
+  </div>}
 
   {crop&&cropMetrics&&<div className="crop-modal-backdrop">
    <section className="crop-modal">
