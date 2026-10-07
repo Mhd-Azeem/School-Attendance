@@ -956,3 +956,76 @@ section.student-delete-settings{
  .student-note-item{gap:8px}
  .student-note-delete{padding:6px 7px}
 }
+
+
+/* Full-screen profile photo viewer */
+.profile-photo-view-button{
+ appearance:none;
+ -webkit-appearance:none;
+ padding:0;
+ cursor:default;
+}
+.profile-photo-view-button.has-photo{cursor:zoom-in}
+.profile-photo-view-button:disabled{opacity:1!important}
+.profile-photo-view-button:focus-visible{outline:3px solid #71d7a7;outline-offset:3px}
+.profile-photo-viewer{
+ position:fixed;
+ inset:0;
+ z-index:1000;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ padding:calc(18px + var(--safe-top)) 18px calc(18px + var(--safe-bottom));
+ background:#020807f2;
+ backdrop-filter:blur(7px);
+ -webkit-backdrop-filter:blur(7px);
+ animation:profile-photo-viewer-fade .18s ease-out;
+}
+.profile-photo-viewer-close{
+ position:absolute;
+ top:calc(14px + var(--safe-top));
+ right:14px;
+ z-index:2;
+ width:42px;
+ height:42px;
+ display:grid;
+ place-items:center;
+ border:1px solid #ffffff2e;
+ border-radius:50%;
+ background:#ffffff16;
+ color:#fff;
+ padding:0;
+ box-shadow:none;
+}
+.profile-photo-viewer-close svg{width:22px;height:22px}
+.profile-photo-viewer-image-wrap{
+ width:min(92vw,720px);
+ height:min(82dvh,720px);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ overflow:auto;
+ overscroll-behavior:contain;
+ touch-action:pan-x pan-y pinch-zoom;
+}
+.profile-photo-viewer-image{
+ display:block;
+ max-width:100%;
+ max-height:100%;
+ width:auto;
+ height:auto;
+ object-fit:contain;
+ user-select:none;
+ -webkit-user-select:none;
+ animation:profile-photo-viewer-zoom .22s cubic-bezier(.22,1,.36,1);
+}
+@keyframes profile-photo-viewer-fade{from{opacity:0}to{opacity:1}}
+@keyframes profile-photo-viewer-zoom{from{opacity:.4;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
+@media(max-width:700px){
+ .profile-photo-viewer{padding-left:10px;padding-right:10px}
+ .profile-photo-viewer-image-wrap{width:100%;height:82dvh}
+ .profile-photo-viewer-close{top:calc(10px + var(--safe-top));right:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ .profile-photo-viewer,.profile-photo-viewer-image{animation:none}
+}
