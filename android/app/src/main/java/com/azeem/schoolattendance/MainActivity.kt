@@ -35,7 +35,6 @@ import androidx.webkit.WebViewClientCompat
 
 class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
-    private lateinit var appUpdater: AppUpdater
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -179,11 +178,8 @@ class MainActivity : ComponentActivity() {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        appUpdater = AppUpdater(this)
-
         if (savedInstanceState == null) {
             webView.loadUrl("https://appassets.androidplatform.net/web/index.html")
-            appUpdater.checkForUpdates()
         } else {
             webView.restoreState(savedInstanceState)
         }
@@ -203,7 +199,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::appUpdater.isInitialized) appUpdater.onResume()
         val token = getSharedPreferences("school_native_auth", MODE_PRIVATE)
             .getString("auth_token", null)
         if (!token.isNullOrBlank()) {
@@ -227,7 +222,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         filePathCallback?.onReceiveValue(null)
         filePathCallback = null
-        if (::appUpdater.isInitialized) appUpdater.destroy()
         webView.destroy()
         super.onDestroy()
     }
