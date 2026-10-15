@@ -1,0 +1,108 @@
+name: Play Store AAB
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['play-store-aab']
+    paths:
+      - 'android/**'
+      - 'web/**'
+      - 'branding/**'
+      - '.github/workflows/play-aab.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-play-aab:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Prepare Zahira College branding
+        run: |
+          mkdir -p web/public
+          base64 -d branding/zahira-logo.jpg.b64 > web/public/zahira-logo.jpg
+          mkdir -p android/app/src/main/res/drawable
+          base64 -d branding/zahira-logo.jpg.b64 > android/app/src/main/res/drawable/zahira_logo.jpg
+
+      - name: Build complete web app
+        working-directory: web
+        env:
+          VITE_API_URL: https://school-attendance-api.azeemzahira111.workers.dev
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      - name: Bundle web app into Android assets
+        run: |
+          rm -rf android/app/src/main/assets/web
+          mkdir -p android/app/src/main/assets/web
+          cp -R web/dist/. android/app/src/main/assets/web/
+
+      - name: Restore permanent release keystore
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
+          test -n "$KEYSTORE_PASSWORD" || (echo "Missing KEYSTORE_PASSWORD" && exit 1)
+          test -n "$KEY_PASSWORD" || (echo "Missing KEY_PASSWORD" && exit 1)
+
+          RAW_B64="$ANDROID_KEYSTORE_BASE64"
+          if printf '%s' "$RAW_B64" | grep -q '^ANDROID_KEYSTORE_BASE64='; then
+            RAW_B64="${RAW_B64#ANDROID_KEYSTORE_BASE64=}"
+          fi
+
+          CLEAN_B64=$(printf '%s' "$RAW_B64" | tr -d '\r\n\t ' | tr -d '"')
+          printf '%s' "$CLEAN_B64" | base64 --decode > android/release-keystore.jks
+
+          ACTUAL_SHA=$(sha256sum android/release-keystore.jks | awk '{print $1}')
+          EXPECTED_SHA="fb229946f25169255bcc252a3e5993f7cb659bdc146f0abed247b0d1b4732cc2"
+          [ "$ACTUAL_SHA" = "$EXPECTED_SHA" ] || (echo "ANDROID_KEYSTORE_BASE64 does not match permanent keystore" && exit 1)
+
+          keytool -list             -keystore android/release-keystore.jks             -storepass "$KEYSTORE_PASSWORD"             -alias school-attendance-release >/dev/null
+
+      - name: Build signed Play Store AAB
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ../release-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: school-attendance-release
+          ANDROID_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          BUILD_VERSION_CODE: ${{ github.run_number }}
+          BUILD_VERSION_NAME: 1.0.${{ github.run_number }}
+        run: gradle bundleRelease
+
+      - name: Prepare AAB
+        run: |
+          cp android/app/build/outputs/bundle/release/app-release.aab School-Attendance-PLAY.aab
+          ls -lh School-Attendance-PLAY.aab
+
+      - name: Upload Play Store AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: School-Attendance-PLAY
+          path: School-Attendance-PLAY.aab
+          if-no-files-found: error
+          retention-days: 30
