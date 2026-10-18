@@ -80,6 +80,52 @@ export default {async fetch(req,env){
     if(u.role==="SECTION_HEAD"&&p==="/api/timetable"&&req.method==="GET"){const cid=url.searchParams.get("class_id");if(!cid)return out({error:"class_id_required"},400);const rr=await env.DB.prepare("SELECT p.id,p.period_no,p.subject,p.teacher_id,u.full_name teacher_name FROM class_periods p LEFT JOIN users u ON u.id=p.teacher_id WHERE p.class_id=? AND p.is_active=1 ORDER BY p.period_no").bind(cid).all();return out({periods:rr.results})}
     if(u.role==="SECTION_HEAD"&&p==="/api/timetable"&&req.method==="PUT"){const b=await json(req);if(!b?.class_id||!Array.isArray(b?.periods)||b.periods.length>9)return out({error:"invalid_request"},400);const seen=new Set();for(const x of b.periods){const n=Number(x.period_no);if(!Number.isInteger(n)||n<1||n>9||seen.has(n)||!String(x.subject||"").trim())return out({error:"invalid_periods"},400);seen.add(n)}await env.DB.prepare("UPDATE class_periods SET is_active=0 WHERE class_id=?").bind(b.class_id).run();for(const x of b.periods){const old=await env.DB.prepare("SELECT id FROM class_periods WHERE class_id=? AND period_no=?").bind(b.class_id,Number(x.period_no)).first();if(old)await env.DB.prepare("UPDATE class_periods SET subject=?,teacher_id=?,is_active=1 WHERE id=?").bind(String(x.subject).trim(),x.teacher_id||null,old.id).run();else await env.DB.prepare("INSERT INTO class_periods(id,class_id,period_no,subject,teacher_id,is_active) VALUES(?,?,?,?,?,1)").bind(id(),b.class_id,Number(x.period_no),String(x.subject).trim(),x.teacher_id||null).run()}await env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"TIMETABLE_UPDATED","class",b.class_id,JSON.stringify({periods:b.periods.length})).run();return out({ok:true})}
     if(p==="/api/auth/logout"&&req.method==="POST"){const h=req.headers.get("authorization").slice(7);await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await sha256(h)).run();return out({ok:true})}
+    if(u.role==="SECTION_HEAD"&&p==="/api/grades"&&req.method==="GET"){
+      const grades=(await env.DB.prepare("SELECT id,name,sort_order,is_active FROM grades WHERE is_active=1 ORDER BY sort_order,name").all()).results;
+      for(const g of grades){
+        g.classes=(await env.DB.prepare("SELECT id,name,display_name,is_active FROM classes WHERE grade_id=? AND is_active=1 ORDER BY display_name").bind(g.id).all()).results;
+      }
+      return out({grades});
+    }
+    if(u.role==="SECTION_HEAD"&&p==="/api/grades"&&req.method==="POST"){
+      const b=await json(req),gradeName=String(b?.grade||"").trim(),className=String(b?.class_name||"").trim();
+      if(!gradeName||gradeName.length>40||className.length>40)return out({error:"invalid_grade_or_class"},400);
+
+      let grade=await env.DB.prepare("SELECT id,name,is_active FROM grades WHERE name=? COLLATE NOCASE LIMIT 1").bind(gradeName).first();
+      let gradeCreated=false;
+      if(!grade){
+        const gid=id(),numeric=Number(gradeName),maxRow=await env.DB.prepare("SELECT COALESCE(MAX(sort_order),0) max_sort FROM grades").first();
+        const sortOrder=Number.isFinite(numeric)?Math.trunc(numeric):Number(maxRow?.max_sort||0)+1;
+        await env.DB.prepare("INSERT INTO grades(id,name,sort_order,is_active) VALUES(?,?,?,1)").bind(gid,gradeName,sortOrder).run();
+        grade={id:gid,name:gradeName,is_active:1};gradeCreated=true;
+      }else if(!Number(grade.is_active)){
+        await env.DB.prepare("UPDATE grades SET is_active=1 WHERE id=?").bind(grade.id).run();
+        grade.is_active=1;
+      }
+
+      let cls=null;
+      if(className){
+        const existing=await env.DB.prepare("SELECT id,name,display_name,is_active FROM classes WHERE grade_id=? AND name=? COLLATE NOCASE LIMIT 1").bind(grade.id,className).first();
+        if(existing&&Number(existing.is_active))return out({error:"class_already_exists"},409);
+        const displayName=gradeName+"-"+className;
+        const displayConflict=await env.DB.prepare("SELECT id FROM classes WHERE display_name=? COLLATE NOCASE AND grade_id<>? LIMIT 1").bind(displayName,grade.id).first();
+        if(displayConflict)return out({error:"class_display_name_exists"},409);
+        if(existing){
+          await env.DB.prepare("UPDATE classes SET is_active=1,display_name=? WHERE id=?").bind(displayName,existing.id).run();
+          cls={...existing,display_name:displayName,is_active:1};
+        }else{
+          const cid=id();
+          await env.DB.prepare("INSERT INTO classes(id,grade_id,name,display_name,is_active) VALUES(?,?,?,?,1)").bind(cid,grade.id,className,displayName).run();
+          cls={id:cid,name:className,display_name:displayName,is_active:1};
+        }
+      }
+
+      await env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(
+        u.id,className?"GRADE_CLASS_ADDED":"GRADE_ADDED","grade",grade.id,
+        JSON.stringify({grade:gradeName,class_name:className||null,grade_created:gradeCreated,class_id:cls?.id||null})
+      ).run();
+      return out({ok:true,grade:{id:grade.id,name:grade.name},class:cls},201);
+    }
     if(p==="/api/classes"&&req.method==="GET"){
       const q=u.role==="SECTION_HEAD"?"SELECT * FROM classes WHERE is_active=1 ORDER BY display_name":"SELECT c.* FROM classes c JOIN teacher_class_assignments a ON a.class_id=c.id WHERE a.teacher_id=? AND a.is_active=1 AND c.is_active=1 ORDER BY c.display_name";
       const r=u.role==="SECTION_HEAD"?await env.DB.prepare(q).all():await env.DB.prepare(q).bind(u.id).all();return out({classes:r.results});
