@@ -261,11 +261,27 @@ export function Settings(){
  const [s,setS]=useState<any>({attendance_threshold:'80',school_timezone:'Asia/Colombo',teacher_correction_allowed:'false'}),[msg,setMsg]=useState(''),[error,setError]=useState('')
  const [teachers,setTeachers]=useState<any[]>([]),[teacherSearch,setTeacherSearch]=useState(''),[deletingTeacher,setDeletingTeacher]=useState<string|null>(null)
  const [tempHeads,setTempHeads]=useState<any[]>([]),[tempName,setTempName]=useState(''),[tempUsername,setTempUsername]=useState(''),[tempPassword,setTempPassword]=useState(''),[tempAllowed,setTempAllowed]=useState(false),[tempBackendReady,setTempBackendReady]=useState(true),[creatingTemp,setCreatingTemp]=useState(false)
+ const [grades,setGrades]=useState<any[]>([]),[newGrade,setNewGrade]=useState(''),[newClass,setNewClass]=useState(''),[addingGrade,setAddingGrade]=useState(false)
  const [fontSize,setFontSize]=useState<'small'|'default'|'large'|'extra-large'>(()=>{const v=localStorage.getItem('school-attendance-font-size');return v==='small'||v==='large'||v==='extra-large'?v:'default'})
  function changeFontSize(value:'small'|'default'|'large'|'extra-large'){setFontSize(value);localStorage.setItem('school-attendance-font-size',value);document.documentElement.dataset.fontSize=value}
- useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true);setTempBackendReady(true)}).catch((e:any)=>{if(e?.message==='primary_section_head_only'||e?.message==='forbidden')setTempAllowed(false);else{setTempAllowed(false);setTempBackendReady(false)}})}},[admin])
+ useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{grades:any[]}>('/api/grades').then(x=>setGrades(x.grades)).catch(()=>setError('Could not load grades and classes.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true);setTempBackendReady(true)}).catch((e:any)=>{if(e?.message==='primary_section_head_only'||e?.message==='forbidden')setTempAllowed(false);else{setTempAllowed(false);setTempBackendReady(false)}})}},[admin])
  const filteredTeachers=useMemo(()=>teachers.filter(t=>`${t.full_name} ${t.username}`.toLowerCase().includes(teacherSearch.toLowerCase())),[teachers,teacherSearch])
  async function deleteTeacher(t:any){const typed=prompt(`Permanently delete teacher ${t.full_name}?\n\nType the username "${t.username}" to confirm.`);if(typed===null)return;if(typed.trim().toLowerCase()!==String(t.username).toLowerCase()){setError('Username did not match.');return}setDeletingTeacher(t.id);try{await api(`/api/teachers/${encodeURIComponent(t.id)}`,{method:'DELETE'});setTeachers(xs=>xs.filter(x=>x.id!==t.id));setMsg(`${t.full_name} was permanently deleted ✓`)}catch{setError('Could not permanently delete this teacher.')}finally{setDeletingTeacher(null)}}
+ async function addGradeAndClass(){
+  const grade=newGrade.trim(),className=newClass.trim()
+  if(!grade){setError('Enter a grade name or number.');return}
+  setAddingGrade(true);setError('');setMsg('')
+  try{
+   await api('/api/grades',{method:'POST',body:JSON.stringify({grade,class_name:className})})
+   const refreshed=await api<{grades:any[]}>('/api/grades')
+   setGrades(refreshed.grades);setNewGrade('');setNewClass('')
+   setMsg(className?`Grade ${grade} · Class ${className} added ✓`:`Grade ${grade} added ✓`)
+  }catch(e:any){
+   if(e?.message==='class_already_exists')setError('That class already exists in this grade.')
+   else if(e?.message==='class_display_name_exists')setError('A class with that display name already exists.')
+   else setError('Could not add this grade or class.')
+  }finally{setAddingGrade(false)}
+ }
 
  return <><div className="screen-title-row"><div><h1>Settings</h1><p>{admin?'System settings and permanent student record management.':'Student record management for your assigned classes.'}</p></div></div>
 
@@ -276,6 +292,22 @@ export function Settings(){
    <label>School timezone<input value={s.school_timezone||''} onChange={e=>setS({...s,school_timezone:e.target.value})}/></label>
    <label className="toggle"><input type="checkbox" checked={s.teacher_correction_allowed==='true'} onChange={e=>setS({...s,teacher_correction_allowed:String(e.target.checked)})}/> Allow teachers to correct submitted attendance</label>
    <button className="primary" onClick={async()=>{try{await api('/api/settings',{method:'PUT',body:JSON.stringify(s)});setMsg('Settings saved ✓');setError('')}catch{setError('Could not save settings.')}}}>Save Settings</button>
+  </div>
+ </details>}
+
+ {admin&&<details className="settings-form settings-accordion">
+  <summary className="settings-summary"><strong>Grades & Classes</strong><span>Add a new grade, with an optional class</span></summary>
+  <div className="settings-accordion-content">
+   <p>Add a grade by itself, or enter a class too. To add another class later, enter the existing grade again with the new class.</p>
+   <div className="grade-class-add-grid">
+    <label><span>Grade</span><input value={newGrade} onChange={e=>setNewGrade(e.target.value)} placeholder="e.g. 8" maxLength={40}/></label>
+    <label><span>Class <small>(optional)</small></span><input value={newClass} onChange={e=>setNewClass(e.target.value)} placeholder="e.g. A" maxLength={40}/></label>
+   </div>
+   <button type="button" className="primary" disabled={addingGrade||!newGrade.trim()} onClick={addGradeAndClass}>{addingGrade?'Adding…':newClass.trim()?'Add Grade / Class':'Add Grade'}</button>
+   <div className="grade-class-existing">
+    <strong>Current grades</strong>
+    {grades.length?<div className="grade-class-list">{grades.map(g=><article key={g.id}><div><b>Grade {g.name}</b><small>{g.classes?.length?g.classes.map((x:any)=>x.name).join(', '):'No classes added'}</small></div><span>{g.classes?.length||0} class{g.classes?.length===1?'':'es'}</span></article>)}</div>:<p className="font-size-note">No active grades found.</p>}
+   </div>
   </div>
  </details>}
 
