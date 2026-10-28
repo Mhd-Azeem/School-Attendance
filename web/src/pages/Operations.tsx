@@ -285,6 +285,12 @@ export function Settings(){
 
  return <><div className="screen-title-row"><div><h1>Settings</h1><p>{admin?'System settings and permanent student record management.':'Student record management for your assigned classes.'}</p></div></div>
 
+ {admin&&<Link to="/academic-year" className="settings-feature-link">
+  <span className="settings-feature-icon">↗</span>
+  <span><strong>Academic Year & Promotion</strong><small>Promote students, handle repeaters/leavers and reassign class teachers</small></span>
+  <ChevronDown className="settings-feature-chevron"/>
+ </Link>}
+
  {admin&&<details className="settings-form settings-accordion">
   <summary className="settings-summary"><strong>Attendance Settings</strong><span>Threshold, timezone and correction permissions</span></summary>
   <div className="settings-accordion-content">
