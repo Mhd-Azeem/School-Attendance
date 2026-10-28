@@ -9,13 +9,14 @@ const teacherLinks=[['/','Home',Home],['/attendance','Student',ClipboardCheck],[
 const adminLinks=[['/','Home',Home],['/classes','Classes',GraduationCap],['/teachers','Teachers',Users],['/reports','Reports',BarChart3],['/profile','Profile',UserRound]] as const
 const adminMenuExtras=[['/individual-attendance','Individual Attendance',ClipboardCheck],['/students','Manage Students',Users],['/calendar','Calendar',CalendarDays],['/audit','Audit',ShieldCheck],['/settings','Settings',Settings]] as const
 const teacherMenuExtras=[['/individual-attendance','Individual Attendance',ClipboardCheck],['/settings','Settings',Settings]] as const
-const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Manage Students','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/profile':'Profile','/individual-attendance':'Individual Attendance'}
+const titles:Record<string,string>={'/':'Home','/attendance':'Student Attendance','/period-attendance':'Teachers Attendance & Status','/history':'Teacher History','/classes':'Classes','/students':'Manage Students','/teachers':'Teachers Management','/reports':'Reports','/calendar':'School Calendar','/audit':'Audit Log','/settings':'Settings','/academic-year':'Academic Year & Promotion','/profile':'Profile','/individual-attendance':'Individual Attendance'}
 type Notice={id:string;title:string;text:string;tone:'warn'|'ok'|'info';backendId?:string;read?:boolean}
 type SuccessPopup={title:string;message:string}|null
 
 export function Layout(){
  const {profile,signOut}=useAuth(),loc=useLocation(),navigate=useNavigate()
  const [menuOpen,setMenuOpen]=useState(false),[notificationsOpen,setNotificationsOpen]=useState(false),[notices,setNotices]=useState<Notice[]>([]),[noticeLoading,setNoticeLoading]=useState(false),[successPopup,setSuccessPopup]=useState<SuccessPopup>(null)
+ const [academicYears,setAcademicYears]=useState<any[]>([]),[currentAcademicYear,setCurrentAcademicYear]=useState('')
  const [pullDistance,setPullDistance]=useState(0),[pullRefreshing,setPullRefreshing]=useState(false)
  const pullRef=useRef({tracking:false,startY:0,startX:0})
  const links=profile?.role==='SECTION_HEAD'?adminLinks:teacherLinks
@@ -63,6 +64,14 @@ export function Layout(){
  const title=titles[loc.pathname]||(profile?.role==='SECTION_HEAD'?'Section Head':'Teacher')
 
  useEffect(()=>{setMenuOpen(false);setNotificationsOpen(false)},[loc.pathname])
+ useEffect(()=>{
+  let active=true
+  const loadYear=()=>api<{current:any;years:any[]}>('/api/academic-year').then(x=>{if(!active)return;setAcademicYears(x.years||[]);setCurrentAcademicYear(String(x.current?.name||''))}).catch(()=>{})
+  void loadYear()
+  const changed=()=>void loadYear()
+  window.addEventListener('academic-year-changed',changed)
+  return()=>{active=false;window.removeEventListener('academic-year-changed',changed)}
+ },[profile?.id])
  useEffect(()=>{
   if(window.innerWidth>700)return
   const ignored=(target:EventTarget|null)=>{
@@ -205,7 +214,15 @@ export function Layout(){
     <header className="appbar">
      <button type="button" className="appbar-icon mobile-only" aria-label={menuOpen?'Close menu':'Open menu'} aria-expanded={menuOpen} onClick={e=>{e.preventDefault();e.stopPropagation();setNotificationsOpen(false);setMenuOpen(v=>!v)}}><Menu size={24}/></button>
      <strong className="appbar-page-title">{title}</strong>
-     <button className="appbar-icon bell-button" aria-label="Notifications" onClick={toggleNotifications}><Bell size={21}/>{notices.some(n=>n.tone==='warn')&&<span className="notification-badge">{notices.filter(n=>n.tone==='warn').length}</span>}</button>
+     <div className="appbar-actions">
+      {profile?.role==='SECTION_HEAD'&&currentAcademicYear&&<label className="academic-year-selector" title="Academic year">
+       <CalendarDays size={16}/>
+       <select aria-label="Academic year" value={new URLSearchParams(loc.search).get('year')||currentAcademicYear} onChange={e=>{const y=e.target.value;if(y===currentAcademicYear)navigate('/');else navigate('/reports?year='+encodeURIComponent(y))}}>
+        {academicYears.map(y=><option key={y.id} value={String(y.name)}>{y.name}{y.is_current?' (Current)':''}</option>)}
+       </select>
+      </label>}
+      <button className="appbar-icon bell-button" aria-label="Notifications" onClick={toggleNotifications}><Bell size={21}/>{notices.some(n=>n.tone==='warn')&&<span className="notification-badge">{notices.filter(n=>n.tone==='warn').length}</span>}</button>
+     </div>
     </header>
     {showBranding&&<section className="mobile-brand-strip" aria-label="School Attendance App">
      <img src="zahira-logo.jpg" alt="Zahira College Matale"/>
