@@ -1222,3 +1222,13 @@ section.student-delete-settings{
  .promotion-review-classes article{align-items:flex-start;flex-direction:column}
  .promotion-review-classes .secondary{width:100%;justify-content:center}
 }
+
+
+.promotion-year-history{
+ background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;margin-bottom:14px
+}
+.promotion-year-history>strong{display:block;margin-bottom:8px;font-size:calc(11px * var(--font-scale))}
+.promotion-year-history article{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #edf2ef}
+.promotion-year-history article span{font-size:calc(11px * var(--font-scale));font-weight:800}
+.promotion-year-history article .secondary{padding:7px 10px;font-size:calc(9px * var(--font-scale))}
+.promotion-year-history p{margin:0;color:var(--muted);font-size:calc(9px * var(--font-scale))}
