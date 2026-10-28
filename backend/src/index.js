@@ -82,7 +82,7 @@ export default {async fetch(req,env){
       if(!target)stmts.push(env.DB.prepare("INSERT INTO academic_years(id,name,starts_on,ends_on,is_current) VALUES(?,?,?,?,0)").bind(targetId,targetYear,targetYear+"-01-01",targetYear+"-12-31"));
       stmts.push(env.DB.prepare("INSERT INTO academic_promotions(id,from_year_id,to_year_id,status,created_by,confirmed_at) VALUES(?,?,?,'COMPLETED',?,CURRENT_TIMESTAMP)").bind(promotionId,current.id,targetId,u.id));
 
-      const seenStudents=new Set();
+      const seenStudents=new Set(),seenTeachers=new Set();
       let promoted=0,repeated=0,left=0;
       for(const map of mappings){
         const fromClass=String(map?.from_class_id||""),toClass=map?.to_class_id?String(map.to_class_id):null,teacherId=map?.teacher_id?String(map.teacher_id):null,students=Array.isArray(map?.students)?map.students:[];
@@ -91,6 +91,8 @@ export default {async fetch(req,env){
         if(!fromExists)return out({error:"source_class_not_found"},404);
         if(toClass&&!await env.DB.prepare("SELECT id FROM classes WHERE id=? AND is_active=1").bind(toClass).first())return out({error:"destination_class_not_found"},404);
         if(teacherId&&!await env.DB.prepare("SELECT id FROM users WHERE id=? AND role='TEACHER' AND is_active=1").bind(teacherId).first())return out({error:"teacher_not_found"},404);
+        if(teacherId&&seenTeachers.has(teacherId))return out({error:"teacher_assigned_to_multiple_classes"},409);
+        if(teacherId)seenTeachers.add(teacherId);
 
         stmts.push(env.DB.prepare("INSERT INTO promotion_class_mappings(id,promotion_id,from_class_id,to_class_id,new_teacher_id) VALUES(?,?,?,?,?)").bind(id(),promotionId,fromClass,toClass,teacherId));
         if(teacherId&&toClass){
@@ -131,9 +133,13 @@ export default {async fetch(req,env){
       stmts.push(env.DB.prepare("UPDATE academic_years SET is_current=0 WHERE is_current=1"));
       stmts.push(env.DB.prepare("UPDATE academic_years SET is_current=1 WHERE id=?").bind(targetId));
       stmts.push(env.DB.prepare("UPDATE teacher_class_assignments SET is_active=0"));
+      stmts.push(env.DB.prepare("DELETE FROM class_teacher_assignments"));
       for(const map of mappings){
         const toClass=map?.to_class_id?String(map.to_class_id):null,teacherId=map?.teacher_id?String(map.teacher_id):null;
-        if(teacherId&&toClass)stmts.push(env.DB.prepare("INSERT INTO teacher_class_assignments(teacher_id,class_id,assigned_by,is_active) VALUES(?,?,?,1) ON CONFLICT(teacher_id,class_id) DO UPDATE SET is_active=1,assigned_by=excluded.assigned_by").bind(teacherId,toClass,u.id));
+        if(teacherId&&toClass){
+          stmts.push(env.DB.prepare("INSERT INTO class_teacher_assignments(class_id,teacher_id,assigned_by) VALUES(?,?,?)").bind(toClass,teacherId,u.id));
+          stmts.push(env.DB.prepare("INSERT INTO teacher_class_assignments(teacher_id,class_id,assigned_by,is_active) VALUES(?,?,?,1) ON CONFLICT(teacher_id,class_id) DO UPDATE SET is_active=1,assigned_by=excluded.assigned_by").bind(teacherId,toClass,u.id));
+        }
       }
       stmts.push(env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"ACADEMIC_YEAR_PROMOTED","academic_year",targetId,JSON.stringify({from_year:current.name,to_year:targetYear,promoted,repeated,left,classes:mappings.length})));
       await env.DB.batch(stmts);
