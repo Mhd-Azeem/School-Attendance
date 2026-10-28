@@ -11,6 +11,12 @@ async function canClass(env,u,classId){if(u.role==="SECTION_HEAD")return true;re
 async function isPrimarySectionHead(env,u){if(u.role!=="SECTION_HEAD")return false;const primary=await env.DB.prepare("SELECT id FROM users WHERE role='SECTION_HEAD' ORDER BY created_at ASC LIMIT 1").first();return !!primary&&primary.id===u.id}
 async function ensureProfilePhotos(env){await env.DB.prepare("CREATE TABLE IF NOT EXISTS user_profile_photos (user_id TEXT PRIMARY KEY, data_url TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)").run()}
 async function ensureStudentNotes(env){await env.DB.prepare("CREATE TABLE IF NOT EXISTS student_notes (id TEXT PRIMARY KEY, student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE, created_by TEXT NOT NULL REFERENCES users(id), note TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_student_notes_student_created ON student_notes(student_id,created_at)").run()}
+async function ensureAcademicPromotion(env){
+ await env.DB.prepare("CREATE TABLE IF NOT EXISTS academic_promotions (id TEXT PRIMARY KEY, from_year_id TEXT NOT NULL REFERENCES academic_years(id), to_year_id TEXT NOT NULL REFERENCES academic_years(id), status TEXT NOT NULL DEFAULT 'COMPLETED' CHECK(status IN ('DRAFT','COMPLETED')), created_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, confirmed_at TEXT, UNIQUE(from_year_id,to_year_id))").run();
+ await env.DB.prepare("CREATE TABLE IF NOT EXISTS promotion_class_mappings (id TEXT PRIMARY KEY, promotion_id TEXT NOT NULL REFERENCES academic_promotions(id) ON DELETE CASCADE, from_class_id TEXT NOT NULL REFERENCES classes(id), to_class_id TEXT REFERENCES classes(id), new_teacher_id TEXT REFERENCES users(id), UNIQUE(promotion_id,from_class_id))").run();
+ await env.DB.prepare("CREATE TABLE IF NOT EXISTS promotion_students (id TEXT PRIMARY KEY, promotion_id TEXT NOT NULL REFERENCES academic_promotions(id) ON DELETE CASCADE, student_id TEXT NOT NULL REFERENCES students(id), from_class_id TEXT NOT NULL REFERENCES classes(id), to_class_id TEXT REFERENCES classes(id), outcome TEXT NOT NULL CHECK(outcome IN ('PROMOTE','REPEAT','LEFT')), UNIQUE(promotion_id,student_id))").run();
+ await env.DB.prepare("CREATE TABLE IF NOT EXISTS class_teacher_history (id TEXT PRIMARY KEY, academic_year_id TEXT NOT NULL REFERENCES academic_years(id), class_id TEXT NOT NULL REFERENCES classes(id), teacher_id TEXT NOT NULL REFERENCES users(id), assigned_by TEXT REFERENCES users(id), assigned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+}
 async function json(req){try{return await req.json()}catch{return null}}
 
 export default {async fetch(req,env){
@@ -39,6 +45,100 @@ export default {async fetch(req,env){
     }
     const u=await userFromRequest(req,env); if(!u)return out({error:"unauthorized"},401);
     if(p==="/api/auth/me"&&req.method==="GET")return out({user:u});
+    if(p==="/api/academic-year"&&req.method==="GET"){
+      await ensureAcademicPromotion(env);
+      const current=await env.DB.prepare("SELECT id,name,starts_on,ends_on,is_current FROM academic_years WHERE is_current=1 ORDER BY name DESC LIMIT 1").first();
+      const years=(await env.DB.prepare("SELECT id,name,starts_on,ends_on,is_current FROM academic_years ORDER BY name DESC").all()).results;
+      const promotions=(await env.DB.prepare("SELECT p.id,p.status,p.created_at,p.confirmed_at,fy.name from_year,ty.name to_year FROM academic_promotions p JOIN academic_years fy ON fy.id=p.from_year_id JOIN academic_years ty ON ty.id=p.to_year_id ORDER BY p.created_at DESC").all()).results;
+      return out({current,years,promotions});
+    }
+    if(u.role==="SECTION_HEAD"&&p==="/api/promotion/plan"&&req.method==="GET"){
+      await ensureAcademicPromotion(env);
+      const current=await env.DB.prepare("SELECT id,name,starts_on,ends_on FROM academic_years WHERE is_current=1 ORDER BY name DESC LIMIT 1").first();
+      if(!current)return out({error:"current_academic_year_missing"},409);
+      const classes=(await env.DB.prepare("SELECT c.id,c.grade_id,c.name,c.display_name,g.name grade_name,(SELECT COUNT(*) FROM students s WHERE s.class_id=c.id AND s.is_active=1) student_count FROM classes c JOIN grades g ON g.id=c.grade_id WHERE c.is_active=1 AND g.is_active=1 ORDER BY g.sort_order,c.display_name").all()).results;
+      for(const cls of classes){
+        const ct=await env.DB.prepare("SELECT u.id,u.full_name FROM class_teacher_assignments a JOIN users u ON u.id=a.teacher_id WHERE a.class_id=? AND u.is_active=1 LIMIT 1").bind(cls.id).first();
+        cls.class_teacher=ct||null;
+        cls.students=(await env.DB.prepare("SELECT id,admission_number,full_name,class_id FROM students WHERE class_id=? AND is_active=1 ORDER BY admission_number COLLATE NOCASE,full_name").bind(cls.id).all()).results;
+      }
+      const teachers=(await env.DB.prepare("SELECT id,full_name,username FROM users WHERE role='TEACHER' AND is_active=1 ORDER BY full_name").all()).results;
+      const n=Number(current.name),suggested_year=Number.isFinite(n)?String(n+1):String(new Date().getFullYear()+1);
+      return out({current,suggested_year,classes,teachers});
+    }
+    if(u.role==="SECTION_HEAD"&&p==="/api/promotion/execute"&&req.method==="POST"){
+      await ensureAcademicPromotion(env);
+      const b=await json(req),targetYear=String(b?.target_year||"").trim(),mappings=Array.isArray(b?.mappings)?b.mappings:[];
+      if(!/^\d{4}$/.test(targetYear)||!mappings.length)return out({error:"invalid_promotion_request"},400);
+      const current=await env.DB.prepare("SELECT id,name FROM academic_years WHERE is_current=1 ORDER BY name DESC LIMIT 1").first();
+      if(!current)return out({error:"current_academic_year_missing"},409);
+      if(String(current.name)===targetYear)return out({error:"target_year_must_be_new"},409);
+      const existing=await env.DB.prepare("SELECT p.id FROM academic_promotions p JOIN academic_years y ON y.id=p.to_year_id WHERE p.from_year_id=? AND y.name=? LIMIT 1").bind(current.id,targetYear).first();
+      if(existing)return out({error:"promotion_already_completed"},409);
+
+      let target=await env.DB.prepare("SELECT id,name FROM academic_years WHERE name=? LIMIT 1").bind(targetYear).first();
+      const targetId=target?.id||("ay-"+targetYear);
+      const promotionId=id(),stmts=[];
+      if(!target)stmts.push(env.DB.prepare("INSERT INTO academic_years(id,name,starts_on,ends_on,is_current) VALUES(?,?,?,?,0)").bind(targetId,targetYear,targetYear+"-01-01",targetYear+"-12-31"));
+      stmts.push(env.DB.prepare("INSERT INTO academic_promotions(id,from_year_id,to_year_id,status,created_by,confirmed_at) VALUES(?,?,?,'COMPLETED',?,CURRENT_TIMESTAMP)").bind(promotionId,current.id,targetId,u.id));
+
+      const seenStudents=new Set();
+      let promoted=0,repeated=0,left=0;
+      for(const map of mappings){
+        const fromClass=String(map?.from_class_id||""),toClass=map?.to_class_id?String(map.to_class_id):null,teacherId=map?.teacher_id?String(map.teacher_id):null,students=Array.isArray(map?.students)?map.students:[];
+        if(!fromClass)return out({error:"invalid_class_mapping"},400);
+        const fromExists=await env.DB.prepare("SELECT id FROM classes WHERE id=? AND is_active=1").bind(fromClass).first();
+        if(!fromExists)return out({error:"source_class_not_found"},404);
+        if(toClass&&!await env.DB.prepare("SELECT id FROM classes WHERE id=? AND is_active=1").bind(toClass).first())return out({error:"destination_class_not_found"},404);
+        if(teacherId&&!await env.DB.prepare("SELECT id FROM users WHERE id=? AND role='TEACHER' AND is_active=1").bind(teacherId).first())return out({error:"teacher_not_found"},404);
+
+        stmts.push(env.DB.prepare("INSERT INTO promotion_class_mappings(id,promotion_id,from_class_id,to_class_id,new_teacher_id) VALUES(?,?,?,?,?)").bind(id(),promotionId,fromClass,toClass,teacherId));
+        if(teacherId&&toClass){
+          stmts.push(env.DB.prepare("DELETE FROM class_teacher_assignments WHERE class_id=? OR teacher_id=?").bind(toClass,teacherId));
+          stmts.push(env.DB.prepare("INSERT INTO class_teacher_assignments(class_id,teacher_id,assigned_by) VALUES(?,?,?)").bind(toClass,teacherId,u.id));
+          stmts.push(env.DB.prepare("INSERT INTO teacher_class_assignments(teacher_id,class_id,assigned_by,is_active) VALUES(?,?,?,1) ON CONFLICT(teacher_id,class_id) DO UPDATE SET is_active=1,assigned_by=excluded.assigned_by").bind(teacherId,toClass,u.id));
+          stmts.push(env.DB.prepare("INSERT INTO class_teacher_history(id,academic_year_id,class_id,teacher_id,assigned_by) VALUES(?,?,?,?,?)").bind(id(),targetId,toClass,teacherId,u.id));
+        }
+
+        for(const decision of students){
+          const studentId=String(decision?.student_id||""),outcome=String(decision?.outcome||"");
+          if(!studentId||!["PROMOTE","REPEAT","LEFT"].includes(outcome)||seenStudents.has(studentId))return out({error:"invalid_student_decision"},400);
+          const st=await env.DB.prepare("SELECT id,class_id FROM students WHERE id=? AND is_active=1").bind(studentId).first();
+          if(!st||st.class_id!==fromClass)return out({error:"student_class_mismatch"},409);
+          seenStudents.add(studentId);
+          if(outcome==="PROMOTE"){
+            if(!toClass)return out({error:"destination_required_for_promotion"},400);
+            stmts.push(env.DB.prepare("UPDATE students SET class_id=?,is_active=1,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(toClass,studentId));
+            stmts.push(env.DB.prepare("INSERT INTO student_class_history(id,student_id,from_class_id,to_class_id,transferred_by,reason) VALUES(?,?,?,?,?,?)").bind(id(),studentId,fromClass,toClass,u.id,"Year-end promotion "+current.name+" to "+targetYear));
+            stmts.push(env.DB.prepare("INSERT INTO promotion_students(id,promotion_id,student_id,from_class_id,to_class_id,outcome) VALUES(?,?,?,?,?,'PROMOTE')").bind(id(),promotionId,studentId,fromClass,toClass));
+            promoted++;
+          }else if(outcome==="REPEAT"){
+            stmts.push(env.DB.prepare("UPDATE students SET is_active=1,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(studentId));
+            stmts.push(env.DB.prepare("INSERT INTO promotion_students(id,promotion_id,student_id,from_class_id,to_class_id,outcome) VALUES(?,?,?,?,?,'REPEAT')").bind(id(),promotionId,studentId,fromClass,fromClass));
+            repeated++;
+          }else{
+            stmts.push(env.DB.prepare("UPDATE students SET is_active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(studentId));
+            stmts.push(env.DB.prepare("INSERT INTO promotion_students(id,promotion_id,student_id,from_class_id,to_class_id,outcome) VALUES(?,?,?,?,NULL,'LEFT')").bind(id(),promotionId,studentId,fromClass));
+            left++;
+          }
+        }
+      }
+
+      const activeCount=await env.DB.prepare("SELECT COUNT(*) count FROM students WHERE is_active=1").first();
+      const expected=Number(activeCount?.count||0);
+      if(seenStudents.size!==expected)return out({error:"all_active_students_require_a_decision",expected,received:seenStudents.size},400);
+
+      stmts.push(env.DB.prepare("UPDATE academic_years SET is_current=0 WHERE is_current=1"));
+      stmts.push(env.DB.prepare("UPDATE academic_years SET is_current=1 WHERE id=?").bind(targetId));
+      stmts.push(env.DB.prepare("UPDATE teacher_class_assignments SET is_active=0"));
+      for(const map of mappings){
+        const toClass=map?.to_class_id?String(map.to_class_id):null,teacherId=map?.teacher_id?String(map.teacher_id):null;
+        if(teacherId&&toClass)stmts.push(env.DB.prepare("INSERT INTO teacher_class_assignments(teacher_id,class_id,assigned_by,is_active) VALUES(?,?,?,1) ON CONFLICT(teacher_id,class_id) DO UPDATE SET is_active=1,assigned_by=excluded.assigned_by").bind(teacherId,toClass,u.id));
+      }
+      stmts.push(env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,new_values) VALUES(?,?,?,?,?)").bind(u.id,"ACADEMIC_YEAR_PROMOTED","academic_year",targetId,JSON.stringify({from_year:current.name,to_year:targetYear,promoted,repeated,left,classes:mappings.length})));
+      await env.DB.batch(stmts);
+      return out({ok:true,promotion_id:promotionId,from_year:current.name,to_year:targetYear,promoted,repeated,left},201);
+    }
     if(p==="/api/temporary-section-heads"&&req.method==="GET"){
       if(u.role!=="SECTION_HEAD")return out({error:"forbidden"},403);
       const primary=await env.DB.prepare("SELECT id FROM users WHERE role='SECTION_HEAD' ORDER BY created_at ASC LIMIT 1").first();
