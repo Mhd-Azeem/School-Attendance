@@ -63,8 +63,9 @@ export default {async fetch(req,env){
         cls.students=(await env.DB.prepare("SELECT id,admission_number,full_name,class_id FROM students WHERE class_id=? AND is_active=1 ORDER BY admission_number COLLATE NOCASE,full_name").bind(cls.id).all()).results;
       }
       const teachers=(await env.DB.prepare("SELECT id,full_name,username FROM users WHERE role='TEACHER' AND is_active=1 ORDER BY full_name").all()).results;
+      const years=(await env.DB.prepare("SELECT id,name,is_current FROM academic_years ORDER BY name DESC").all()).results;
       const n=Number(current.name),suggested_year=Number.isFinite(n)?String(n+1):String(new Date().getFullYear()+1);
-      return out({current,suggested_year,classes,teachers});
+      return out({current,suggested_year,classes,teachers,years});
     }
     if(u.role==="SECTION_HEAD"&&p==="/api/promotion/execute"&&req.method==="POST"){
       await ensureAcademicPromotion(env);
