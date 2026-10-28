@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState} from 'react'
 import {api} from '../lib/api'
 import type {SchoolClass} from '../types'
 import {useAuth} from '../AuthContext'
-import {Link} from 'react-router-dom'
+import {Link,useSearchParams} from 'react-router-dom'
 import {AlertTriangle,ChevronDown,Search,Trash2} from 'lucide-react'
 export function History(){
  const [mode,setMode]=useState<'student'|'period'>('student'),[classes,setClasses]=useState<SchoolClass[]>([]),[classId,setClassId]=useState(''),[rows,setRows]=useState<any[]>([]),[expanded,setExpanded]=useState<string|null>(null),[studentDetails,setStudentDetails]=useState<Record<string,any[]>>({}),[loadingDetail,setLoadingDetail]=useState<string|null>(null)
@@ -44,7 +44,10 @@ export function History(){
 }
 export function Reports(){
  type Kind='student'|'individual'|'notes'|'teacher'
- const [classes,setClasses]=useState<SchoolClass[]>([]),[cid,setCid]=useState('ALL_GRADES'),[rows,setRows]=useState<any[]>([]),[studentOptions,setStudentOptions]=useState<any[]>([]),[periodRows,setPeriodRows]=useState<any[]>([]),[dailyRows,setDailyRows]=useState<any[]>([]),[noteRows,setNoteRows]=useState<any[]>([]),[kind,setKind]=useState<Kind>('student'),[studentId,setStudentId]=useState(''),[msg,setMsg]=useState(''),[from,setFrom]=useState(new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10)),[to,setTo]=useState(new Date().toISOString().slice(0,10))
+ const [searchParams]=useSearchParams(),yearParam=searchParams.get('year')||''
+ const initialYear=/^\d{4}$/.test(yearParam)?Number(yearParam):new Date().getFullYear()
+ const [classes,setClasses]=useState<SchoolClass[]>([]),[cid,setCid]=useState('ALL_GRADES'),[rows,setRows]=useState<any[]>([]),[studentOptions,setStudentOptions]=useState<any[]>([]),[periodRows,setPeriodRows]=useState<any[]>([]),[dailyRows,setDailyRows]=useState<any[]>([]),[noteRows,setNoteRows]=useState<any[]>([]),[kind,setKind]=useState<Kind>('student'),[studentId,setStudentId]=useState(''),[msg,setMsg]=useState(''),[from,setFrom]=useState(new Date(initialYear,0,1).toISOString().slice(0,10)),[to,setTo]=useState(yearParam?new Date(initialYear,11,31).toISOString().slice(0,10):new Date().toISOString().slice(0,10))
+ useEffect(()=>{if(!/^\d{4}$/.test(yearParam))return;const y=Number(yearParam);setFrom(new Date(y,0,1).toISOString().slice(0,10));setTo(new Date(y,11,31).toISOString().slice(0,10))},[yearParam])
  useEffect(()=>{api<{classes:SchoolClass[]}>('/api/classes').then(x=>setClasses(x.classes))},[])
  useEffect(()=>{if(kind!=='individual'&&kind!=='notes')return;let active=true;setStudentOptions([]);setStudentId('');setMsg('');const actualClass=cid&&cid!=='ALL_GRADES'&&!cid.startsWith('GRADE:')?cid:'';const request=kind==='notes'?api<{students:any[]}>('/api/students').then(x=>({report:x.students.map(st=>({student_id:st.id,admission_number:st.admission_number,full_name:st.full_name,display_name:st.display_name,class_id:st.class_id}))})):api<{report:any[]}>(`/api/reports?${actualClass?`class_id=${encodeURIComponent(actualClass)}`:''}`);request.then(x=>{if(!active)return;let filtered=x.report;if(actualClass)filtered=filtered.filter(r=>String(r.class_id||'')===actualClass||String(r.display_name||'')===String(classes.find(c=>c.id===actualClass)?.display_name||''));if(cid.startsWith('GRADE:'))filtered=filtered.filter(r=>String(r.display_name||'').split('-')[0].trim()===cid.slice(6));setStudentOptions(filtered);if(filtered.length)setStudentId(String(filtered[0].student_id))}).catch(()=>{if(active)setMsg('Could not load students.')});return()=>{active=false}},[kind,cid,classes])
  async function load(){
