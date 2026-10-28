@@ -10,7 +10,7 @@ type ClassPlan={
  students:Array<{id:string;admission_number:string;full_name:string;class_id:string}>
 }
 type Teacher={id:string;full_name:string;username:string}
-type PlanResponse={current:{id:string;name:string};suggested_year:string;classes:ClassPlan[];teachers:Teacher[]}
+type PlanResponse={current:{id:string;name:string};suggested_year:string;classes:ClassPlan[];teachers:Teacher[];years:Array<{id:string;name:string;is_current:number}>}
 type Mapping={from_class_id:string;to_class_id:string;teacher_id:string;students:StudentDecision[]}
 
 function nextClassId(classes:ClassPlan[],source:ClassPlan){
@@ -118,6 +118,7 @@ export function AcademicYearPromotion(){
     <button className="primary" onClick={()=>setStep(1)}>Start Year-End Promotion <ArrowRight size={17}/></button>
    </section>
    <section className="promotion-info-card"><GraduationCap/><div><strong>What this process does</strong><p>Promotes students, keeps repeaters in place, marks leavers inactive, reassigns class teachers, and preserves all historical attendance.</p></div></section>
+   <section className="promotion-year-history"><strong>Previous Years</strong>{data.years.filter(y=>!y.is_current).length?data.years.filter(y=>!y.is_current).map(y=><article key={y.id}><span>{y.name}</span><button className="secondary" onClick={()=>nav('/reports?year='+encodeURIComponent(y.name))}>View Data</button></article>):<p>No previous academic years yet.</p>}</section>
    <Link to="/settings" className="secondary promotion-settings-link">Manage Grades & Classes first</Link>
   </>}
 
