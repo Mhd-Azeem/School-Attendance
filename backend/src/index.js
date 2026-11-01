@@ -233,6 +233,45 @@ export default {async fetch(req,env){
       ).run();
       return out({ok:true,grade:{id:grade.id,name:grade.name},class:cls},201);
     }
+    const gradeDelete=p.match(/^\/api\/grades\/([^/]+)$/);
+    if(u.role==="SECTION_HEAD"&&gradeDelete&&req.method==="DELETE"){
+      const gradeId=decodeURIComponent(gradeDelete[1]);
+      const grade=await env.DB.prepare("SELECT id,name FROM grades WHERE id=?").bind(gradeId).first();
+      if(!grade)return out({error:"grade_not_found"},404);
+      const classCount=await env.DB.prepare("SELECT COUNT(*) count FROM classes WHERE grade_id=?").bind(gradeId).first();
+      if(Number(classCount?.count||0)>0)return out({error:"grade_has_classes",class_count:Number(classCount.count)},409);
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM grades WHERE id=?").bind(gradeId),
+        env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,old_values) VALUES(?,?,?,?,?)").bind(u.id,"GRADE_PERMANENTLY_DELETED","grade",gradeId,JSON.stringify({name:grade.name}))
+      ]);
+      return out({ok:true});
+    }
+
+    const classDelete=p.match(/^\/api\/classes\/([^/]+)$/);
+    if(u.role==="SECTION_HEAD"&&classDelete&&req.method==="DELETE"){
+      const classId=decodeURIComponent(classDelete[1]);
+      const cls=await env.DB.prepare("SELECT id,grade_id,name,display_name FROM classes WHERE id=?").bind(classId).first();
+      if(!cls)return out({error:"class_not_found"},404);
+      const deps=await Promise.all([
+        env.DB.prepare("SELECT COUNT(*) count FROM students WHERE class_id=?").bind(classId).first(),
+        env.DB.prepare("SELECT COUNT(*) count FROM attendance_sessions WHERE class_id=?").bind(classId).first(),
+        env.DB.prepare("SELECT COUNT(*) count FROM teacher_class_assignments WHERE class_id=?").bind(classId).first(),
+        env.DB.prepare("SELECT COUNT(*) count FROM class_teacher_assignments WHERE class_id=?").bind(classId).first(),
+        env.DB.prepare("SELECT COUNT(*) count FROM class_periods WHERE class_id=?").bind(classId).first(),
+        env.DB.prepare("SELECT COUNT(*) count FROM student_class_history WHERE from_class_id=? OR to_class_id=?").bind(classId,classId).first(),
+        env.DB.prepare("SELECT COUNT(*) count FROM promotion_class_mappings WHERE from_class_id=? OR to_class_id=?").bind(classId,classId).first(),
+        env.DB.prepare("SELECT COUNT(*) count FROM promotion_students WHERE from_class_id=? OR to_class_id=?").bind(classId,classId).first(),
+        env.DB.prepare("SELECT COUNT(*) count FROM class_teacher_history WHERE class_id=?").bind(classId).first()
+      ]);
+      const total=deps.reduce((sum,row)=>sum+Number(row?.count||0),0);
+      if(total>0)return out({error:"class_has_records",dependency_count:total},409);
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM classes WHERE id=?").bind(classId),
+        env.DB.prepare("INSERT INTO audit_logs(user_id,action,target_type,target_id,old_values) VALUES(?,?,?,?,?)").bind(u.id,"CLASS_PERMANENTLY_DELETED","class",classId,JSON.stringify({grade_id:cls.grade_id,name:cls.name,display_name:cls.display_name}))
+      ]);
+      return out({ok:true});
+    }
+
     if(p==="/api/classes"&&req.method==="GET"){
       const q=u.role==="SECTION_HEAD"?"SELECT * FROM classes WHERE is_active=1 ORDER BY display_name":"SELECT c.* FROM classes c JOIN teacher_class_assignments a ON a.class_id=c.id WHERE a.teacher_id=? AND a.is_active=1 AND c.is_active=1 ORDER BY c.display_name";
       const r=u.role==="SECTION_HEAD"?await env.DB.prepare(q).all():await env.DB.prepare(q).bind(u.id).all();return out({classes:r.results});
