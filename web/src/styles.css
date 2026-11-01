@@ -1232,3 +1232,44 @@ section.student-delete-settings{
 .promotion-year-history article span{font-size:calc(11px * var(--font-scale));font-weight:800}
 .promotion-year-history article .secondary{padding:7px 10px;font-size:calc(9px * var(--font-scale))}
 .promotion-year-history p{margin:0;color:var(--muted);font-size:calc(9px * var(--font-scale))}
+
+
+/* Settings: destructive grade/class deletion */
+.grade-delete-card{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto;
+ align-items:start!important;
+ gap:12px!important;
+}
+.grade-delete-main{display:grid;gap:10px;min-width:0}
+.grade-delete-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.grade-delete-title>div{display:grid;gap:3px;min-width:0}
+.grade-delete-title>span{
+ flex:none;padding:4px 8px;border-radius:999px;background:#e1f5ea;color:#08784f;
+ font-size:calc(9px * var(--font-scale));font-weight:800
+}
+.grade-class-delete-list{display:grid;gap:7px}
+.grade-class-delete-row{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ padding:8px 9px;border:1px solid #f0dddd;border-radius:10px;background:#fffafa
+}
+.grade-class-delete-row>div{display:grid;gap:2px}
+.grade-class-delete-row strong{font-size:calc(10px * var(--font-scale));color:var(--ink)}
+.grade-class-delete-row small{font-size:calc(8px * var(--font-scale));color:var(--muted)}
+.compact-delete,.grade-delete-button{
+ display:inline-flex!important;align-items:center;justify-content:center;gap:5px!important;
+ background:#fff1f2!important;border:1px solid #efb8bd!important;color:#b4232f!important;
+ border-radius:10px!important;font-weight:800!important;box-shadow:none!important
+}
+.compact-delete{padding:7px 9px!important;font-size:calc(8px * var(--font-scale))!important}
+.grade-delete-button{padding:9px 11px!important;font-size:calc(9px * var(--font-scale))!important}
+.compact-delete svg,.grade-delete-button svg{width:15px;height:15px}
+.compact-delete:hover:not(:disabled),.grade-delete-button:hover:not(:disabled){background:#ffe4e6!important;border-color:#e38f97!important}
+.grade-delete-button:disabled{opacity:.46!important;cursor:not-allowed}
+@media(max-width:640px){
+ .grade-delete-card{grid-template-columns:1fr}
+ .grade-delete-button{width:100%}
+ .grade-class-delete-row{align-items:flex-start;flex-direction:column}
+ .compact-delete{width:100%}
+ .grade-delete-title{align-items:flex-start}
+}
