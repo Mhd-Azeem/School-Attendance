@@ -264,7 +264,7 @@ export function Settings(){
  const [s,setS]=useState<any>({attendance_threshold:'80',school_timezone:'Asia/Colombo',teacher_correction_allowed:'false'}),[msg,setMsg]=useState(''),[error,setError]=useState('')
  const [teachers,setTeachers]=useState<any[]>([]),[teacherSearch,setTeacherSearch]=useState(''),[deletingTeacher,setDeletingTeacher]=useState<string|null>(null)
  const [tempHeads,setTempHeads]=useState<any[]>([]),[tempName,setTempName]=useState(''),[tempUsername,setTempUsername]=useState(''),[tempPassword,setTempPassword]=useState(''),[tempAllowed,setTempAllowed]=useState(false),[tempBackendReady,setTempBackendReady]=useState(true),[creatingTemp,setCreatingTemp]=useState(false)
- const [grades,setGrades]=useState<any[]>([]),[newGrade,setNewGrade]=useState(''),[newClass,setNewClass]=useState(''),[addingGrade,setAddingGrade]=useState(false)
+ const [grades,setGrades]=useState<any[]>([]),[newGrade,setNewGrade]=useState(''),[newClass,setNewClass]=useState(''),[addingGrade,setAddingGrade]=useState(false),[deletingGrade,setDeletingGrade]=useState<string|null>(null),[deletingClass,setDeletingClass]=useState<string|null>(null)
  const [fontSize,setFontSize]=useState<'small'|'default'|'large'|'extra-large'>(()=>{const v=localStorage.getItem('school-attendance-font-size');return v==='small'||v==='large'||v==='extra-large'?v:'default'})
  function changeFontSize(value:'small'|'default'|'large'|'extra-large'){setFontSize(value);localStorage.setItem('school-attendance-font-size',value);document.documentElement.dataset.fontSize=value}
  useEffect(()=>{if(admin){api<{settings:any}>('/api/settings').then(x=>setS(x.settings)).catch(()=>setError('Could not load system settings.'));api<{teachers:any[]}>('/api/teachers').then(x=>setTeachers(x.teachers)).catch(()=>setError('Could not load teachers.'));api<{grades:any[]}>('/api/grades').then(x=>setGrades(x.grades)).catch(()=>setError('Could not load grades and classes.'));api<{accounts:any[]}>('/api/temporary-section-heads').then(x=>{setTempHeads(x.accounts);setTempAllowed(true);setTempBackendReady(true)}).catch((e:any)=>{if(e?.message==='primary_section_head_only'||e?.message==='forbidden')setTempAllowed(false);else{setTempAllowed(false);setTempBackendReady(false)}})}},[admin])
@@ -284,6 +284,35 @@ export function Settings(){
    else if(e?.message==='class_display_name_exists')setError('A class with that display name already exists.')
    else setError('Could not add this grade or class.')
   }finally{setAddingGrade(false)}
+ }
+ async function deleteClass(cls:any){
+  const typed=prompt(`Permanently delete class ${cls.display_name}?\n\nType "${cls.display_name}" to confirm.`)
+  if(typed===null)return
+  if(typed.trim().toLowerCase()!==String(cls.display_name).toLowerCase()){setError('Class name did not match.');return}
+  setDeletingClass(cls.id);setError('');setMsg('')
+  try{
+   await api(`/api/classes/${encodeURIComponent(cls.id)}`,{method:'DELETE'})
+   const refreshed=await api<{grades:any[]}>('/api/grades')
+   setGrades(refreshed.grades)
+   setMsg(`Class ${cls.display_name} was permanently deleted ✓`)
+  }catch(e:any){
+   if(e?.message==='class_has_records')setError('This class cannot be deleted because students, attendance, teacher assignments, timetable or history still depend on it.')
+   else setError('Could not permanently delete this class.')
+  }finally{setDeletingClass(null)}
+ }
+ async function deleteGrade(g:any){
+  const typed=prompt(`Permanently delete Grade ${g.name}?\n\nType "${g.name}" to confirm.`)
+  if(typed===null)return
+  if(typed.trim().toLowerCase()!==String(g.name).toLowerCase()){setError('Grade name did not match.');return}
+  setDeletingGrade(g.id);setError('');setMsg('')
+  try{
+   await api(`/api/grades/${encodeURIComponent(g.id)}`,{method:'DELETE'})
+   setGrades(xs=>xs.filter(x=>x.id!==g.id))
+   setMsg(`Grade ${g.name} was permanently deleted ✓`)
+  }catch(e:any){
+   if(e?.message==='grade_has_classes')setError('Delete all classes inside this grade first.')
+   else setError('Could not permanently delete this grade.')
+  }finally{setDeletingGrade(null)}
  }
 
  return <><div className="screen-title-row"><div><h1>Settings</h1><p>{admin?'System settings and permanent student record management.':'Student record management for your assigned classes.'}</p></div></div>
@@ -315,7 +344,13 @@ export function Settings(){
    <button type="button" className="primary" disabled={addingGrade||!newGrade.trim()} onClick={addGradeAndClass}>{addingGrade?'Adding…':newClass.trim()?'Add Grade / Class':'Add Grade'}</button>
    <div className="grade-class-existing">
     <strong>Current grades</strong>
-    {grades.length?<div className="grade-class-list">{grades.map(g=><article key={g.id}><div><b>Grade {g.name}</b><small>{g.classes?.length?g.classes.map((x:any)=>x.name).join(', '):'No classes added'}</small></div><span>{g.classes?.length||0} class{g.classes?.length===1?'':'es'}</span></article>)}</div>:<p className="font-size-note">No active grades found.</p>}
+    {grades.length?<div className="grade-class-list">{grades.map(g=><article className="grade-delete-card" key={g.id}>
+     <div className="grade-delete-main">
+      <div className="grade-delete-title"><div><b>Grade {g.name}</b><small>{g.classes?.length?g.classes.map((x:any)=>x.name).join(', '):'No classes added'}</small></div><span>{g.classes?.length||0} class{g.classes?.length===1?'':'es'}</span></div>
+      {!!g.classes?.length&&<div className="grade-class-delete-list">{g.classes.map((cls:any)=><div key={cls.id} className="grade-class-delete-row"><div><strong>{cls.display_name}</strong><small>Class {cls.name}</small></div><button type="button" className="permanent-delete compact-delete" disabled={deletingClass===cls.id} onClick={()=>deleteClass(cls)}><Trash2/>{deletingClass===cls.id?'Deleting…':'Delete Class'}</button></div>)}</div>}
+     </div>
+     <button type="button" className="permanent-delete grade-delete-button" disabled={deletingGrade===g.id||!!g.classes?.length} onClick={()=>deleteGrade(g)} title={g.classes?.length?'Delete all classes first':'Delete grade permanently'}><Trash2/>{deletingGrade===g.id?'Deleting…':'Delete Grade'}</button>
+    </article>)}</div>:<p className="font-size-note">No active grades found.</p>}
    </div>
   </div>
  </details>}
