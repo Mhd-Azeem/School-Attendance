@@ -1273,3 +1273,30 @@ section.student-delete-settings{
  .compact-delete{width:100%}
  .grade-delete-title{align-items:flex-start}
 }
+
+
+/* Classes tab: Grade -> Class -> Status accordion */
+.grade-status-groups{display:grid;gap:12px}
+.grade-status-card{
+ background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+ box-shadow:0 5px 18px #19583c08
+}
+.grade-status-header{
+ width:100%;border:0;background:linear-gradient(135deg,#f5fbf8,#edf8f3);
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ padding:15px 16px;color:var(--ink);text-align:left
+}
+.grade-status-header>div{display:grid;gap:4px}
+.grade-status-header strong{font-size:calc(14px * var(--font-scale));color:#185b43}
+.grade-status-header small{font-size:calc(9px * var(--font-scale));color:var(--muted)}
+.grade-status-header>svg{flex:none;color:#348569;transition:transform .2s ease}
+.grade-status-header>svg.rotated{transform:rotate(180deg)}
+.grade-status-classes{border-top:1px solid #e3eee8}
+.grade-status-classes .class-table-head{border-radius:0}
+.grade-status-classes .class-table-item:last-child{border-bottom:0}
+.grade-status-classes .class-table-row-button{padding-left:18px}
+@media(max-width:700px){
+ .grade-status-header{padding:13px 12px}
+ .grade-status-header strong{font-size:calc(13px * var(--font-scale))}
+ .grade-status-classes .class-table-row-button{padding-left:12px}
+}
